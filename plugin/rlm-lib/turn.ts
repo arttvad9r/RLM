@@ -97,6 +97,7 @@ async function userTurnForAssistantMessage(
 export class TurnGovernor {
   private readonly cache = new Map<string, SessionCache>()
   private readonly beginExecTails = new Map<string, Promise<void>>()
+  private readonly invalidatedSessions = new Set<string>()
   private readonly wallLimitMs: number
 
   constructor() {
@@ -115,6 +116,12 @@ export class TurnGovernor {
     return TEST_TURN_CTX_CHARS > 0 ? TEST_TURN_CTX_CHARS : MAX_CONTEXT_CHARS_PER_TURN
   }
 
+  private assertSessionValid(sessionID: string): void {
+    if (!this.invalidatedSessions.has(sessionID)) return
+    this.cache.delete(sessionID)
+    throw new RlmError("RUNTIME_ERROR", "RLM session was deleted while resolving turn authority")
+  }
+
   private async withBeginExecLock<T>(sessionID: string, task: () => Promise<T>): Promise<T> {
     const previous = this.beginExecTails.get(sessionID) ?? Promise.resolve()
     let release!: () => void
@@ -123,10 +130,17 @@ export class TurnGovernor {
     this.beginExecTails.set(sessionID, tail)
     await previous
     try {
-      return await task()
+      this.assertSessionValid(sessionID)
+      const result = await task()
+      this.assertSessionValid(sessionID)
+      return result
     } finally {
       release()
-      if (this.beginExecTails.get(sessionID) === tail) this.beginExecTails.delete(sessionID)
+      if (this.invalidatedSessions.has(sessionID)) this.cache.delete(sessionID)
+      if (this.beginExecTails.get(sessionID) === tail) {
+        this.beginExecTails.delete(sessionID)
+        this.invalidatedSessions.delete(sessionID)
+      }
     }
   }
 
@@ -258,7 +272,8 @@ export class TurnGovernor {
   }
 
   evictSession(sessionID: string): boolean {
-    this.beginExecTails.delete(sessionID)
+    if (this.beginExecTails.has(sessionID)) this.invalidatedSessions.add(sessionID)
+    else this.invalidatedSessions.delete(sessionID)
     return this.cache.delete(sessionID)
   }
 
