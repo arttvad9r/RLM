@@ -23,6 +23,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export async function readRlmHostConfig(env: NodeJS.ProcessEnv = process.env): Promise<RlmHostConfig | undefined> {
   const configHome = env.XDG_CONFIG_HOME?.trim()
   if (!configHome) return undefined
+  if (!isAbsolute(configHome)) {
+    throw new RlmError("CONTEXT_DENIED", "XDG_CONFIG_HOME must be an absolute path for RLM host authority")
+  }
   const file = join(configHome, "opencode", "agents", RLM_HOST_CONFIG_FILENAME)
   let text: string
   try {
