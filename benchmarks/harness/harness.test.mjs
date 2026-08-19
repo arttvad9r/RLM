@@ -15,6 +15,8 @@ const groundTruthBytes = Buffer.from(JSON.stringify(groundTruth))
 const groundTruthSha256 = sha256(groundTruthBytes)
 const taskPromptBytes = Buffer.from("canonical task\n")
 const taskPromptSha256 = sha256(taskPromptBytes)
+const experimentConfigBytes = Buffer.from('{"temperature":0.2,"reasoning":"high"}\n')
+const experimentConfigSha256 = sha256(experimentConfigBytes)
 const corpusEntries = [
   { name: "d.ts", content: "D" },
   { name: "b.ts", content: "B" },
@@ -34,6 +36,7 @@ const baseRun = {
   mode: "normal",
   source_commit: "a".repeat(40),
   task_prompt_sha256: taskPromptSha256,
+  experiment_config_sha256: experimentConfigSha256,
   model: { provider_id: "provider", model_id: "model", variant: "high" },
   started_at: "2026-08-18T12:00:00Z",
   finished_at: "2026-08-18T12:00:01Z",
@@ -52,9 +55,23 @@ const baseRun = {
   },
 }
 
-function score(run, corpusHash = corpusAggregateSha256, promptHash = taskPromptSha256) {
+function score(
+  run,
+  corpusHash = corpusAggregateSha256,
+  promptHash = taskPromptSha256,
+  configHash = experimentConfigSha256,
+) {
   const runBytes = Buffer.from(JSON.stringify(run))
-  return scoreRun({ groundTruth, manifest, run, groundTruthSha256, corpusAggregateSha256: corpusHash, taskPromptSha256: promptHash, runSha256: sha256(runBytes) })
+  return scoreRun({
+    groundTruth,
+    manifest,
+    run,
+    groundTruthSha256,
+    corpusAggregateSha256: corpusHash,
+    taskPromptSha256: promptHash,
+    experimentConfigSha256: configHash,
+    runSha256: sha256(runBytes),
+  })
 }
 
 test("corpus aggregate matches verifier ordering independent of input order", () => {
@@ -91,6 +108,13 @@ test("rejects scoring when run prompt hash is not canonical", () => {
   assert.throws(() => score({ ...baseRun, task_prompt_sha256: "f".repeat(64) }), /does not match canonical task prompt/)
 })
 
+test("rejects scoring when run experiment config hash is not shared", () => {
+  assert.throws(
+    () => score({ ...baseRun, experiment_config_sha256: "f".repeat(64) }),
+    /does not match shared experiment config/,
+  )
+})
+
 test("rejects rlm mode without observed rlm_exec usage", () => {
   assert.throws(
     () => score({ ...baseRun, run_id: "rlm-zero", mode: "rlm" }),
@@ -124,6 +148,7 @@ test("compares only fair normal-vs-rlm runs", () => {
   assert.equal(comparison.efficiency.rlm_minus_normal.wall_ms, 500)
   assert.equal(comparison.integrity.corpus_aggregate_sha256, corpusAggregateSha256)
   assert.equal(comparison.integrity.task_prompt_sha256, taskPromptSha256)
+  assert.equal(comparison.integrity.experiment_config_sha256, experimentConfigSha256)
 })
 
 test("rejects A/B comparison when root model differs", () => {
@@ -141,4 +166,25 @@ test("rejects A/B comparison when root model differs", () => {
     },
   })
   assert.throws(() => compareScores(normal, rlm), /model\/variant mismatch/)
+})
+
+test("rejects A/B comparison when shared experiment config differs", () => {
+  const normal = score(baseRun)
+  const otherConfig = sha256(Buffer.from('{"temperature":0.7,"reasoning":"high"}\n'))
+  const rlm = score(
+    {
+      ...baseRun,
+      run_id: "rlm-config-mismatch",
+      mode: "rlm",
+      experiment_config_sha256: otherConfig,
+      usage: {
+        ...baseRun.usage,
+        rlm_exec_count: 1,
+      },
+    },
+    corpusAggregateSha256,
+    taskPromptSha256,
+    otherConfig,
+  )
+  assert.throws(() => compareScores(normal, rlm), /experiment config hash mismatch/)
 })
