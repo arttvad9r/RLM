@@ -91,6 +91,13 @@ test("rejects scoring when run prompt hash is not canonical", () => {
   assert.throws(() => score({ ...baseRun, task_prompt_sha256: "f".repeat(64) }), /does not match canonical task prompt/)
 })
 
+test("rejects rlm mode without observed rlm_exec usage", () => {
+  assert.throws(
+    () => score({ ...baseRun, run_id: "rlm-zero", mode: "rlm" }),
+    /rlm run must have usage\.rlm_exec_count > 0/,
+  )
+})
+
 test("compares only fair normal-vs-rlm runs", () => {
   const normal = score(baseRun)
   const rlm = score({
