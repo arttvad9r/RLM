@@ -80,6 +80,7 @@ async function lastUserMessageID(
 
 export class TurnGovernor {
   private readonly cache = new Map<string, SessionCache>()
+  private readonly beginExecTails = new Map<string, Promise<void>>()
   private readonly wallLimitMs: number
 
   constructor() {
@@ -96,6 +97,29 @@ export class TurnGovernor {
 
   ctxCharsLimit(): number {
     return TEST_TURN_CTX_CHARS > 0 ? TEST_TURN_CTX_CHARS : MAX_CONTEXT_CHARS_PER_TURN
+  }
+
+  /**
+   * Serialize beginExec state transitions only within one root session. Without
+   * this guard two async session.messages() lookups can complete out of order,
+   * allowing an older turn lookup to reset the cache after a newer turn has
+   * already started. Different sessions remain fully independent.
+   */
+  private async withBeginExecLock<T>(sessionID: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.beginExecTails.get(sessionID) ?? Promise.resolve()
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const tail = previous.then(() => gate)
+    this.beginExecTails.set(sessionID, tail)
+    await previous
+    try {
+      return await task()
+    } finally {
+      release()
+      if (this.beginExecTails.get(sessionID) === tail) this.beginExecTails.delete(sessionID)
+    }
   }
 
   private async cacheFor(
@@ -151,31 +175,33 @@ export class TurnGovernor {
     messageID: string,
     requestedWallMs = 0,
   ): Promise<{ allowed: boolean; reason?: string; snapshot: TurnSnapshot; reservedWallMs: number }> {
-    const c = await this.cacheFor(client, sessionID, directory, messageID)
-    const snap = this.snap(c)
-    if (c.budget.execCount >= this.execsLimit()) {
-      return {
-        allowed: false,
-        reason: `maximum ${this.execsLimit()} rlm_exec per user turn reached`,
-        snapshot: snap,
-        reservedWallMs: 0,
+    return this.withBeginExecLock(sessionID, async () => {
+      const c = await this.cacheFor(client, sessionID, directory, messageID)
+      const snap = this.snap(c)
+      if (c.budget.execCount >= this.execsLimit()) {
+        return {
+          allowed: false,
+          reason: `maximum ${this.execsLimit()} rlm_exec per user turn reached`,
+          snapshot: snap,
+          reservedWallMs: 0,
+        }
       }
-    }
-    const available = this.wallAvailable(c)
-    if (available <= 0) {
-      return {
-        allowed: false,
-        reason: "rlm_exec wall budget for this user turn is exhausted",
-        snapshot: snap,
-        reservedWallMs: 0,
+      const available = this.wallAvailable(c)
+      if (available <= 0) {
+        return {
+          allowed: false,
+          reason: "rlm_exec wall budget for this user turn is exhausted",
+          snapshot: snap,
+          reservedWallMs: 0,
+        }
       }
-    }
 
-    const safeRequest = Number.isFinite(requestedWallMs) && requestedWallMs > 0 ? requestedWallMs : 0
-    const reservedWallMs = Math.min(safeRequest, available)
-    c.budget.execCount++
-    c.budget.wallReservedMs += reservedWallMs
-    return { allowed: true, snapshot: this.snap(c), reservedWallMs }
+      const safeRequest = Number.isFinite(requestedWallMs) && requestedWallMs > 0 ? requestedWallMs : 0
+      const reservedWallMs = Math.min(safeRequest, available)
+      c.budget.execCount++
+      c.budget.wallReservedMs += reservedWallMs
+      return { allowed: true, snapshot: this.snap(c), reservedWallMs }
+    })
   }
 
   /** Manual/test seam. Production exec starts reserve atomically in beginExec. */
