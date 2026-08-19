@@ -28,11 +28,21 @@ import { confinePath } from "./workspace.ts"
 type Client = { file: unknown }
 
 const BINARY_EXTENSIONS = new Set([
-  ".7z", ".a", ".bin", ".bz2", ".class", ".dat", ".dll", ".dmg", ".doc", ".docx",
-  ".exe", ".gz", ".iso", ".jar", ".lib", ".o", ".obj", ".odt", ".ods", ".odp",
-  ".pdf", ".ppt", ".pptx", ".pyc", ".pyo", ".rar", ".so", ".tar", ".wasm", ".war",
-  ".xls", ".xlsx", ".zip",
+  ".7z", ".a", ".aac", ".avi", ".avif", ".bin", ".bmp", ".bz2", ".class", ".dat", ".db",
+  ".dll", ".dmg", ".doc", ".docx", ".eot", ".exe", ".flac", ".gif", ".gz", ".heic", ".heif",
+  ".ico", ".iso", ".jar", ".jpeg", ".jpg", ".lib", ".m4a", ".m4v", ".mkv", ".mov", ".mp3",
+  ".mp4", ".mpeg", ".mpg", ".o", ".obj", ".odt", ".ods", ".odp", ".ogg", ".ogv", ".otf",
+  ".pdf", ".png", ".ppt", ".pptx", ".pyc", ".pyo", ".rar", ".so", ".sqlite", ".sqlite3",
+  ".svgz", ".tar", ".tif", ".tiff", ".ttf", ".war", ".wasm", ".wav", ".webm", ".webp",
+  ".woff", ".woff2", ".xls", ".xlsx", ".zip",
 ])
+
+class NonTextFileError extends RlmError {
+  constructor(relative: string, reason: string) {
+    super("READ_FAILED", `context.read: ${reason}: ${relative}`)
+    this.name = "NonTextFileError"
+  }
+}
 
 export async function executeContextOperation(
   _client: Client,
@@ -71,6 +81,10 @@ function readFailure(relative: string, reason: string): RlmError {
   return new RlmError("READ_FAILED", `context.read: ${reason}: ${relative}`)
 }
 
+function nonTextFailure(relative: string, reason: string): NonTextFileError {
+  return new NonTextFileError(relative, reason)
+}
+
 async function readText(
   state: RlmRunState,
   policy: RlmContextPolicy,
@@ -87,14 +101,14 @@ async function readText(
     throw readFailure(relative || inputPath, "cannot stat file")
   }
   if (!info.isFile()) throw readFailure(relative || inputPath, "target is not a regular file")
+  if (BINARY_EXTENSIONS.has(path.extname(relative).toLowerCase())) {
+    throw nonTextFailure(relative, "binary file extension is not allowed")
+  }
   if (info.size > policy.maxReadBytes) {
     throw new RlmError(
       "BUDGET_EXCEEDED",
       `context.read: file is ${info.size} bytes and exceeds the approved limit of ${policy.maxReadBytes}; file content was not materialized`,
     )
-  }
-  if (BINARY_EXTENSIONS.has(path.extname(relative).toLowerCase())) {
-    throw readFailure(relative, "binary file extension is not allowed")
   }
 
   const buffer = Buffer.allocUnsafe(policy.maxReadBytes + 1)
@@ -121,12 +135,12 @@ async function readText(
   }
 
   const bytes = buffer.subarray(0, total)
-  if (bytes.includes(0)) throw readFailure(relative, "binary/NUL content is not allowed")
+  if (bytes.includes(0)) throw nonTextFailure(relative, "binary/NUL content is not allowed")
   let content: string
   try {
     content = new TextDecoder("utf-8", { fatal: true }).decode(bytes)
   } catch {
-    throw readFailure(relative, "non-UTF-8 content is not allowed")
+    throw nonTextFailure(relative, "non-UTF-8 content is not allowed")
   }
   return { relative, content, bytes: total }
 }
@@ -177,7 +191,13 @@ async function opGrep(
     const files = await opFiles(state, policy, "")
     const matches: GrepMatch[] = []
     for (const file of files) {
-      const item = await readText(state, policy, file)
+      let item: Awaited<ReturnType<typeof readText>>
+      try {
+        item = await readText(state, policy, file)
+      } catch (error) {
+        if (error instanceof NonTextFileError) continue
+        throw error
+      }
       const lines = item.content.split("\n")
       const remaining = policy.maxGrepMatches - matches.length
       const indices = await evaluator.scan(item.content, remaining)
