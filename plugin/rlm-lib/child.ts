@@ -4,7 +4,8 @@
  *
  * Behavior:
  *   - child session with parentID = root sessionID, same directory;
- *   - inherits the root provider/model from the parent user message;
+ *   - inherits the root provider/model from the user message that owns the
+ *     active RLM turn, never from a later user message that arrived meanwhile;
  *   - zero tools: every available tool ID mapped to false;
  *   - blocking session.prompt, text-only extraction, explicit error throw;
  *   - abort linked to the provided AbortSignal;
@@ -12,6 +13,7 @@
  */
 import { RlmError, toErrorInfo } from "./errors.ts"
 import { registerRlmChild, unregisterRlmChild } from "./child-system.ts"
+import { turnGovernor } from "./turn.ts"
 import type { Logger } from "./types.ts"
 
 type Client = {
@@ -19,7 +21,7 @@ type Client = {
     messages: (args: {
       path: { id: string }
       query: { directory: string }
-    }) => Promise<{ error?: unknown; data?: Array<{ info: { role: string; model?: unknown } }> }>
+    }) => Promise<{ error?: unknown; data?: Array<{ info: { id?: string; role: string; model?: unknown } }> }>
     create: (args: {
       body: { parentID: string; title: string }
       query: { directory: string }
@@ -57,6 +59,8 @@ export interface ChildLlmInput {
   directory: string
   title?: string
   signal?: AbortSignal
+  /** Internal test seam; production resolves the active turn from TurnGovernor. */
+  parentTurnID?: string
 }
 
 export interface ChildLlmResult {
@@ -77,9 +81,14 @@ export async function callChildLlm(
   const { prompt, parentSessionID, directory: dir, signal } = input
   let childSessionID: string | undefined
 
-  // 1. Resolve the provider/model supported by the pinned SDK from the
-  // parent session's current user message. Do not invent unsupported model
-  // fields such as a variant that is absent from @opencode-ai/sdk 1.1.26.
+  // 1. Resolve the provider/model supported by the pinned SDK from the exact
+  // user turn already authorized for this rlm_exec. A newer user message can
+  // arrive while the sandbox is still running, so selecting the globally last
+  // user message would cross the execution's turn boundary.
+  const parentTurnID = input.parentTurnID ?? turnGovernor.snapshot(parentSessionID)?.turnId
+  if (!parentTurnID) {
+    throw new RlmError("CHILD_FAILED", "could not resolve active RLM user turn for child model inheritance")
+  }
   const modelRes = await client.session.messages({
     path: { id: parentSessionID },
     query: { directory: dir },
@@ -87,10 +96,12 @@ export async function callChildLlm(
   if (modelRes.error) {
     throw new RlmError("CHILD_FAILED", `failed to read parent messages: ${JSON.stringify(modelRes.error)}`)
   }
-  const lastUser = [...(modelRes.data ?? [])].reverse().find((m) => m.info.role === "user")
-  const rawModel = lastUser?.info.model as { providerID: string; modelID: string } | undefined
+  const rootUser = (modelRes.data ?? []).find((message) => (
+    message.info.role === "user" && message.info.id === parentTurnID
+  ))
+  const rawModel = rootUser?.info.model as { providerID: string; modelID: string } | undefined
   if (!rawModel?.providerID || !rawModel?.modelID) {
-    throw new RlmError("CHILD_FAILED", "could not resolve root model (no user message with model found)")
+    throw new RlmError("CHILD_FAILED", `could not resolve root model for RLM user turn ${parentTurnID}`)
   }
   const rootModel = { providerID: rawModel.providerID, modelID: rawModel.modelID }
 
