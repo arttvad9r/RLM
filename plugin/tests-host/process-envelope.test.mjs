@@ -118,3 +118,55 @@ process.stdin.on("data", (chunk) => {
     await rm(bin, { recursive: true, force: true })
   }
 })
+
+test("sandbox stdin EPIPE fails the exec without crashing the host process", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "rlm-envelope-epipe-root-"))
+  const bin = await mkdtemp(path.join(tmpdir(), "rlm-envelope-epipe-bin-"))
+  const previousPath = process.env.PATH
+  const fakeDeno = path.join(bin, "deno")
+  const sessionID = `root-epipe-${Date.now()}-${Math.random()}`
+  try {
+    await writeFile(
+      fakeDeno,
+      `#!/usr/bin/env bash
+IFS= read -r line
+if [[ "$line" =~ \\"channel\\":\\"([a-f0-9]{48})\\" ]]; then
+  channel="\${BASH_REMATCH[1]}"
+else
+  exit 2
+fi
+exec 0<&-
+printf 'RLM1:%s:{"v":1,"type":"context","id":"closed-stdin","operation":"files","query":""}\\n' "$channel"
+sleep 0.5
+`,
+    )
+    await chmod(fakeDeno, 0o755)
+    process.env.PATH = `${bin}${path.delimiter}${previousPath ?? ""}`
+
+    await assert.rejects(
+      () => executeRlmExec(clientFor("user-epipe"), {
+        code: 'return "must-not-succeed"',
+        parentSessionID: sessionID,
+        directory: root,
+        worktree: root,
+        messageID: "assistant-epipe",
+        abort: new AbortController().signal,
+        log,
+      }),
+      (error) => error instanceof RlmError
+        && error.code === "RUNTIME_ERROR"
+        && /sandbox stdin failed/.test(error.message)
+        && /EPIPE|broken pipe/i.test(error.message),
+    )
+
+    const snapshot = turnGovernor.snapshot(sessionID)
+    assert.ok(snapshot, "turn state should remain observable after stdin failure")
+    assert.ok(snapshot.wallMsRemaining > 500, `expected released wall reservation, remaining=${snapshot.wallMsRemaining}`)
+  } finally {
+    turnGovernor.evictSession(sessionID)
+    if (previousPath === undefined) delete process.env.PATH
+    else process.env.PATH = previousPath
+    await rm(root, { recursive: true, force: true })
+    await rm(bin, { recursive: true, force: true })
+  }
+})
