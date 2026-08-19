@@ -2,6 +2,8 @@
 
 Store durable benchmark inputs and scored reports here. A run input is evidence produced by one completed model run; the scorer never invokes a model and never exposes ground truth during inference.
 
+The hardened run/score/comparison contract is schema version 2. Version 2 adds the shared experiment-configuration fingerprint and requires observed `rlm_exec` use for RLM-mode evidence. Version 1 records must not be mixed into version 2 comparisons.
+
 The canonical semantic-state task prompt is `benchmarks/tasks/semantic-state-audit.md`. Both sides of an A/B pair must use those exact bytes; the scorer computes the hash itself and rejects a run that claims a different prompt hash.
 
 Before inference, create one shared experiment-config file containing every non-mode inference/runtime setting that must remain identical across the A/B pair but is not already captured by `source_commit` and `model` (for example provider generation settings, reasoning controls and root runtime flags). Reuse the exact same file bytes for both arms. The scorer hashes that file and rejects a run whose `experiment_config_sha256` differs.
@@ -10,7 +12,7 @@ Required run format:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "benchmark_id": "semantic-state-audit-v2-192",
   "run_id": "20260818-normal-01",
   "mode": "normal",
@@ -60,4 +62,4 @@ node benchmarks/harness/compare-runs.mjs \
   --out benchmarks/runs/<pair>.comparison.json
 ```
 
-The scorer fails closed on task-prompt hash mismatch, experiment-config hash mismatch, ground-truth hash mismatch, corpus aggregate mismatch, unknown/duplicate prediction paths, invalid usage data, RLM-mode records without observed `rlm_exec`, or malformed run metadata. The comparator rejects pairs with different prompt/config/corpus/ground-truth data, source commit or root model/variant. It reports deltas only; adoption policy remains outside the scorer.
+The scorer fails closed on legacy/wrong schema versions, task-prompt hash mismatch, experiment-config hash mismatch, ground-truth hash mismatch, corpus aggregate mismatch, unknown/duplicate prediction paths, invalid usage data, RLM-mode records without observed `rlm_exec`, or malformed run metadata. The comparator accepts only schema-v2 score reports and rejects pairs with different prompt/config/corpus/ground-truth data, source commit or root model/variant. It reports deltas only; adoption policy remains outside the scorer.
