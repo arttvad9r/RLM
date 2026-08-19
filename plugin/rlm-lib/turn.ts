@@ -49,6 +49,7 @@ interface SessionCache {
   lastUserMessageID: string | null
   lastMessageID: string | null
   lastMessageIndex: number
+  activeExecCount: number
   budget: TurnBudget
 }
 
@@ -137,7 +138,7 @@ export class TurnGovernor {
   ): Promise<SessionCache> {
     let c = this.cache.get(sessionID)
     if (!c) {
-      c = { lastUserMessageID: null, lastMessageID: null, lastMessageIndex: -1, budget: emptyBudget() }
+      c = { lastUserMessageID: null, lastMessageID: null, lastMessageIndex: -1, activeExecCount: 0, budget: emptyBudget() }
       this.cache.set(sessionID, c)
     }
     if (c.lastMessageID === messageID && c.lastUserMessageID !== null) return c
@@ -153,6 +154,12 @@ export class TurnGovernor {
       throw new RlmError("RUNTIME_ERROR", "conflicting assistant message identity at the current RLM turn boundary")
     }
     if (c.lastUserMessageID !== resolved.turnId) {
+      if (c.activeExecCount > 0) {
+        throw new RlmError(
+          "RUNTIME_ERROR",
+          `refusing RLM user-turn transition while ${c.activeExecCount} prior-turn exec(s) are still active`,
+        )
+      }
       c.lastUserMessageID = resolved.turnId
       c.budget = emptyBudget()
     }
@@ -202,6 +209,7 @@ export class TurnGovernor {
       const reservedWallMs = Math.min(safeRequest, available)
       c.budget.execCount++
       c.budget.wallReservedMs += reservedWallMs
+      if (reservedWallMs > 0) c.activeExecCount++
       return { allowed: true, snapshot: this.snap(c), reservedWallMs }
     })
   }
@@ -246,6 +254,7 @@ export class TurnGovernor {
     const safeReservedMs = Number.isFinite(reservedMs) && reservedMs > 0 ? reservedMs : 0
     c.budget.wallMsUsed += safeWallMs
     c.budget.wallReservedMs = Math.max(0, c.budget.wallReservedMs - safeReservedMs)
+    if (safeReservedMs > 0) c.activeExecCount = Math.max(0, c.activeExecCount - 1)
   }
 
   evictSession(sessionID: string): boolean {
