@@ -96,7 +96,7 @@ export function validateBundle({
 
 export function validateRun(run, benchmarkId, pathToClass, taskPromptSha256, experimentConfigSha256) {
   invariant(isRecord(run), "run must be an object")
-  invariant(run.schema_version === 1, "run schema_version must be 1")
+  invariant(run.schema_version === 2, "run schema_version must be 2")
   invariant(run.benchmark_id === benchmarkId, "run benchmark_id does not match ground truth")
   invariant(typeof run.run_id === "string" && run.run_id.trim().length > 0, "run_id is required")
   invariant(MODES.has(run.mode), "run mode must be normal or rlm")
@@ -184,7 +184,7 @@ export function scoreRun({
   const totalTokens = run.usage.root_input_tokens + run.usage.root_output_tokens + run.usage.child_input_tokens + run.usage.child_output_tokens
 
   return {
-    schema_version: 1,
+    schema_version: 2,
     kind: "rlm_benchmark_score",
     benchmark_id: groundTruth.benchmark,
     run: {
@@ -233,6 +233,7 @@ function sameModel(a, b) {
 
 export function compareScores(normal, rlm) {
   invariant(normal?.kind === "rlm_benchmark_score" && rlm?.kind === "rlm_benchmark_score", "inputs must be scored benchmark reports")
+  invariant(normal.schema_version === 2 && rlm.schema_version === 2, "score schema_version must be 2")
   invariant(normal.run?.mode === "normal", "normal report must have mode=normal")
   invariant(rlm.run?.mode === "rlm", "rlm report must have mode=rlm")
   invariant(normal.benchmark_id === rlm.benchmark_id, "benchmark_id mismatch")
@@ -251,7 +252,7 @@ export function compareScores(normal, rlm) {
     : round6(rlm.run.usage.cost_usd - normal.run.usage.cost_usd)
 
   return {
-    schema_version: 1,
+    schema_version: 2,
     kind: "rlm_ab_comparison",
     benchmark_id: normal.benchmark_id,
     source_commit: normal.run.source_commit,
