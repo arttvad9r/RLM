@@ -1,0 +1,3135 @@
+{
+  "benchmark": "semantic-state-audit-v3-384",
+  "seed": 20260817,
+  "invariant": "business/domain/UI result state changed before successful awaited async backend/worker completion",
+  "cases": [
+    {
+      "path": "src/cam964027.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "pool",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"pool\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/keel631497.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "nucleus",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"nucleus\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/winch735295.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "folio",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"folio\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/throttle211393.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "matrix",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"matrix\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/hinge408216.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "unit",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"unit\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/oar201334.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "outputSet",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"outputSet\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/girder297244.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "balance",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"balance\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/dome778353.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "dataset",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"dataset\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/jib152219.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "schema",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"schema\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/mast720692.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "matrix",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"matrix\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/rudder606373.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "index",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"index\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/zinc128028.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "granule",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"granule\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/bracket910090.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "schema",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"schema\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/quay543899.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "nucleus",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"nucleus\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/nozzle527561.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "window",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"window\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/quay286115.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "unit",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"unit\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/mast265443.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "schema",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"schema\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/aperture403002.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "unit",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"unit\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/jib670177.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "vector",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"vector\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/zinc200626.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "dataset",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"dataset\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/bracket762030.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "pool",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"pool\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/gasket416784.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "outputSet",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"outputSet\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/sail551129.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "pool",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"pool\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/rudder891730.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "unit",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"unit\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/baffle758231.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "envelope",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"envelope\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/ejector985760.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "envelope",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"envelope\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/helix714593.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "granule",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"granule\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/aperture233074.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "dataset",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"dataset\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/piston470397.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "nucleus",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"nucleus\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/flange666801.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "dataset",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"dataset\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/quay426182.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "outputSet",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"outputSet\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/keel494216.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "aggregate",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"aggregate\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/girder322136.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "ledger",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"ledger\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/nozzle384089.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "pool",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"pool\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/upright343765.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "unit",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"unit\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/dowel490866.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "aggregate",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"aggregate\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/dome741737.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "ledger",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"ledger\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/gasket331116.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "balance",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"balance\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/hinge538998.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "catalog",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"catalog\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/keel792075.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "folio",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"folio\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/oar848542.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "schema",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"schema\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/flange707911.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "matrix",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"matrix\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/sail695504.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "nucleus",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"nucleus\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/upright511408.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "quota",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"quota\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/latch990243.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "pool",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"pool\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/yoke141970.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "record",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"record\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/flange545248.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "ledger",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"ledger\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/anchor959080.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "nucleus",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"nucleus\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/cable217908.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "buffering",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/gasket447344.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "queuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/vane518843.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "matrix",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cam238459.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "ledger",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/flange402809.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "seeding",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/vane886237.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "aggregate",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/gasket691004.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "arming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/throttle696279.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "outputSet",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/jib405851.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "pool",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/sail486736.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "priming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/zinc740112.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "quota",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cam921122.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "catalog",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/mast281648.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "granule",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/piston895421.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "draining",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/vane576460.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "queuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/oar675402.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "arming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rudder339773.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "enqueuing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rudder795102.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "indexing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rudder260002.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "buffering",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/winch350742.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "arming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/quay940128.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "granule",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/gasket378109.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "priming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/upright189800.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "throttling",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/keel851724.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "queuing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ember454587.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "arming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/anchor840049.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "ledger",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ember927641.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "outputSet",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/zinc743765.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "reticulating",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/aperture683282.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "indexing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/vane599627.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "queuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/latch909242.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "calibrating",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/oar258162.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "latching",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cam849479.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "outputSet",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/throttle330839.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "index",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cable759249.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "matrix",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/throttle828881.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "throttling",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/piston538972.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "indexing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/piston909490.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "queuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/girder566879.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "envelope",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix308162.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "throttling",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dowel710426.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "indexing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/aperture640381.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "draining",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/anchor357007.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "schema",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/anchor102133.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "seeding",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/upright224321.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "latching",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/jib957410.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "buffering",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dowel946683.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "enqueuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/keel629249.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "nucleus",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/quay686400.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "ledger",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/nozzle113440.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "vector",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/quay943130.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "arming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/yoke644146.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "flushing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/keel936910.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "grounding",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/jib867655.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "outputSet",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/aperture863569.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "seeding",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/anchor664693.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "envelope",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/sail572429.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "reticulating",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/nozzle718765.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "latching",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/mast785142.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "indexing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ember400903.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "grounding",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/baffle638647.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "arming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/nozzle804921.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "seeding",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/oar211547.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "enqueuing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/zinc565922.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "seeding",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/oar543010.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "indexing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/aperture233226.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "enqueuing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/zinc603347.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "buffering",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/nozzle617301.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "indexing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix661489.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "index",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix214767.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "latching",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/bracket331006.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "matrix",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rudder706412.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "enqueuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/sail117665.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "draining",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/aperture562600.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "seeding",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix101961.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "draining",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/fuse572507.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "calibrating",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/throttle756109.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "record",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/jib314700.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "granule",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ember193579.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "hydrating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dowel322175.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "index",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/upright888304.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "enqueuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/inlet658602.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "envelope",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/oar700153.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "mounting",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/jib311523.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "vector",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/hinge214474.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "latching",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cam841324.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "reticulating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/baffle425618.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "grounding",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/zinc260704.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "hydrating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/bracket863877.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "priming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/yoke685486.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "mounting",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/mast801150.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "pool",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix451560.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "catalog",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cable832087.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "catalog",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dome125219.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "queuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/hinge468262.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "record",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/upright505382.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "ledger",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dowel555713.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "grounding",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/nozzle895013.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "window",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/mast598782.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "flushing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/quay970603.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "mounting",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/jib104205.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "queuing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/inlet117293.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "flushing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/oar263189.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "priming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/mast328735.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "nucleus",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/jib673900.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "envelope",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/inlet567809.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "quota",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cable140737.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "hydrating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/bracket980431.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "outputSet",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ejector810121.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "catalog",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/anchor452590.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "arming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix177855.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "quota",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/latch359630.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "hydrating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dome650477.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "balance",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/quay835385.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "grounding",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/winch533898.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "hydrating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/keel987584.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "priming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/keel314271.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "arming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/throttle258567.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "priming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/vane781440.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "calibrating",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix972990.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "indexing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/quay643839.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "enqueuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/zinc952967.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "draining",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/inlet876320.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "queuing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/inlet618273.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "seeding",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/baffle442391.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "table",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cable727866.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "enqueuing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cable759241.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "index",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/winch861682.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "window",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/zinc265920.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "buffering",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rudder888359.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "vector",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dowel704540.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "latching",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cam300408.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "calibrating",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/latch410246.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-108",
+      "state_field": "arming",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/helix401590.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "arming",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/cam160391.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "reticulating",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/flange492529.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "throttling",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/quay564851.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "hydrating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rudder845846.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "folio",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/yoke873357.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "mounting",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ember675445.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "calibrating",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/sail264733.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-107",
+      "state_field": "draining",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/girder763463.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "vector",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ejector548380.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "throttling",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/upright798255.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "envelope",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/vane676231.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector214609.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dome675872.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar814985.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dome696309.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/latch573760.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "envelope",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flange733918.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder669041.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle765719.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/anchor916424.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cam276223.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/hinge985895.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "ledger",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/piston642202.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "schema",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/aperture261517.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable810404.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flange280676.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder461728.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/gasket542687.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/upright458901.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dome525250.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/aperture265346.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/keel209804.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector276277.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "pool",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/inlet401399.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sail327482.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle340750.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder180964.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zinc335590.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "ledger",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder587873.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/upright426589.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/latch949281.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sail871100.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder196773.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle106731.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/gasket784404.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sail280035.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/keel361891.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "pool",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/yoke124504.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/vane454789.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flange112815.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/yoke907460.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flange806211.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "ledger",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/vane443244.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zinc373205.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/anchor149102.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable876765.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast702234.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector834817.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable791609.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/latch445827.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/upright977171.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sail588640.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/fuse463387.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/jib285722.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "schema",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flange188359.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/vane211466.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/inlet617795.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/girder272685.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/vane341952.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector561746.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/bracket621991.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle348172.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar252359.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast608747.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder549850.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/girder646861.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ember438046.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/gasket977007.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/girder770050.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/upright703182.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "envelope",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/girder225893.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dowel808046.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flange237450.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cam666722.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/hinge892630.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "ledger",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable859049.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/bracket174680.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle797724.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar257386.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/winch128489.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/vane441713.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zinc494821.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "envelope",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/bracket568136.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast561338.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zinc734928.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cam941298.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/winch708147.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/helix180962.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "ledger",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/aperture391603.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "envelope",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/throttle816196.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "schema",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/yoke889473.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/bracket135969.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/hinge983282.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/keel396256.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/aperture718430.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dowel287164.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/throttle854489.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dome507985.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dowel750927.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/girder129604.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/piston348416.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle635298.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/vane675171.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flange667165.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/aperture363397.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/jib610147.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector725580.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ember950053.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/keel730027.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zinc478101.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/gasket916887.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/upright505867.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/helix553646.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/quay717623.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/quay831881.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar390377.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/anchor646538.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/helix909989.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/bracket202594.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar501799.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sail378699.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/quay697106.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/helix263421.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/keel658272.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "ledger",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cam711906.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/latch207182.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/jib959377.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/baffle539345.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/yoke629101.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/aperture243570.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector738114.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/quay805303.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ember524424.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar400109.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "pool",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/baffle367032.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "record",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/anchor711344.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle775228.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder867866.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/girder346903.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "pool",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast786809.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "schema",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dome643972.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dowel585443.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "schema",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/inlet950072.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/yoke367415.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cam585327.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/yoke995021.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zinc433063.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar501484.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast568971.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/baffle699990.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast920489.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "pool",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector309941.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/hinge917634.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "pool",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast460172.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dowel245265.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rudder118998.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "schema",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/helix631402.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "schema",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/gasket618799.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sail112590.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/vane401872.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/winch886308.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dome422975.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "nucleus",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/mast590811.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "granule",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/gasket295872.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "aggregate",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/hinge476717.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/oar467776.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/throttle873677.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/baffle440418.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cam643111.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "envelope",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable771733.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/piston780304.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "vector",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/baffle455034.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dowel779674.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "matrix",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/upright247583.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/winch169998.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/piston358405.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/nozzle438058.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "catalog",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/upright841226.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "outputSet",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zinc231342.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/fuse749573.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "table",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable260468.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/inlet457923.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "quota",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/fuse590736.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "dataset",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ejector445203.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "envelope",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable991599.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "index",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/throttle855664.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "window",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/winch287935.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "pool",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/aperture449865.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cable571848.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "ledger",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/piston494601.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "unit",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/throttle562783.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "folio",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/api.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-backend-support",
+      "state_field": "(none)",
+      "async_operation": null,
+      "reason": "backend/mock implementation without corresponding domain/UI result-state mutation"
+    }
+  ],
+  "expected_violation_paths": [
+    "src/cam964027.ts",
+    "src/keel631497.ts",
+    "src/winch735295.ts",
+    "src/throttle211393.ts",
+    "src/hinge408216.ts",
+    "src/oar201334.ts",
+    "src/girder297244.ts",
+    "src/dome778353.ts",
+    "src/jib152219.ts",
+    "src/mast720692.ts",
+    "src/rudder606373.ts",
+    "src/zinc128028.ts",
+    "src/bracket910090.ts",
+    "src/quay543899.ts",
+    "src/nozzle527561.ts",
+    "src/quay286115.ts",
+    "src/mast265443.ts",
+    "src/aperture403002.ts",
+    "src/jib670177.ts",
+    "src/zinc200626.ts",
+    "src/bracket762030.ts",
+    "src/gasket416784.ts",
+    "src/sail551129.ts",
+    "src/rudder891730.ts",
+    "src/baffle758231.ts",
+    "src/ejector985760.ts",
+    "src/helix714593.ts",
+    "src/aperture233074.ts",
+    "src/piston470397.ts",
+    "src/flange666801.ts",
+    "src/quay426182.ts",
+    "src/keel494216.ts",
+    "src/girder322136.ts",
+    "src/nozzle384089.ts",
+    "src/upright343765.ts",
+    "src/dowel490866.ts",
+    "src/dome741737.ts",
+    "src/gasket331116.ts",
+    "src/hinge538998.ts",
+    "src/keel792075.ts",
+    "src/oar848542.ts",
+    "src/flange707911.ts",
+    "src/sail695504.ts",
+    "src/upright511408.ts",
+    "src/latch990243.ts",
+    "src/yoke141970.ts",
+    "src/flange545248.ts",
+    "src/anchor959080.ts"
+  ],
+  "counts": {
+    "violation": 48,
+    "decoy": 144,
+    "neutral": 192,
+    "total": 384
+  }
+}

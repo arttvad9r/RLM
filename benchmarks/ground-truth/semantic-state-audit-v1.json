@@ -1,0 +1,795 @@
+{
+  "benchmark": "semantic-state-audit-v1",
+  "seed": 20260815,
+  "invariant": "business/domain/UI result state changed before successful awaited async backend/worker completion",
+  "cases": [
+    {
+      "path": "src/slot2012.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "entries",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"entries\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/deck8344.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "payload",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"payload\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/rollup6122.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "records",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"records\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/zone3284.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "value",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"value\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/flow2759.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-3",
+      "state_field": "report",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"report\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/cache9864.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "list",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"list\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/cache9784.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-5",
+      "state_field": "total",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"total\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/rollup3577.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-6",
+      "state_field": "total",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"total\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/view2076.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "count",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"count\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/view3536.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-4",
+      "state_field": "results",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"results\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/view7089.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-2",
+      "state_field": "count",
+      "async_operation": "backend.command",
+      "reason": "observable result state \"count\" is mutated before the awaited backend.command() completes"
+    },
+    {
+      "path": "src/board4893.ts",
+      "class": "violation",
+      "scenario_subtype": "violation-1",
+      "state_field": "entries",
+      "async_operation": "worker.command",
+      "reason": "observable result state \"entries\" is mutated before the awaited worker.command() completes"
+    },
+    {
+      "path": "src/panel1163.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "uploading",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ledger8863.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "summary",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/sheet3388.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "payload",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rollup6957.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "refreshing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dock4432.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "list",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/queue8657.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "uploading",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/slot5178.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "records",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/banner1110.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "loading",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ledger6701.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "pending",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/badge3395.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "report",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ledger3357.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "refreshing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/flow1270.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "value",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/view2546.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "refreshing",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/slot9190.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "uploading",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/stage6784.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "items",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/registry5656.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "report",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/registry5787.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "entries",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ticker8715.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "count",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ledger3385.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "submitting",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/store8172.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "results",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/sink3088.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "summary",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/bundle8318.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "list",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/bundle1700.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "pending",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/feed4707.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-106",
+      "state_field": "records",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/feed2638.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "uploading",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rollup6073.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "refreshing",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dock5083.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "payload",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/panel5006.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "starting",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/ticker3007.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-105",
+      "state_field": "loading",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/queue6735.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-103",
+      "state_field": "saving",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/deck8533.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "output",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/rollup7180.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-101",
+      "state_field": "balance",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/banner7622.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-102",
+      "state_field": "value",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/flow2025.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "balance",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/store4389.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-104",
+      "state_field": "items",
+      "async_operation": "backend.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/dock4369.ts",
+      "class": "decoy",
+      "scenario_subtype": "decoy-100",
+      "state_field": "pending",
+      "async_operation": "worker.command",
+      "reason": "not a violation: lifecycle/local state or result updated only after successful completion"
+    },
+    {
+      "path": "src/feed5868.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "count",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ledger9771.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "report",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/deck1149.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "records",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/badge5136.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "entries",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/grid8588.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "output",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/meter9935.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "output",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/slot2170.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rollup9273.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "rows",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flow8228.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "results",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/panel9019.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "output",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/dock7703.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "output",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/panel6209.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "report",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/grid1579.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "report",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zone3364.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "results",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/stage3171.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/queue7752.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "payload",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cache9249.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "summary",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/meter1200.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "output",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/view6220.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "summary",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/rollup3950.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "results",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flow2272.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sink4754.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "payload",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/registry7983.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "value",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ledger7215.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "total",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/slot7834.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "payload",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/panel9882.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "report",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/queue9347.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "records",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/badge9205.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "payload",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sheet8140.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "value",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flow3463.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "output",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sheet9171.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "output",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ticker4846.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/tray9259.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "results",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/meter4021.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "list",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/sink5363.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "total",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/flow6831.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "balance",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/ledger1825.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "report",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/badge5979.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "rows",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/panel7017.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "count",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/bundle4988.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "entries",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/stage2031.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "payload",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/deck6431.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "records",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/feed4216.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-200",
+      "state_field": "value",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cache8352.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-203",
+      "state_field": "rows",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/zone9526.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "records",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/meter2569.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-202",
+      "state_field": "results",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/cache6841.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-201",
+      "state_field": "rows",
+      "async_operation": null,
+      "reason": "no async backend/worker operation"
+    },
+    {
+      "path": "src/api.ts",
+      "class": "neutral",
+      "scenario_subtype": "neutral-backend-support",
+      "state_field": "(none)",
+      "async_operation": null,
+      "reason": "backend/mock implementation without corresponding domain/UI result-state mutation"
+    }
+  ],
+  "expected_violation_paths": [
+    "src/slot2012.ts",
+    "src/deck8344.ts",
+    "src/rollup6122.ts",
+    "src/zone3284.ts",
+    "src/flow2759.ts",
+    "src/cache9864.ts",
+    "src/cache9784.ts",
+    "src/rollup3577.ts",
+    "src/view2076.ts",
+    "src/view3536.ts",
+    "src/view7089.ts",
+    "src/board4893.ts"
+  ],
+  "counts": {
+    "violation": 12,
+    "decoy": 36,
+    "neutral": 48,
+    "total": 96
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "benchmark_id": "semantic-state-audit-v2-192",
+  "version": "v2-192",
+  "seed": 20260816,
+  "counts": {
+    "violation": 24,
+    "decoy": 72,
+    "neutral": 96,
+    "total": 192
+  },
+  "sha256": {
+    "generator": "5d7ca77799fdd59639d153ef9f90024a7ca2d15a52ed40f3cbc40921d0bb6437",
+    "ground_truth": "11e232b179af287b8b20e8c039697dd02e61e91753166a4335a98e683deaadcf",
+    "corpus_aggregate": "452407259a4c12b73f0f5e6dc38405462afc441822730f7011f2d93e705cd8de"
+  },
+  "generated_file_count": 192
+}
