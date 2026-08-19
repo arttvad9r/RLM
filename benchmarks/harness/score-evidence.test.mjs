@@ -82,3 +82,20 @@ test("A/B comparator rejects inconsistent ground-truth counts and reused run has
   rlmHash.integrity.run_sha256 = normalHash.integrity.run_sha256
   assert.throws(() => compareScores(normalHash, rlmHash), /distinct run_sha256 values/)
 })
+
+test("corpus aggregate uses the verifier's locale-independent code-unit order", async () => {
+  const { createHash } = await import("node:crypto")
+  const { corpusAggregate } = await import("./lib.mjs")
+  const entries = [
+    { name: "Z.ts", content: "Z" },
+    { name: "a.ts", content: "a" },
+    { name: "A.ts", content: "A" },
+  ]
+  const hash = createHash("sha256")
+  for (const entry of [...entries].sort((a, b) => a.name === b.name ? 0 : a.name < b.name ? -1 : 1)) {
+    hash.update(entry.name)
+    hash.update("\n")
+    hash.update(entry.content)
+  }
+  assert.equal(corpusAggregate(entries), hash.digest("hex"))
+})
