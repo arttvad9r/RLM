@@ -34,9 +34,11 @@ The verification scripts bind generator source, ground truth, corpus aggregate a
 
 ## Run records
 
-`harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt and ground truth. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
+`harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt, shared experiment configuration and ground truth. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
 
-Run records can carry root/child token usage, RLM context/call telemetry, cost and wall time. The harness is an evaluator; it deliberately does not embed a particular model provider or downstream project runtime.
+Before inference, freeze one shared experiment-config file containing every non-mode inference/runtime setting that is not already represented by the source revision and root model identity. Both arms must use the exact same bytes. The scorer binds each run to that file's SHA-256 and the comparator rejects mismatched configuration identities.
+
+Run records can carry root/child token usage, RLM context/call telemetry, cost and wall time. An RLM-mode run must record at least one observed `rlm_exec`; merely making the tool available is not RLM execution evidence. The harness is an evaluator; it deliberately does not embed a particular model provider or downstream project runtime.
 
 Example scoring shape:
 
@@ -46,6 +48,7 @@ node benchmarks/harness/score-run.mjs \
   --manifest benchmarks/manifests/semantic-state-audit-v1.json \
   --corpus benchmarks/corpora/semantic-state-audit-v1 \
   --task-prompt benchmarks/tasks/semantic-state-audit.md \
+  --experiment-config /path/to/shared-experiment-config.json \
   --run /path/to/run.json \
   --out /path/to/score.json
 ```
@@ -63,5 +66,5 @@ node benchmarks/harness/compare-runs.mjs \
 
 - Models must never receive benchmark ground truth or manifests as runtime context.
 - Standalone RLM runs must set the trusted host context root to the exact corpus workspace. Keeping ground truth merely in a sibling directory is not an isolation boundary.
-- Corpus, task prompt and benchmark identity must remain unchanged across A/B arms.
+- Corpus, task prompt, source revision, root model/variant and shared experiment-config bytes must remain unchanged across A/B arms; only RLM availability/use may differ.
 - Downstream integrations may build their own A/B runners around this harness, but project-specific Planner/Worker contracts do not belong in this standalone tree.
