@@ -39,7 +39,8 @@ async function canonicalize(pathValue: string, requireExisting: boolean): Promis
  *   - session directory for ordinary non-git sessions.
  *
  * Host config authority cannot be overridden by ambient environment. Explicit
- * host roots may intentionally differ from the OpenCode session directory.
+ * host roots may intentionally differ from the OpenCode session directory but
+ * must be absolute so authority never depends on the host process cwd.
  * Fallback OpenCode roots must contain the session directory. Filesystem root
  * and the user's HOME are always rejected.
  */
@@ -50,6 +51,9 @@ export async function resolveWorkspaceRoot(
   const hostConfig = await readRlmHostConfig()
   const envRoot = process.env.OPENCODE_RLM_CONTEXT_ROOT?.trim()
   const explicitRoot = hostConfig?.context_root?.trim() || envRoot
+  if (explicitRoot && !path.isAbsolute(explicitRoot)) {
+    throw new RlmError("CONTEXT_DENIED", "rlm_exec: explicit context root must be an absolute path")
+  }
   const hasWorktree = Boolean(worktree && worktree !== "/" && worktree !== "")
   const preferred = explicitRoot || (hasWorktree ? worktree : directory)
   const canonical = await canonicalize(preferred, Boolean(explicitRoot))

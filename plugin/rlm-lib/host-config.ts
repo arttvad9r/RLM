@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises"
-import { join } from "node:path"
+import { isAbsolute, join } from "node:path"
 import { RlmError } from "./errors.ts"
 
 export const RLM_HOST_CONFIG_FILENAME = ".rlm-host.json"
@@ -23,6 +23,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export async function readRlmHostConfig(env: NodeJS.ProcessEnv = process.env): Promise<RlmHostConfig | undefined> {
   const configHome = env.XDG_CONFIG_HOME?.trim()
   if (!configHome) return undefined
+  if (!isAbsolute(configHome)) {
+    throw new RlmError("CONTEXT_DENIED", "XDG_CONFIG_HOME must be an absolute path for RLM host authority")
+  }
   const file = join(configHome, "opencode", "agents", RLM_HOST_CONFIG_FILENAME)
   let text: string
   try {
@@ -41,6 +44,9 @@ export async function readRlmHostConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (!isRecord(raw) || raw.version !== 1 || typeof raw.context_root !== "string" || raw.context_root.trim().length === 0) {
     throw new RlmError("CONTEXT_DENIED", "RLM host config has an invalid authority envelope")
+  }
+  if (!isAbsolute(raw.context_root)) {
+    throw new RlmError("CONTEXT_DENIED", "RLM host config context_root must be an absolute path")
   }
   const keys = Object.keys(raw)
   if (keys.some((key) => !["version", "context_root", "context_policy"].includes(key))) {

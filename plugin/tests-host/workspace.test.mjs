@@ -42,9 +42,24 @@ test("host config fails closed on malformed or unexpected authority fields", asy
       () => readRlmHostConfig({ XDG_CONFIG_HOME: config }),
       (error) => error instanceof RlmError && error.code === "CONTEXT_DENIED" && /unexpected properties/.test(error.message),
     )
+
+    await writeFile(file, JSON.stringify({ version: 1, context_root: "relative/project" }))
+    await assert.rejects(
+      () => readRlmHostConfig({ XDG_CONFIG_HOME: config }),
+      (error) => error instanceof RlmError && error.code === "CONTEXT_DENIED" && /context_root must be an absolute path/.test(error.message),
+    )
   } finally {
     await rm(config, { recursive: true, force: true })
   }
+})
+
+test("relative XDG config root is rejected instead of selecting authority relative to process cwd", async () => {
+  await assert.rejects(
+    () => readRlmHostConfig({ XDG_CONFIG_HOME: "relative-config" }),
+    (error) => error instanceof RlmError
+      && error.code === "CONTEXT_DENIED"
+      && /XDG_CONFIG_HOME must be an absolute path/.test(error.message),
+  )
 })
 
 test("host config root takes precedence over ambient root authority", async () => {
@@ -67,6 +82,20 @@ test("host config root takes precedence over ambient root authority", async () =
     await rm(config, { recursive: true, force: true })
     await rm(approved, { recursive: true, force: true })
     await rm(ambient, { recursive: true, force: true })
+    await rm(session, { recursive: true, force: true })
+  }
+})
+
+test("relative environment context root is rejected instead of depending on process cwd", async () => {
+  const session = await mkdtemp(path.join(tmpdir(), "rlm-relative-env-session-"))
+  try {
+    await withProcessEnv({ XDG_CONFIG_HOME: undefined, OPENCODE_RLM_CONTEXT_ROOT: "." }, async () => {
+      await assert.rejects(
+        () => resolveWorkspaceRoot(session, "/"),
+        (error) => error instanceof RlmError && error.code === "CONTEXT_DENIED" && /explicit context root must be an absolute path/.test(error.message),
+      )
+    })
+  } finally {
     await rm(session, { recursive: true, force: true })
   }
 })
