@@ -5,6 +5,8 @@
  * OpenCode SDK's assistant-message ID, so turn identity is resolved as the
  * nearest preceding user message for that exact assistant message rather than
  * from whichever user message happens to be latest when an async lookup ends.
+ * Active executions retain their captured turn state across a later user-turn
+ * transition so child/context/wall accounting cannot leak into the new turn.
  * Session cache entries are evicted only from the authoritative OpenCode
  * session.deleted lifecycle event; no TTL/LRU can reset active authority.
  */
@@ -45,11 +47,17 @@ interface TurnBudget {
   wallReservedMs: number
 }
 
+interface TurnState {
+  turnId: string
+  budget: TurnBudget
+  activeExecCount: number
+}
+
 interface SessionCache {
-  lastUserMessageID: string | null
   lastMessageID: string | null
   lastMessageIndex: number
-  budget: TurnBudget
+  current: TurnState | null
+  retired: Map<string, TurnState>
 }
 
 type SessionMessagesClient = {
@@ -129,18 +137,23 @@ export class TurnGovernor {
     }
   }
 
-  private async cacheFor(
+  private session(sessionID: string): SessionCache {
+    let c = this.cache.get(sessionID)
+    if (!c) {
+      c = { lastMessageID: null, lastMessageIndex: -1, current: null, retired: new Map() }
+      this.cache.set(sessionID, c)
+    }
+    return c
+  }
+
+  private async turnFor(
     client: SessionMessagesClient,
     sessionID: string,
     directory: string,
     messageID: string,
-  ): Promise<SessionCache> {
-    let c = this.cache.get(sessionID)
-    if (!c) {
-      c = { lastUserMessageID: null, lastMessageID: null, lastMessageIndex: -1, budget: emptyBudget() }
-      this.cache.set(sessionID, c)
-    }
-    if (c.lastMessageID === messageID && c.lastUserMessageID !== null) return c
+  ): Promise<TurnState> {
+    const c = this.session(sessionID)
+    if (c.lastMessageID === messageID && c.current !== null) return c.current
 
     const resolved = await userTurnForAssistantMessage(client, sessionID, directory, messageID)
     if (resolved.messageIndex < c.lastMessageIndex) {
@@ -152,32 +165,42 @@ export class TurnGovernor {
     if (resolved.messageIndex === c.lastMessageIndex && c.lastMessageID !== null && c.lastMessageID !== messageID) {
       throw new RlmError("RUNTIME_ERROR", "conflicting assistant message identity at the current RLM turn boundary")
     }
-    if (c.lastUserMessageID !== resolved.turnId) {
-      c.lastUserMessageID = resolved.turnId
-      c.budget = emptyBudget()
+
+    if (c.current?.turnId !== resolved.turnId) {
+      if (c.current && c.current.activeExecCount > 0) {
+        c.retired.set(c.current.turnId, c.current)
+      }
+      c.current = { turnId: resolved.turnId, budget: emptyBudget(), activeExecCount: 0 }
     }
     c.lastMessageID = messageID
     c.lastMessageIndex = resolved.messageIndex
-    return c
+    return c.current
   }
 
-  private wallAvailable(c: SessionCache): number {
-    return Math.max(0, this.wallLimitMs - c.budget.wallMsUsed - c.budget.wallReservedMs)
+  private stateForTurn(sessionID: string, turnId: string): TurnState | undefined {
+    const c = this.cache.get(sessionID)
+    if (!c) return undefined
+    if (c.current?.turnId === turnId) return c.current
+    return c.retired.get(turnId)
   }
 
-  private snap(c: SessionCache): TurnSnapshot {
+  private wallAvailable(turn: TurnState): number {
+    return Math.max(0, this.wallLimitMs - turn.budget.wallMsUsed - turn.budget.wallReservedMs)
+  }
+
+  private snap(turn: TurnState): TurnSnapshot {
     return {
-      turnId: c.lastUserMessageID ?? "",
-      execCount: c.budget.execCount,
-      childCallCount: c.budget.childCallCount,
-      contextCallCount: c.budget.contextCallCount,
-      contextCharsSent: c.budget.contextCharsSent,
-      wallMsUsed: c.budget.wallMsUsed,
-      execsRemaining: Math.max(0, this.execsLimit() - c.budget.execCount),
-      childCallsRemaining: Math.max(0, MAX_CHILD_CALLS_PER_TURN - c.budget.childCallCount),
-      contextCallsRemaining: Math.max(0, this.ctxCallsLimit() - c.budget.contextCallCount),
-      contextCharsRemaining: Math.max(0, this.ctxCharsLimit() - c.budget.contextCharsSent),
-      wallMsRemaining: this.wallAvailable(c),
+      turnId: turn.turnId,
+      execCount: turn.budget.execCount,
+      childCallCount: turn.budget.childCallCount,
+      contextCallCount: turn.budget.contextCallCount,
+      contextCharsSent: turn.budget.contextCharsSent,
+      wallMsUsed: turn.budget.wallMsUsed,
+      execsRemaining: Math.max(0, this.execsLimit() - turn.budget.execCount),
+      childCallsRemaining: Math.max(0, MAX_CHILD_CALLS_PER_TURN - turn.budget.childCallCount),
+      contextCallsRemaining: Math.max(0, this.ctxCallsLimit() - turn.budget.contextCallCount),
+      contextCharsRemaining: Math.max(0, this.ctxCharsLimit() - turn.budget.contextCharsSent),
+      wallMsRemaining: this.wallAvailable(turn),
     }
   }
 
@@ -189,63 +212,110 @@ export class TurnGovernor {
     requestedWallMs = 0,
   ): Promise<{ allowed: boolean; reason?: string; snapshot: TurnSnapshot; reservedWallMs: number }> {
     return this.withBeginExecLock(sessionID, async () => {
-      const c = await this.cacheFor(client, sessionID, directory, messageID)
-      const snap = this.snap(c)
-      if (c.budget.execCount >= this.execsLimit()) {
+      const turn = await this.turnFor(client, sessionID, directory, messageID)
+      const snap = this.snap(turn)
+      if (turn.budget.execCount >= this.execsLimit()) {
         return { allowed: false, reason: `maximum ${this.execsLimit()} rlm_exec per user turn reached`, snapshot: snap, reservedWallMs: 0 }
       }
-      const available = this.wallAvailable(c)
+      const available = this.wallAvailable(turn)
       if (available <= 0) {
         return { allowed: false, reason: "rlm_exec wall budget for this user turn is exhausted", snapshot: snap, reservedWallMs: 0 }
       }
       const safeRequest = Number.isFinite(requestedWallMs) && requestedWallMs > 0 ? requestedWallMs : 0
       const reservedWallMs = Math.min(safeRequest, available)
-      c.budget.execCount++
-      c.budget.wallReservedMs += reservedWallMs
-      return { allowed: true, snapshot: this.snap(c), reservedWallMs }
+      turn.budget.execCount++
+      turn.budget.wallReservedMs += reservedWallMs
+      turn.activeExecCount++
+      return { allowed: true, snapshot: this.snap(turn), reservedWallMs }
     })
   }
 
+  /** Manual/test seam for the currently authoritative turn. */
   reserveExec(sessionID: string, ms: number): void {
-    const c = this.cache.get(sessionID)
-    if (!c) return
+    const turn = this.cache.get(sessionID)?.current
+    if (!turn) return
     const safeMs = Number.isFinite(ms) && ms > 0 ? ms : 0
-    c.budget.wallReservedMs += safeMs
+    turn.budget.wallReservedMs += safeMs
   }
 
+  /** Current-turn seams retained for governor unit tests and administrative inspection. */
   childAllowed(sessionID: string): boolean {
-    const c = this.cache.get(sessionID)
-    return Boolean(c && c.lastUserMessageID !== null && c.budget.childCallCount < MAX_CHILD_CALLS_PER_TURN)
+    const turn = this.cache.get(sessionID)?.current
+    return Boolean(turn && turn.budget.childCallCount < MAX_CHILD_CALLS_PER_TURN)
   }
 
   registerChildStart(sessionID: string): void {
-    const c = this.cache.get(sessionID)
-    if (c && c.lastUserMessageID !== null) c.budget.childCallCount++
+    const turn = this.cache.get(sessionID)?.current
+    if (turn) turn.budget.childCallCount++
   }
 
   beginContextCall(sessionID: string): boolean {
-    const c = this.cache.get(sessionID)
-    if (!c || c.lastUserMessageID === null) return false
-    c.budget.contextCallCount++
-    return c.budget.contextCallCount <= this.ctxCallsLimit()
+    const turn = this.cache.get(sessionID)?.current
+    if (!turn) return false
+    turn.budget.contextCallCount++
+    return turn.budget.contextCallCount <= this.ctxCallsLimit()
   }
 
   addContextChars(sessionID: string, chars: number): boolean {
-    const c = this.cache.get(sessionID)
-    if (!c || c.lastUserMessageID === null) return false
+    const turn = this.cache.get(sessionID)?.current
+    if (!turn) return false
     if (!Number.isSafeInteger(chars) || chars < 0) return false
-    if (c.budget.contextCharsSent + chars > this.ctxCharsLimit()) return false
-    c.budget.contextCharsSent += chars
+    if (turn.budget.contextCharsSent + chars > this.ctxCharsLimit()) return false
+    turn.budget.contextCharsSent += chars
     return true
   }
 
   finishExec(sessionID: string, wallMs: number, reservedMs: number): void {
-    const c = this.cache.get(sessionID)
-    if (!c) return
+    const turn = this.cache.get(sessionID)?.current
+    if (!turn) return
     const safeWallMs = Number.isFinite(wallMs) && wallMs > 0 ? wallMs : 0
     const safeReservedMs = Number.isFinite(reservedMs) && reservedMs > 0 ? reservedMs : 0
-    c.budget.wallMsUsed += safeWallMs
-    c.budget.wallReservedMs = Math.max(0, c.budget.wallReservedMs - safeReservedMs)
+    turn.budget.wallMsUsed += safeWallMs
+    turn.budget.wallReservedMs = Math.max(0, turn.budget.wallReservedMs - safeReservedMs)
+    turn.activeExecCount = Math.max(0, turn.activeExecCount - 1)
+  }
+
+  /** Production exec path: every mutation is bound to the turn captured at beginExec. */
+  beginChildCallForTurn(sessionID: string, turnId: string): boolean {
+    const turn = this.stateForTurn(sessionID, turnId)
+    if (!turn || turn.budget.childCallCount >= MAX_CHILD_CALLS_PER_TURN) return false
+    turn.budget.childCallCount++
+    return true
+  }
+
+  beginContextCallForTurn(sessionID: string, turnId: string): boolean {
+    const turn = this.stateForTurn(sessionID, turnId)
+    if (!turn) return false
+    turn.budget.contextCallCount++
+    return turn.budget.contextCallCount <= this.ctxCallsLimit()
+  }
+
+  addContextCharsForTurn(sessionID: string, turnId: string, chars: number): boolean {
+    const turn = this.stateForTurn(sessionID, turnId)
+    if (!turn) return false
+    if (!Number.isSafeInteger(chars) || chars < 0) return false
+    if (turn.budget.contextCharsSent + chars > this.ctxCharsLimit()) return false
+    turn.budget.contextCharsSent += chars
+    return true
+  }
+
+  finishExecForTurn(sessionID: string, turnId: string, wallMs: number, reservedMs: number): TurnSnapshot | null {
+    const c = this.cache.get(sessionID)
+    const turn = this.stateForTurn(sessionID, turnId)
+    if (!c || !turn) return null
+    const safeWallMs = Number.isFinite(wallMs) && wallMs > 0 ? wallMs : 0
+    const safeReservedMs = Number.isFinite(reservedMs) && reservedMs > 0 ? reservedMs : 0
+    turn.budget.wallMsUsed += safeWallMs
+    turn.budget.wallReservedMs = Math.max(0, turn.budget.wallReservedMs - safeReservedMs)
+    turn.activeExecCount = Math.max(0, turn.activeExecCount - 1)
+    const snapshot = this.snap(turn)
+    if (c.current !== turn && turn.activeExecCount === 0) c.retired.delete(turn.turnId)
+    return snapshot
+  }
+
+  snapshotForTurn(sessionID: string, turnId: string): TurnSnapshot | null {
+    const turn = this.stateForTurn(sessionID, turnId)
+    return turn ? this.snap(turn) : null
   }
 
   evictSession(sessionID: string): boolean {
@@ -254,8 +324,8 @@ export class TurnGovernor {
   }
 
   snapshot(sessionID: string): TurnSnapshot | null {
-    const c = this.cache.get(sessionID)
-    return c ? this.snap(c) : null
+    const turn = this.cache.get(sessionID)?.current
+    return turn ? this.snap(turn) : null
   }
 }
 
