@@ -56,6 +56,21 @@ test("context policy cannot widen hard limits and rejects traversal", () => {
   )
 })
 
+test("context policy rejects empty scopes that would silently widen to the workspace root", () => {
+  for (const entry of ["", ".", "./", "src/../"]) {
+    assert.throws(
+      () => resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["src", entry] }) }),
+      entry.includes("..") ? /parent traversal is not allowed/ : /allowed_paths entries must name a non-empty repository-relative subtree/,
+      entry,
+    )
+  }
+
+  const unrestricted = resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: [] }) })
+  assert.deepEqual(unrestricted.allowedPaths, [])
+  assert.equal(isRlmContextPathAllowed("src/a.ts", unrestricted), true)
+  assert.equal(isRlmContextPathAllowed("docs/readme.md", unrestricted), true)
+})
+
 test("host result envelopes are complete and mutually exclusive", () => {
   assert.equal(
     parseHostMessage('{"v":1,"type":"llm_result","id":"x","ok":true,"text":"ok"}').text,
