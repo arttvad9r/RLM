@@ -64,3 +64,57 @@ test("external sandbox process termination fails closed and releases turn wall r
     await rm(bin, { recursive: true, force: true })
   }
 })
+
+test("sandbox protocol preserves UTF-8 when a code point is split across stdout chunks", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "rlm-envelope-utf8-root-"))
+  const bin = await mkdtemp(path.join(tmpdir(), "rlm-envelope-utf8-bin-"))
+  const previousPath = process.env.PATH
+  const fakeDeno = path.join(bin, "deno")
+  const sessionID = `root-utf8-${Date.now()}-${Math.random()}`
+  try {
+    await writeFile(
+      fakeDeno,
+      `#!/usr/bin/env node
+let input = ""
+let sent = false
+process.stdin.setEncoding("utf8")
+process.stdin.on("data", (chunk) => {
+  input += chunk
+  const nl = input.indexOf("\\n")
+  if (sent || nl === -1) return
+  sent = true
+  const bootstrap = JSON.parse(input.slice(0, nl))
+  const frame = \`RLM1:\${bootstrap.channel}:\${JSON.stringify({ v: 1, type: "result", value: "left🙂right" })}\\n\`
+  const bytes = Buffer.from(frame, "utf8")
+  const emojiStart = bytes.indexOf(Buffer.from("🙂", "utf8"))
+  if (emojiStart < 0) process.exit(2)
+  process.stdout.write(bytes.subarray(0, emojiStart + 1))
+  setTimeout(() => {
+    process.stdout.write(bytes.subarray(emojiStart + 1), () => process.exit(0))
+  }, 20)
+})
+`,
+    )
+    await chmod(fakeDeno, 0o755)
+    process.env.PATH = `${bin}${path.delimiter}${previousPath ?? ""}`
+
+    const outcome = await executeRlmExec(clientFor("user-utf8"), {
+      code: 'return "ignored-by-fake-transport"',
+      parentSessionID: sessionID,
+      directory: root,
+      worktree: root,
+      messageID: "assistant-utf8",
+      abort: new AbortController().signal,
+      log,
+    })
+
+    assert.equal(outcome.output, "left🙂right")
+    assert.equal(outcome.metadata.exitCode, 0)
+  } finally {
+    turnGovernor.evictSession(sessionID)
+    if (previousPath === undefined) delete process.env.PATH
+    else process.env.PATH = previousPath
+    await rm(root, { recursive: true, force: true })
+    await rm(bin, { recursive: true, force: true })
+  }
+})
