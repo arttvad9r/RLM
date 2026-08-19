@@ -14,8 +14,8 @@ The trusted runner command explicitly disables project config, lockfile discover
 
 Node-native host regressions can validate command construction, host policy, protocol and lifecycle logic without a Deno installation, but they are not a substitute for executing `deno check` and the Deno runtime regression suite on a supported Deno 2.x build. Changes to runner flags, Worker options or Deno-specific APIs require that full gate before compatibility is claimed.
 
-## CI placement while this is a branch tree
+## Validation evidence boundary
 
-The standalone CI definition remains portable and now runs on `push` and `pull_request` events for `rlm/standalone`, with `workflow_dispatch` retained for environments where the workflow is available from the default branch. While this tree still lives on a non-default branch of the Autopilot repository, GitHub may not expose manual dispatch for a workflow that is absent from the default branch. Moving the tree to its own repository/default branch remains the clean long-term CI placement.
+The dedicated repository now runs Standalone RLM CI from default branch `main`. The earlier non-default-branch CI placement limitation no longer applies.
 
-Until validation commands are actually executed on a concrete commit or tested merge tree, repository documentation must not describe that revision as passing typecheck, Deno runtime tests or benchmark integrity checks.
+Validation claims remain revision-specific. Until the relevant commands are actually executed on a concrete commit or tested merge tree, repository documentation must not describe that revision as passing typecheck, Deno runtime tests or benchmark integrity checks. A successful historical CI run is evidence only for the revision it validated.
