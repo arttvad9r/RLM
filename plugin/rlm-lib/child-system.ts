@@ -29,6 +29,15 @@ export function unregisterRlmChild(sessionID: string): void {
   activeChildSessionIDs.delete(sessionID)
 }
 
+/**
+ * Authoritative session-deletion hook. A deleted child cannot remain eligible
+ * for the RLM child system transform even if its SDK prompt Promise never
+ * settles. Later unregisterRlmChild() cleanup is intentionally idempotent.
+ */
+export function forgetDeletedRlmChild(sessionID: string): boolean {
+  return activeChildSessionIDs.delete(sessionID)
+}
+
 /** True while the session is an active RLM child. */
 export function isRlmChild(sessionID: string): boolean {
   return activeChildSessionIDs.has(sessionID)
