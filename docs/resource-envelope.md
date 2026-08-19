@@ -32,6 +32,34 @@ External termination of the trusted transport is not a valid RLM result. Product
 
 The host regression `plugin/tests-host/process-envelope.test.mjs` substitutes a deterministic transport that terminates with exit code 137. It verifies that no result is accepted, `RUNTIME_ERROR` is returned and the reserved turn wall budget is released.
 
+## Machine-readable cgroup-v2 evidence
+
+On a Linux cgroup-v2 deployment, capture the configured envelope for the service root PID with:
+
+```sh
+npm run verify:resource-envelope -- --root-pid <service-root-pid>
+```
+
+`scripts/verify-resource-envelope.mjs` reads the service process's unified cgroup membership, resolves the matching cgroup-v2 mount, and validates the reference controls exactly:
+
+- `memory.max = 1610612736` bytes (1536 MiB);
+- `memory.swap.max = 0`;
+- `cpu.max` quota/period ratio = `2`;
+- `pids.max = 64`.
+
+It also snapshots the service root PID and all descendants visible in the verifier's PID namespace, requiring every observed descendant cgroup to remain at or below the service root cgroup. When available, `memory.current` and `pids.current` are recorded and checked against their hard maxima. The command emits a versioned JSON evidence record and exits with status `1` when any envelope check fails; discovery/usage errors exit with status `2`.
+
+For durable deployment evidence, save the JSON output together with the exact RLM revision and deployment identifier. Run the verifier from a context that can see the service PID namespace and cgroup-v2 mount; a PID hidden by another namespace cannot be validated by this command.
+
+This verifier is a **configuration/snapshot check**. It does not itself consume resources until the kernel kills a process, and therefore does not satisfy the deliberate termination/recovery portion of the deployment gate by itself.
+
 ## Deployment validation
 
-Repository CI validates the failure contract, but cannot prove a production cgroup/container configuration. Before claiming a hard OS resource guarantee, the target deployment must run the full standalone gate inside its configured envelope and exercise at least one deliberate memory/CPU/process-limit termination while confirming the same fail-closed outcome and service recovery behavior.
+Repository CI validates the failure contract, but cannot prove a production cgroup/container configuration. Before claiming a hard OS resource guarantee, the target deployment must:
+
+1. run the full standalone gate inside its configured envelope;
+2. capture a passing `verify:resource-envelope` record for the complete service process tree;
+3. exercise at least one deliberate memory/CPU/process-limit termination;
+4. confirm the same fail-closed RLM outcome and successful service recovery after that termination.
+
+Only those target-runtime results can close the deployment validation gate.
