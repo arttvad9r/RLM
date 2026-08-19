@@ -8,8 +8,9 @@
  *     active RLM turn, never from a later user message that arrived meanwhile;
  *   - zero tools: every available tool ID mapped to false;
  *   - blocking session.prompt, text-only extraction, explicit error throw;
- *   - abort linked to the provided AbortSignal and settles locally even if the
- *     underlying SDK prompt Promise does not settle after session.abort();
+ *   - abort linked to the provided AbortSignal and settles locally even if
+ *     preflight SDK reads/creation or the underlying prompt Promise do not
+ *     settle after parent abort;
  *   - child session is intentionally NOT deleted (trace/debugging).
  */
 import { RlmError, toErrorInfo } from "./errors.ts"
@@ -74,6 +75,25 @@ export interface ChildLlmResult {
   tokensOutput?: number
 }
 
+async function awaitPreflightWithAbort<T>(
+  promise: Promise<T>,
+  signal: AbortSignal | undefined,
+  message: string,
+): Promise<T> {
+  if (!signal) return await promise
+  if (signal.aborted) throw new RlmError("CHILD_FAILED", message)
+  let onAbort: (() => void) | undefined
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () => reject(new RlmError("CHILD_FAILED", message))
+    signal.addEventListener("abort", onAbort, { once: true })
+  })
+  try {
+    return await Promise.race([promise, aborted])
+  } finally {
+    if (onAbort) signal.removeEventListener("abort", onAbort)
+  }
+}
+
 export async function callChildLlm(
   client: Client,
   input: ChildLlmInput,
@@ -81,6 +101,11 @@ export async function callChildLlm(
 ): Promise<ChildLlmResult> {
   const { prompt, parentSessionID, directory: dir, signal } = input
   let childSessionID: string | undefined
+  // Preserve #21's existing pre-aborted behavior: when the call starts already
+  // aborted, allow setup to reach the child so the provider-side abort path can
+  // clean it. For an abort that occurs during setup, settle locally instead of
+  // depending on read/create provider promises to finish.
+  const preflightSignal = signal?.aborted ? undefined : signal
 
   // 1. Resolve the provider/model supported by the pinned SDK from the exact
   // user turn already authorized for this rlm_exec. A newer user message can
@@ -90,10 +115,14 @@ export async function callChildLlm(
   if (!parentTurnID) {
     throw new RlmError("CHILD_FAILED", "could not resolve active RLM user turn for child model inheritance")
   }
-  const modelRes = await client.session.messages({
-    path: { id: parentSessionID },
-    query: { directory: dir },
-  })
+  const modelRes = await awaitPreflightWithAbort(
+    client.session.messages({
+      path: { id: parentSessionID },
+      query: { directory: dir },
+    }),
+    preflightSignal,
+    "parent aborted while resolving child model",
+  )
   if (modelRes.error) {
     throw new RlmError("CHILD_FAILED", `failed to read parent messages: ${JSON.stringify(modelRes.error)}`)
   }
@@ -109,7 +138,11 @@ export async function callChildLlm(
   // 2. Full deny tool map: every available tool ID => false. Fail closed when
   //    the server cannot enumerate any tools; adding the explicit rlm_exec deny
   //    must not make an empty enumeration appear valid.
-  const toolRes = await client.tool.ids({ query: { directory: dir } })
+  const toolRes = await awaitPreflightWithAbort(
+    client.tool.ids({ query: { directory: dir } }),
+    preflightSignal,
+    "parent aborted while enumerating child tool deny map",
+  )
   if (toolRes.error) {
     throw new RlmError("CHILD_FAILED", `failed to list tool IDs: ${JSON.stringify(toolRes.error)}`)
   }
@@ -121,11 +154,32 @@ export async function callChildLlm(
   for (const id of toolIDs) denyTools[id] = false
   denyTools.rlm_exec = false
 
-  // 3. Create child session linked to parent, same directory.
-  const childRes = await client.session.create({
+  // 3. Create child session linked to parent, same directory. If parent aborts
+  // while create is still pending, settle the RLM call locally. A late-created
+  // session is immediately provider-aborted once its ID eventually arrives so
+  // the local early return cannot orphan a live child.
+  const createPromise = client.session.create({
     body: { parentID: parentSessionID, title: input.title ?? "rlm child" },
     query: { directory: dir },
   })
+  let childRes: Awaited<typeof createPromise>
+  try {
+    childRes = await awaitPreflightWithAbort(
+      createPromise,
+      preflightSignal,
+      "parent aborted while creating child session",
+    )
+  } catch (error) {
+    if (preflightSignal?.aborted) {
+      void createPromise.then((late) => {
+        const lateID = late.data?.id
+        if (typeof lateID === "string" && lateID.length > 0) {
+          return client.session.abort({ path: { id: lateID }, query: { directory: dir } }).catch(() => {})
+        }
+      }).catch(() => {})
+    }
+    throw error
+  }
   if (childRes.error || !childRes.data) {
     throw new RlmError("CHILD_FAILED", `failed to create child session: ${JSON.stringify(childRes.error)}`)
   }
