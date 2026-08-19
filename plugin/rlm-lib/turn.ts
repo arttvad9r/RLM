@@ -161,6 +161,12 @@ export class TurnGovernor {
     return c
   }
 
+  private cacheForTurn(sessionID: string, turnId: string): SessionCache | undefined {
+    const c = this.cache.get(sessionID)
+    if (!c || c.lastUserMessageID !== turnId) return undefined
+    return c
+  }
+
   private wallAvailable(c: SessionCache): number {
     return Math.max(0, this.wallLimitMs - c.budget.wallMsUsed - c.budget.wallReservedMs)
   }
@@ -206,11 +212,54 @@ export class TurnGovernor {
     })
   }
 
+  /** Manual/test seam for the currently active turn. */
   reserveExec(sessionID: string, ms: number): void {
     const c = this.cache.get(sessionID)
     if (!c) return
     const safeMs = Number.isFinite(ms) && ms > 0 ? ms : 0
     c.budget.wallReservedMs += safeMs
+  }
+
+  /** True only while the captured execution turn remains session-authoritative. */
+  isCurrentTurn(sessionID: string, turnId: string): boolean {
+    return this.cacheForTurn(sessionID, turnId) !== undefined
+  }
+
+  childAllowedForTurn(sessionID: string, turnId: string): boolean {
+    const c = this.cacheForTurn(sessionID, turnId)
+    return Boolean(c && c.budget.childCallCount < MAX_CHILD_CALLS_PER_TURN)
+  }
+
+  registerChildStartForTurn(sessionID: string, turnId: string): boolean {
+    const c = this.cacheForTurn(sessionID, turnId)
+    if (!c || c.budget.childCallCount >= MAX_CHILD_CALLS_PER_TURN) return false
+    c.budget.childCallCount++
+    return true
+  }
+
+  beginContextCallForTurn(sessionID: string, turnId: string): boolean {
+    const c = this.cacheForTurn(sessionID, turnId)
+    if (!c) return false
+    c.budget.contextCallCount++
+    return c.budget.contextCallCount <= this.ctxCallsLimit()
+  }
+
+  addContextCharsForTurn(sessionID: string, turnId: string, chars: number): boolean {
+    const c = this.cacheForTurn(sessionID, turnId)
+    if (!c || !Number.isSafeInteger(chars) || chars < 0) return false
+    if (c.budget.contextCharsSent + chars > this.ctxCharsLimit()) return false
+    c.budget.contextCharsSent += chars
+    return true
+  }
+
+  finishExecForTurn(sessionID: string, turnId: string, wallMs: number, reservedMs: number): boolean {
+    const c = this.cacheForTurn(sessionID, turnId)
+    if (!c) return false
+    const safeWallMs = Number.isFinite(wallMs) && wallMs > 0 ? wallMs : 0
+    const safeReservedMs = Number.isFinite(reservedMs) && reservedMs > 0 ? reservedMs : 0
+    c.budget.wallMsUsed += safeWallMs
+    c.budget.wallReservedMs = Math.max(0, c.budget.wallReservedMs - safeReservedMs)
+    return true
   }
 
   childAllowed(sessionID: string): boolean {
