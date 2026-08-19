@@ -62,4 +62,17 @@ node benchmarks/harness/compare-runs.mjs \
   --out benchmarks/runs/<pair>.comparison.json
 ```
 
-The scorer fails closed on legacy/wrong schema versions, task-prompt hash mismatch, experiment-config hash mismatch, ground-truth hash mismatch, corpus aggregate mismatch, unknown/duplicate prediction paths, invalid usage data, RLM-mode records without observed `rlm_exec`, or malformed run metadata. The comparator accepts only schema-v2 score reports and rejects pairs with different prompt/config/corpus/ground-truth data, source commit or root model/variant. It reports deltas only; adoption policy remains outside the scorer.
+After all four required 192/384 arms are scored, create the suite-level evidence record:
+
+```sh
+node benchmarks/harness/compare-suite.mjs \
+  --192-normal benchmarks/runs/<192-normal>.score.json \
+  --192-rlm benchmarks/runs/<192-rlm>.score.json \
+  --384-normal benchmarks/runs/<384-normal>.score.json \
+  --384-rlm benchmarks/runs/<384-rlm>.score.json \
+  --out benchmarks/runs/<suite>.suite.json
+```
+
+The suite record is required for a durable 192/384 result. It rejects a wrong benchmark identity/count, reused run identities/content hashes, or any source/model/task/config drift between the 192 and 384 pairs. Pair comparison alone proves fairness only within one corpus size; it is not sufficient evidence that all four acceptance arms shared the same root conditions.
+
+The scorer fails closed on legacy/wrong schema versions, task-prompt hash mismatch, experiment-config hash mismatch, ground-truth hash mismatch, corpus aggregate mismatch, unknown/duplicate prediction paths, invalid usage data, RLM-mode records without observed `rlm_exec`, or malformed run metadata. The pair comparator accepts only schema-v2 score reports and rejects pairs with different prompt/config/corpus/ground-truth data, source commit or root model/variant. The suite comparator additionally binds the 192 and 384 pairs to the same source commit, task prompt, experiment configuration and root model/variant. These tools report deltas only; adoption policy remains outside the scorer.
