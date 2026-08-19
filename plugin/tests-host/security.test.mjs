@@ -19,7 +19,12 @@ test("secret and VCS namespaces are hidden at every path depth", () => {
   const policy = resolveRlmContextPolicy({})
   for (const candidate of [
     ".env",
+    ".envrc",
+    ".env_backup",
+    ".env-local",
     "apps/api/.env.production",
+    "apps/api/.envrc",
+    "apps/api/.env_backup",
     "apps/api/.env.production/secret",
     "src/.env/local",
     ".git/config",
