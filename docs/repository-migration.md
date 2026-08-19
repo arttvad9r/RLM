@@ -1,51 +1,51 @@
-# Standalone repository migration
+# Completed standalone repository migration
 
-The long-term home for OpenCode RLM should be a dedicated repository whose default branch contains only the standalone tree.
+OpenCode RLM now lives in the dedicated repository `arttvad9r/RLM` on default branch `main`.
 
-## Migration boundary
+## Migration record
 
-Use a **clean-root migration**, not a history-preserving push of the current branch ancestry. The source is the exact, fully validated tree at the chosen `rlm/standalone` commit. Create one new root commit in the target repository containing those bytes and record the source repository plus source commit SHA in the new repository README/release notes.
+The standalone source was frozen and validated in the Autopilot repository before cutover.
 
-This boundary intentionally avoids carrying unrelated Autopilot ancestry into the standalone repository while preserving verifiable provenance through the source commit SHA and Git tree identity.
+- source repository: `arttvad9r/Opencode-Autopilot`;
+- source branch: `rlm/standalone`;
+- source commit: `f72b1fda78ef03d47a4278d2f16687550d5927fe`;
+- source Git tree: `0ea96ee9a9b979d1d7cce506f597dc5c277e719e`;
+- target repository: `arttvad9r/RLM`;
+- target default branch: `main`;
+- target migration/finalization commit: `16e53467a0f22f370056d66c8992dded7dc98f1f`;
+- target Git tree at that commit: `ce25647c17682b93c83e9fac988f0ad7f244b7ef`;
+- first target default-branch Standalone RLM CI run: `32228268021` (`success`).
 
-Do not use `rlm/integration`, `rlm/planner-ab-stage`, CI carrier branches or any downstream Planner/Autopilot branch as migration input.
+The target repository does not carry Autopilot development ancestry. It did contain temporary target-owned bootstrap/transport commits because the available migration path could not create a parentless Git root commit directly. Those commits are target provisioning history, not imported Autopilot history.
+
+## Source-tree and target-tree identity
+
+The frozen source tree and the finalized target tree are different identities and must be recorded separately.
+
+`0ea96ee9a9b979d1d7cce506f597dc5c277e719e` is the certified standalone source tree used for the migration. The target migration/finalization commit also applies target-owned repository changes, including adapting standalone CI from the historical `rlm/standalone` branch to target `main` and removing temporary migration scaffolding. Its tree is therefore `ce25647c17682b93c83e9fac988f0ad7f244b7ef` rather than the source tree SHA.
+
+Do not describe the finalized target tree as byte-identical to the source tree. Provenance is established by the explicit source commit/tree record, the bounded standalone contents imported from that source, the target migration commit, and target CI validation.
 
 ## Target shape
 
-The target default branch should contain the current standalone layout directly at repository root, including:
+The dedicated repository owns only the standalone RLM surface:
 
 - `agent/rlm.md`;
 - `plugin/**`;
 - `benchmarks/**`;
 - `docs/**`;
 - `scripts/check-standalone.mjs`;
-- `package.json` and `package-lock.json`;
+- standalone package/TypeScript configuration;
 - `.github/workflows/standalone-ci.yml`.
 
-Set the new repository default branch to `main`. The existing standalone CI file can then use normal default-branch `workflow_dispatch`, push and pull-request validation without a carrier PR.
-
-## Cutover sequence
-
-1. Ensure there is no unfinished standalone RLM hardening PR whose changes are intended for the migration source.
-2. Freeze an exact `rlm/standalone` source commit after its full `npm test` gate succeeds.
-3. Record its commit SHA and Git tree SHA.
-4. Create the dedicated repository and build a new root commit from exactly that source tree.
-5. Confirm the new root tree SHA matches the frozen source tree SHA.
-6. Run the full standalone CI from the new default branch with Node 24 and Deno 2.x.
-7. Record the new repository root commit and successful workflow run.
-8. Update standalone documentation to remove the non-default-branch CI-placement limitation and point downstream integrations at the new repository/revision.
-9. Keep the old `rlm/standalone` branch read-only as provenance until consumers have migrated; do not delete historical RLM integration branches as part of this cutover.
+`scripts/check-standalone.mjs` fails closed on known Autopilot tree/path coupling and unexpected top-level entries.
 
 ## Authority boundary after migration
 
-The dedicated repository remains runtime-only. Autopilot Planner/Worker/scheduler state, verifier authority, acceptance state and downstream model-routing policy stay outside it. Downstream projects consume a pinned standalone revision rather than adding project-specific authority back into the RLM repository.
+The dedicated repository remains runtime-only. Autopilot Planner/Worker/scheduler state, verifier authority, acceptance state and downstream model-routing policy stay outside it. Downstream projects consume an explicit standalone revision rather than adding project-specific authority back into this repository.
 
-## Required final evidence
+Historical Autopilot branches such as `rlm/integration` and `rlm/planner-ab-stage` are provenance only. They are not valid integration bases for future work and their embedded-RLM source-copy pattern must not be revived.
 
-Migration is complete only when all of the following are recorded together:
+## Validation boundary
 
-- source `rlm/standalone` commit SHA;
-- source Git tree SHA;
-- target root commit SHA;
-- matching target Git tree SHA;
-- full successful standalone CI run on the target default branch.
+The target default branch has its own Standalone RLM CI using Node 24 and Deno 2.x and runs the repository `npm test` gate. A passing claim for any later revision must refer to an actual validation run for that revision; the successful migration run above is evidence for the migration commit, not an evergreen claim for future commits.
