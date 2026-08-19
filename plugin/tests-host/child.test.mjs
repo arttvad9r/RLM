@@ -84,6 +84,33 @@ test("child prompt receives pinned-SDK model shape and a full deny map", async (
   assert.equal(activeRlmChildCount(), 0)
 })
 
+test("child deny map preserves __proto__ as an own false-valued tool entry", async () => {
+  let tools
+  const client = baseClient({
+    session: {
+      prompt: async ({ body }) => {
+        tools = body.tools
+        return { data: { info: { finish: "stop" }, parts: [{ type: "text", text: "answer" }] } }
+      },
+    },
+    tool: { ids: async () => ({ data: ["read", "__proto__"] }) },
+  })
+
+  const result = await callChildLlm(
+    client,
+    { prompt: "x", parentSessionID: "root", directory: "/workspace" },
+    log,
+  )
+
+  assert.equal(Object.hasOwn(tools, "__proto__"), true)
+  assert.equal(tools.__proto__, false)
+  assert.equal(Object.getPrototypeOf(tools), Object.prototype)
+  assert.equal(tools.read, false)
+  assert.equal(tools.rlm_exec, false)
+  assert.equal(result.deniedToolCount, 3)
+  assert.equal(activeRlmChildCount(), 0)
+})
+
 test("provider-side child errors always clean the active-child registry", async () => {
   const client = baseClient({
     session: {
