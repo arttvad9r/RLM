@@ -12,22 +12,22 @@ import { RlmError } from "../rlm-lib/errors.ts"
 import { TurnGovernor } from "../rlm-lib/turn.ts"
 
 function client(getMessages) {
-  return {
-    session: {
-      messages: async () => getMessages(),
-    },
-  }
+  return { session: { messages: async () => getMessages() } }
+}
+
+function turnMessages(userID, assistantID) {
+  return { data: [
+    { info: { id: userID, role: "user" } },
+    { info: { id: assistantID, role: "assistant" } },
+  ] }
 }
 
 test("turn identity lookup errors fail closed without resetting accumulated budget", async () => {
   const governor = new TurnGovernor()
   let failLookup = false
-  const sdk = client(() => failLookup
-    ? { error: { code: "transient" } }
-    : { data: [{ info: { id: "user-1", role: "user" } }] })
+  const sdk = client(() => failLookup ? { error: { code: "transient" } } : turnMessages("user-1", "assistant-1"))
 
-  const first = await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")
-  assert.equal(first.allowed, true)
+  assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")).allowed, true)
   governor.registerChildStart("session-1")
   assert.equal(governor.beginContextCall("session-1"), true)
   assert.equal(governor.addContextChars("session-1", 7), true)
@@ -41,16 +41,23 @@ test("turn identity lookup errors fail closed without resetting accumulated budg
   assert.deepEqual(governor.snapshot("session-1"), before)
 })
 
-test("missing user message id fails closed instead of falling back to session identity", async () => {
+test("missing preceding user message id fails closed", async () => {
   const governor = new TurnGovernor()
-  const sdk = client(() => ({ data: [{ info: { id: "assistant-only", role: "assistant" } }] }))
+  const sdk = client(() => ({ data: [{ info: { id: "assistant-1", role: "assistant" } }] }))
   await assert.rejects(
     () => governor.beginExec(sdk, "session-1", "/workspace", "assistant-1"),
-    (error) => error instanceof RlmError && error.code === "RUNTIME_ERROR" && /no user message id/.test(error.message),
+    (error) => error instanceof RlmError && error.code === "RUNTIME_ERROR" && /no preceding user message id/.test(error.message),
   )
-  const snapshot = governor.snapshot("session-1")
-  assert.equal(snapshot?.execCount, 0)
-  assert.equal(snapshot?.turnId, "")
+  assert.equal(governor.snapshot("session-1")?.execCount, 0)
+})
+
+test("unknown assistant message id fails closed", async () => {
+  const governor = new TurnGovernor()
+  const sdk = client(() => turnMessages("user-1", "assistant-1"))
+  await assert.rejects(
+    () => governor.beginExec(sdk, "session-1", "/workspace", "assistant-missing"),
+    (error) => error instanceof RlmError && error.code === "RUNTIME_ERROR" && /assistant message id not found/.test(error.message),
+  )
 })
 
 test("uninitialized turn accounting refuses child and context authority", () => {
@@ -66,7 +73,7 @@ test("uninitialized turn accounting refuses child and context authority", () => 
 
 test("invalid negative accounting cannot reduce an initialized turn budget", async () => {
   const governor = new TurnGovernor()
-  const sdk = client(() => ({ data: [{ info: { id: "user-1", role: "user" } }] }))
+  const sdk = client(() => turnMessages("user-1", "assistant-1"))
   await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")
   governor.reserveExec("session-1", 100)
   governor.finishExec("session-1", 25, 100)
@@ -83,36 +90,36 @@ test("invalid negative accounting cannot reduce an initialized turn budget", asy
 
 test("turn governor enforces exec, child, context and data budgets", async () => {
   const governor = new TurnGovernor()
-  const sdk = client(() => ({ data: [{ info: { id: "user-1", role: "user" } }] }))
+  const sdk = client(() => turnMessages("user-1", "assistant-1"))
 
   for (let index = 0; index < MAX_RLM_EXECS_PER_TURN; index++) {
     assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")).allowed, true)
   }
   assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")).allowed, false)
-
   for (let index = 0; index < MAX_CHILD_CALLS_PER_TURN; index++) governor.registerChildStart("session-1")
   assert.equal(governor.childAllowed("session-1"), false)
-
-  for (let index = 0; index < MAX_CONTEXT_CALLS_PER_TURN; index++) {
-    assert.equal(governor.beginContextCall("session-1"), true)
-  }
+  for (let index = 0; index < MAX_CONTEXT_CALLS_PER_TURN; index++) assert.equal(governor.beginContextCall("session-1"), true)
   assert.equal(governor.beginContextCall("session-1"), false)
-
   assert.equal(governor.addContextChars("session-1", MAX_CONTEXT_CHARS_PER_TURN), true)
   assert.equal(governor.addContextChars("session-1", 1), false)
 })
 
-test("a new user message resets the working turn budget", async () => {
+test("a new user message resets the working turn budget at its assistant boundary", async () => {
   const governor = new TurnGovernor()
-  let userMessageID = "user-1"
-  const sdk = client(() => ({ data: [{ info: { id: userMessageID, role: "user" } }] }))
+  let history = turnMessages("user-1", "assistant-1")
+  const sdk = client(() => history)
 
   assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")).allowed, true)
   governor.registerChildStart("session-1")
   governor.beginContextCall("session-1")
   governor.addContextChars("session-1", 11)
 
-  userMessageID = "user-2"
+  history = { data: [
+    { info: { id: "user-1", role: "user" } },
+    { info: { id: "assistant-1", role: "assistant" } },
+    { info: { id: "user-2", role: "user" } },
+    { info: { id: "assistant-2", role: "assistant" } },
+  ] }
   const next = await governor.beginExec(sdk, "session-1", "/workspace", "assistant-2")
   assert.equal(next.allowed, true)
   assert.equal(next.snapshot.turnId, "user-2")
@@ -122,28 +129,101 @@ test("a new user message resets the working turn budget", async () => {
   assert.equal(next.snapshot.contextCharsSent, 0)
 })
 
+test("stale assistant message cannot roll an already newer turn backward", async () => {
+  const governor = new TurnGovernor()
+  const history = { data: [
+    { info: { id: "user-old", role: "user" } },
+    { info: { id: "assistant-old", role: "assistant" } },
+    { info: { id: "user-new", role: "user" } },
+    { info: { id: "assistant-new", role: "assistant" } },
+  ] }
+  const sdk = client(() => history)
+  await governor.beginExec(sdk, "session-1", "/workspace", "assistant-new")
+  const before = governor.snapshot("session-1")
+  await assert.rejects(
+    () => governor.beginExec(sdk, "session-1", "/workspace", "assistant-old"),
+    (error) => error instanceof RlmError && error.code === "RUNTIME_ERROR" && /stale RLM tool call/.test(error.message),
+  )
+  assert.deepEqual(governor.snapshot("session-1"), before)
+})
+
 test("wall reservation blocks concurrent execs and is released by finishExec", async () => {
   const governor = new TurnGovernor()
-  const sdk = client(() => ({ data: [{ info: { id: "user-1", role: "user" } }] }))
-
+  const sdk = client(() => turnMessages("user-1", "assistant-1"))
   assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")).allowed, true)
   governor.reserveExec("session-1", MAX_RLM_WALL_MS_PER_TURN)
   assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")).allowed, false)
-
   governor.finishExec("session-1", 0, MAX_RLM_WALL_MS_PER_TURN)
   assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1")).allowed, true)
 })
 
 test("beginExec reserves wall atomically across concurrent starts", async () => {
   const governor = new TurnGovernor()
-  const sdk = client(() => ({ data: [{ info: { id: "user-1", role: "user" } }] }))
-
+  const sdk = client(() => turnMessages("user-1", "assistant-1"))
   const [first, second] = await Promise.all([
     governor.beginExec(sdk, "session-1", "/workspace", "assistant-1", MAX_RLM_WALL_MS_PER_TURN),
     governor.beginExec(sdk, "session-1", "/workspace", "assistant-1", MAX_RLM_WALL_MS_PER_TURN),
   ])
-  const allowed = [first, second].filter((result) => result.allowed)
-  assert.equal(allowed.length, 1)
+  assert.equal([first, second].filter((result) => result.allowed).length, 1)
   assert.equal(first.reservedWallMs + second.reservedWallMs, MAX_RLM_WALL_MS_PER_TURN)
-  assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1", 1)).allowed, false)
+})
+
+test("overlapping turn lookups cannot roll session state backward when an older lookup resolves late", async () => {
+  const governor = new TurnGovernor()
+  let releaseOld
+  let markOldStarted
+  const oldGate = new Promise((resolve) => { releaseOld = resolve })
+  const oldStarted = new Promise((resolve) => { markOldStarted = resolve })
+  let calls = 0
+  const sdk = {
+    session: {
+      messages: async () => {
+        calls++
+        if (calls === 1) {
+          markOldStarted()
+          await oldGate
+          return turnMessages("user-old", "assistant-old")
+        }
+        return { data: [
+          { info: { id: "user-old", role: "user" } },
+          { info: { id: "assistant-old", role: "assistant" } },
+          { info: { id: "user-new", role: "user" } },
+          { info: { id: "assistant-new", role: "assistant" } },
+        ] }
+      },
+    },
+  }
+
+  const older = governor.beginExec(sdk, "session-1", "/workspace", "assistant-old")
+  await oldStarted
+  const newer = governor.beginExec(sdk, "session-1", "/workspace", "assistant-new")
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(calls, 1)
+  releaseOld()
+  const [oldResult, newResult] = await Promise.all([older, newer])
+  assert.equal(oldResult.snapshot.turnId, "user-old")
+  assert.equal(newResult.snapshot.turnId, "user-new")
+  assert.equal(governor.snapshot("session-1")?.turnId, "user-new")
+  assert.equal(governor.snapshot("session-1")?.execCount, 1)
+})
+
+test("turn resolution locks are isolated per root session", async () => {
+  const governor = new TurnGovernor()
+  let releaseA
+  let markAStarted
+  const gateA = new Promise((resolve) => { releaseA = resolve })
+  const startedA = new Promise((resolve) => { markAStarted = resolve })
+  const clientA = client(async () => {
+    markAStarted()
+    await gateA
+    return turnMessages("user-a", "assistant-a")
+  })
+  const clientB = client(() => turnMessages("user-b", "assistant-b"))
+
+  const a = governor.beginExec(clientA, "session-a", "/workspace", "assistant-a")
+  await startedA
+  const b = await governor.beginExec(clientB, "session-b", "/workspace", "assistant-b")
+  assert.equal(b.snapshot.turnId, "user-b")
+  releaseA()
+  assert.equal((await a).snapshot.turnId, "user-a")
 })

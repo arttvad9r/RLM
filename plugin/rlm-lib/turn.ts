@@ -1,11 +1,12 @@
 /**
  * Turn-level RLM governor (host side).
  *
- * One in-memory budget per root user turn, keyed by the id of the last user
- * message in the parent session. A new user message (new turn) resets the
- * budget; a new assistant step within the same turn reuses it. Session cache
- * entries are evicted only from the authoritative OpenCode session.deleted
- * lifecycle event; no TTL/LRU can reset authority for an active session.
+ * One in-memory budget per root user turn. ToolContext.messageID is the pinned
+ * OpenCode SDK's assistant-message ID, so turn identity is resolved as the
+ * nearest preceding user message for that exact assistant message rather than
+ * from whichever user message happens to be latest when an async lookup ends.
+ * Session cache entries are evicted only from the authoritative OpenCode
+ * session.deleted lifecycle event; no TTL/LRU can reset active authority.
  */
 import {
   MAX_CHILD_CALLS_PER_TURN,
@@ -16,8 +17,6 @@ import {
 } from "./constants.ts"
 import { RlmError } from "./errors.ts"
 
-// Internal test-harness escape hatches: shorten large turn limits without
-// changing production constants. Host process env only, never model-visible.
 const TEST_TURN_WALL_MS = Number(process.env.RLM_TEST_TURN_WALL_MS) || 0
 const TEST_TURN_EXECS = Number(process.env.RLM_TEST_TURN_EXECS) || 0
 const TEST_TURN_CTX_CALLS = Number(process.env.RLM_TEST_TURN_CTX_CALLS) || 0
@@ -49,6 +48,7 @@ interface TurnBudget {
 interface SessionCache {
   lastUserMessageID: string | null
   lastMessageID: string | null
+  lastMessageIndex: number
   budget: TurnBudget
 }
 
@@ -61,25 +61,41 @@ type SessionMessagesClient = {
   }
 }
 
-async function lastUserMessageID(
+function emptyBudget(): TurnBudget {
+  return { execCount: 0, childCallCount: 0, contextCallCount: 0, contextCharsSent: 0, wallMsUsed: 0, wallReservedMs: 0 }
+}
+
+async function userTurnForAssistantMessage(
   client: SessionMessagesClient,
   sessionID: string,
   directory: string,
-): Promise<string> {
+  messageID: string,
+): Promise<{ turnId: string; messageIndex: number }> {
   const res = await client.session.messages({ path: { id: sessionID }, query: { directory } })
   if (res.error) {
     throw new RlmError("RUNTIME_ERROR", "failed to resolve RLM user turn from parent session messages")
   }
   const messages = res.data ?? []
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const info = messages[i]?.info
-    if (info?.role === "user" && typeof info.id === "string" && info.id.length > 0) return info.id
+  const messageIndex = messages.findIndex((message) => message.info?.id === messageID)
+  if (messageIndex < 0) {
+    throw new RlmError("RUNTIME_ERROR", `failed to resolve RLM user turn: assistant message id not found: ${messageID}`)
   }
-  throw new RlmError("RUNTIME_ERROR", "failed to resolve RLM user turn: parent session has no user message id")
+  const assistant = messages[messageIndex]?.info
+  if (assistant?.role !== "assistant") {
+    throw new RlmError("RUNTIME_ERROR", `failed to resolve RLM user turn: message id is not an assistant message: ${messageID}`)
+  }
+  for (let i = messageIndex - 1; i >= 0; i--) {
+    const info = messages[i]?.info
+    if (info?.role === "user" && typeof info.id === "string" && info.id.length > 0) {
+      return { turnId: info.id, messageIndex }
+    }
+  }
+  throw new RlmError("RUNTIME_ERROR", `failed to resolve RLM user turn: assistant message ${messageID} has no preceding user message id`)
 }
 
 export class TurnGovernor {
   private readonly cache = new Map<string, SessionCache>()
+  private readonly beginExecTails = new Map<string, Promise<void>>()
   private readonly wallLimitMs: number
 
   constructor() {
@@ -98,6 +114,21 @@ export class TurnGovernor {
     return TEST_TURN_CTX_CHARS > 0 ? TEST_TURN_CTX_CHARS : MAX_CONTEXT_CHARS_PER_TURN
   }
 
+  private async withBeginExecLock<T>(sessionID: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.beginExecTails.get(sessionID) ?? Promise.resolve()
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const tail = previous.then(() => gate)
+    this.beginExecTails.set(sessionID, tail)
+    await previous
+    try {
+      return await task()
+    } finally {
+      release()
+      if (this.beginExecTails.get(sessionID) === tail) this.beginExecTails.delete(sessionID)
+    }
+  }
+
   private async cacheFor(
     client: SessionMessagesClient,
     sessionID: string,
@@ -106,16 +137,27 @@ export class TurnGovernor {
   ): Promise<SessionCache> {
     let c = this.cache.get(sessionID)
     if (!c) {
-      c = { lastUserMessageID: null, lastMessageID: null, budget: { execCount: 0, childCallCount: 0, contextCallCount: 0, contextCharsSent: 0, wallMsUsed: 0, wallReservedMs: 0 } }
+      c = { lastUserMessageID: null, lastMessageID: null, lastMessageIndex: -1, budget: emptyBudget() }
       this.cache.set(sessionID, c)
     }
     if (c.lastMessageID === messageID && c.lastUserMessageID !== null) return c
-    const turnId = await lastUserMessageID(client, sessionID, directory)
-    if (c.lastUserMessageID !== turnId) {
-      c.lastUserMessageID = turnId
-      c.budget = { execCount: 0, childCallCount: 0, contextCallCount: 0, contextCharsSent: 0, wallMsUsed: 0, wallReservedMs: 0 }
+
+    const resolved = await userTurnForAssistantMessage(client, sessionID, directory, messageID)
+    if (resolved.messageIndex < c.lastMessageIndex) {
+      throw new RlmError(
+        "RUNTIME_ERROR",
+        `refusing stale RLM tool call from assistant message ${messageID}; a newer assistant message is already authoritative`,
+      )
+    }
+    if (resolved.messageIndex === c.lastMessageIndex && c.lastMessageID !== null && c.lastMessageID !== messageID) {
+      throw new RlmError("RUNTIME_ERROR", "conflicting assistant message identity at the current RLM turn boundary")
+    }
+    if (c.lastUserMessageID !== resolved.turnId) {
+      c.lastUserMessageID = resolved.turnId
+      c.budget = emptyBudget()
     }
     c.lastMessageID = messageID
+    c.lastMessageIndex = resolved.messageIndex
     return c
   }
 
@@ -139,11 +181,6 @@ export class TurnGovernor {
     }
   }
 
-  /**
-   * Resolve the current turn, count this exec and optionally reserve its wall
-   * budget atomically before returning to the caller. This prevents concurrent
-   * rlm_exec calls from both observing the same unreserved wall capacity.
-   */
   async beginExec(
     client: SessionMessagesClient,
     sessionID: string,
@@ -151,34 +188,24 @@ export class TurnGovernor {
     messageID: string,
     requestedWallMs = 0,
   ): Promise<{ allowed: boolean; reason?: string; snapshot: TurnSnapshot; reservedWallMs: number }> {
-    const c = await this.cacheFor(client, sessionID, directory, messageID)
-    const snap = this.snap(c)
-    if (c.budget.execCount >= this.execsLimit()) {
-      return {
-        allowed: false,
-        reason: `maximum ${this.execsLimit()} rlm_exec per user turn reached`,
-        snapshot: snap,
-        reservedWallMs: 0,
+    return this.withBeginExecLock(sessionID, async () => {
+      const c = await this.cacheFor(client, sessionID, directory, messageID)
+      const snap = this.snap(c)
+      if (c.budget.execCount >= this.execsLimit()) {
+        return { allowed: false, reason: `maximum ${this.execsLimit()} rlm_exec per user turn reached`, snapshot: snap, reservedWallMs: 0 }
       }
-    }
-    const available = this.wallAvailable(c)
-    if (available <= 0) {
-      return {
-        allowed: false,
-        reason: "rlm_exec wall budget for this user turn is exhausted",
-        snapshot: snap,
-        reservedWallMs: 0,
+      const available = this.wallAvailable(c)
+      if (available <= 0) {
+        return { allowed: false, reason: "rlm_exec wall budget for this user turn is exhausted", snapshot: snap, reservedWallMs: 0 }
       }
-    }
-
-    const safeRequest = Number.isFinite(requestedWallMs) && requestedWallMs > 0 ? requestedWallMs : 0
-    const reservedWallMs = Math.min(safeRequest, available)
-    c.budget.execCount++
-    c.budget.wallReservedMs += reservedWallMs
-    return { allowed: true, snapshot: this.snap(c), reservedWallMs }
+      const safeRequest = Number.isFinite(requestedWallMs) && requestedWallMs > 0 ? requestedWallMs : 0
+      const reservedWallMs = Math.min(safeRequest, available)
+      c.budget.execCount++
+      c.budget.wallReservedMs += reservedWallMs
+      return { allowed: true, snapshot: this.snap(c), reservedWallMs }
+    })
   }
 
-  /** Manual/test seam. Production exec starts reserve atomically in beginExec. */
   reserveExec(sessionID: string, ms: number): void {
     const c = this.cache.get(sessionID)
     if (!c) return
@@ -221,12 +248,8 @@ export class TurnGovernor {
     c.budget.wallReservedMs = Math.max(0, c.budget.wallReservedMs - safeReservedMs)
   }
 
-  /**
-   * Evict only after OpenCode has authoritatively deleted the root session.
-   * Any already-running execution that races with deletion loses child/context
-   * budget authority because all subsequent lookups fail closed.
-   */
   evictSession(sessionID: string): boolean {
+    this.beginExecTails.delete(sessionID)
     return this.cache.delete(sessionID)
   }
 
