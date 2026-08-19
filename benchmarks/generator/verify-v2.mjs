@@ -10,6 +10,7 @@ import { createHash } from "node:crypto"
 import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { assertCorpusNamesMatchGroundTruth } from "../harness/corpus-layout.mjs"
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url))
 const ROOT = join(__dirname, "..")
@@ -28,7 +29,9 @@ const check = (label, expected, actual) => {
 
 const generator = readFileSync(join(ROOT, "generator", "generate-semantic-state-audit-v2.mjs"), "utf8")
 const gtText = readFileSync(GT_PATH, "utf8")
+const groundTruth = JSON.parse(gtText)
 const files = readdirSync(join(CORPUS_DIR, "src")).filter((f) => f.endsWith(".ts")).sort()
+assertCorpusNamesMatchGroundTruth(groundTruth, files)
 const h = createHash("sha256")
 for (const f of files) {
   h.update(f)

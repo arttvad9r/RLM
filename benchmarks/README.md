@@ -30,13 +30,15 @@ Verify the frozen benchmark identity:
 npm run verify:benchmarks
 ```
 
-The verification scripts bind generator source, ground truth, corpus aggregate and expected generated file count to the manifests.
+The verification scripts bind generator source, ground truth, the exact `src/*.ts` filename set, corpus aggregate and expected generated file count to the manifests. The filename-set check is derived from `ground-truth.cases[].path` and is performed before trusting the legacy aggregate hash, so file-boundary ambiguity in the concatenated aggregate representation cannot substitute a differently laid-out corpus.
 
 ## Run records
 
-`harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt and ground truth. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
+The hardened run/score/comparison evidence contract is schema version 2. `harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt, shared experiment configuration and ground truth. Before scoring it also requires the actual corpus filename set to match ground truth exactly. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
 
-Run records can carry root/child token usage, RLM context/call telemetry, cost and wall time. The harness is an evaluator; it deliberately does not embed a particular model provider or downstream project runtime.
+Before inference, freeze one shared experiment-config file containing every non-mode inference/runtime setting that is not already represented by the source revision and root model identity. Both arms must use the exact same bytes. The scorer binds each run to that file's SHA-256 and the comparator rejects mismatched configuration identities.
+
+Run records can carry root/child token usage, RLM context/call telemetry, cost and wall time. An RLM-mode run must record at least one observed `rlm_exec`; merely making the tool available is not RLM execution evidence. Loaded score reports are revalidated before comparison, including timestamp ordering, counts/metrics/usage consistency and raw run identity. Normal and RLM pair arms must have distinct run IDs and run hashes, and their ground-truth-derived case/violation counts must agree. The harness is an evaluator; it deliberately does not embed a particular model provider or downstream project runtime.
 
 Example scoring shape:
 
@@ -46,6 +48,7 @@ node benchmarks/harness/score-run.mjs \
   --manifest benchmarks/manifests/semantic-state-audit-v1.json \
   --corpus benchmarks/corpora/semantic-state-audit-v1 \
   --task-prompt benchmarks/tasks/semantic-state-audit.md \
+  --experiment-config /path/to/shared-experiment-config.json \
   --run /path/to/run.json \
   --out /path/to/score.json
 ```
@@ -59,9 +62,23 @@ node benchmarks/harness/compare-runs.mjs \
   --out /path/to/comparison.json
 ```
 
+For the 192/384 acceptance suite, bind all four scored arms into one evidence record after the two pairs have been scored:
+
+```sh
+node benchmarks/harness/compare-suite.mjs \
+  --192-normal /path/to/192-normal.score.json \
+  --192-rlm /path/to/192-rlm.score.json \
+  --384-normal /path/to/384-normal.score.json \
+  --384-rlm /path/to/384-rlm.score.json \
+  --out /path/to/semantic-state-audit-192-384.suite.json
+```
+
+The suite comparator reruns the pair-level validation, requires the expected 192 and 384 benchmark identities/counts, requires four distinct run IDs/content hashes, and rejects any cross-size drift in source commit, task prompt, experiment configuration or root model/variant. This prevents two individually fair A/B pairs from being combined into a nominal 192/384 result when they were actually executed under different root conditions.
+
 ## Isolation rules
 
 - Models must never receive benchmark ground truth or manifests as runtime context.
 - Standalone RLM runs must set the trusted host context root to the exact corpus workspace. Keeping ground truth merely in a sibling directory is not an isolation boundary.
-- Corpus, task prompt and benchmark identity must remain unchanged across A/B arms.
+- Corpus, task prompt, source revision, root model/variant and shared experiment-config bytes must remain unchanged across A/B arms; only RLM availability/use may differ.
+- The 192 and 384 pairs in the acceptance suite must also share source revision, root model/variant, task prompt and experiment-config identity; persist the `compare-suite.mjs` output as the four-arm evidence record.
 - Downstream integrations may build their own A/B runners around this harness, but project-specific Planner/Worker contracts do not belong in this standalone tree.
