@@ -30,6 +30,7 @@ import { callChildLlm } from "./child.ts"
 import { executeContextOperation } from "./context.ts"
 import { RlmError, toErrorInfo } from "./errors.ts"
 import { encodeMessage, parseSandboxFrame } from "./protocol.ts"
+import { ProtocolRequestGate } from "./protocol-request-gate.ts"
 import { turnGovernor } from "./turn.ts"
 import type {
   ContextRequestMessage,
@@ -247,7 +248,7 @@ export async function executeRlmExec(
   let turnFinished = false
   let ignoredStdoutLines = 0
   const inflight = new Map<string, Promise<void>>()
-  const seenRequestIDs = new Set<string>()
+  const requestGate = new ProtocolRequestGate()
   const abortController = state.abort
   const protocolChannel = randomBytes(24).toString("hex")
   let watchdog: ReturnType<typeof setTimeout> | undefined
@@ -430,8 +431,7 @@ export async function executeRlmExec(
       taskFactory: () => Promise<void>,
       onError: (info: RlmErrorInfo) => void,
     ): void => {
-      if (seenRequestIDs.has(id)) throw finishWithError(`duplicate sandbox request id: ${id}`)
-      seenRequestIDs.add(id)
+      requestGate.accept(id)
       const task = taskFactory()
         .catch((error) => onError(toErrorInfo(error)))
         .finally(() => inflight.delete(id))
