@@ -19,7 +19,12 @@ test("secret and VCS namespaces are hidden at every path depth", () => {
   const policy = resolveRlmContextPolicy({})
   for (const candidate of [
     ".env",
+    ".envrc",
+    ".env_backup",
+    ".env-local",
     "apps/api/.env.production",
+    "apps/api/.envrc",
+    "apps/api/.env_backup",
     "apps/api/.env.production/secret",
     "src/.env/local",
     ".git/config",
@@ -49,6 +54,21 @@ test("context policy cannot widen hard limits and rejects traversal", () => {
     () => resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["../escape"] }) }),
     /parent traversal is not allowed/,
   )
+})
+
+test("context policy rejects empty scopes that would silently widen to the workspace root", () => {
+  for (const entry of ["", ".", "./", "src/../"]) {
+    assert.throws(
+      () => resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["src", entry] }) }),
+      entry.includes("..") ? /parent traversal is not allowed/ : /allowed_paths entries must name a non-empty repository-relative subtree/,
+      entry,
+    )
+  }
+
+  const unrestricted = resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: [] }) })
+  assert.deepEqual(unrestricted.allowedPaths, [])
+  assert.equal(isRlmContextPathAllowed("src/a.ts", unrestricted), true)
+  assert.equal(isRlmContextPathAllowed("docs/readme.md", unrestricted), true)
 })
 
 test("host result envelopes are complete and mutually exclusive", () => {

@@ -63,7 +63,11 @@ export function parseRlmContextPolicy(value: unknown, source = RLM_CONTEXT_POLIC
     if (!Array.isArray(value.allowed_paths) || value.allowed_paths.some((entry) => typeof entry !== "string")) {
       policyError(source, "allowed_paths must be an array of strings")
     }
-    allowedPaths = [...new Set((value.allowed_paths as string[]).map((entry) => normalizeTreePath(entry, source)))]
+    const normalized = (value.allowed_paths as string[]).map((entry) => normalizeTreePath(entry, source))
+    if (normalized.some((entry) => entry === "")) {
+      policyError(source, "allowed_paths entries must name a non-empty repository-relative subtree; omit allowed_paths or use [] to allow the full context root")
+    }
+    allowedPaths = [...new Set(normalized)]
   }
 
   return {
@@ -102,7 +106,7 @@ export function isRlmHiddenPath(relativePath: string): boolean {
   const segments = relativePath.split("/").filter(Boolean)
   if (segments.includes(".git")) return true
   return segments.some(
-    (segment) => segment === ".env" || (segment.startsWith(".env.") && segment !== ".env.example"),
+    (segment) => segment.startsWith(".env") && segment !== ".env.example",
   )
 }
 
