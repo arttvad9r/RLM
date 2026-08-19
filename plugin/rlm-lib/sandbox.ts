@@ -76,6 +76,7 @@ interface LineReader {
 
 /** Bounded line-oriented reader for untrusted sandbox stdout. */
 function makeLineReader(stream: NodeJS.ReadableStream): LineReader {
+  const decoder = new TextDecoder()
   let buffer = ""
   const lines: string[] = []
   const waiting: Array<{
@@ -133,8 +134,11 @@ function makeLineReader(stream: NodeJS.ReadableStream): LineReader {
     }
   }
 
-  stream.on("data", (chunk: Buffer) => push(chunk.toString()))
+  stream.on("data", (chunk: Buffer) => push(decoder.decode(chunk, { stream: true })))
   stream.on("end", () => {
+    if (done) return
+    const tail = decoder.decode()
+    if (tail) push(tail)
     if (done) return
     if (buffer.length > MAX_PROTOCOL_LINE_CHARS) {
       fail(`sandbox stdout line exceeds ${MAX_PROTOCOL_LINE_CHARS} characters`)
