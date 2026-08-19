@@ -1,0 +1,130 @@
+name: Finalize dedicated RLM repository
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .target-finalize-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Verify exact migration boundary
+        id: provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          exact_commit="$(git log --format='%H' --grep='^feat: import certified standalone RLM tree$' -1)"
+          test -n "${exact_commit}"
+          exact_tree="$(git rev-parse "${exact_commit}^{tree}")"
+          echo "target exact migration commit: ${exact_commit}"
+          echo "target exact migration tree: ${exact_tree}"
+          test "${exact_tree}" = '0ea96ee9a9b979d1d7cce506f597dc5c277e719e'
+          echo "exact_commit=${exact_commit}" >> "$GITHUB_OUTPUT"
+          echo "exact_tree=${exact_tree}" >> "$GITHUB_OUTPUT"
+          test -f README.md
+          test -f agent/rlm.md
+          test -f plugin/rlm.ts
+          test -f package-lock.json
+          test -f benchmarks/README.md
+
+      - name: Finalize target-owned CI and migration docs
+        shell: bash
+        env:
+          EXACT_COMMIT: ${{ steps.provenance.outputs.exact_commit }}
+          EXACT_TREE: ${{ steps.provenance.outputs.exact_tree }}
+        run: |
+          set -euo pipefail
+          cat > .github/workflows/standalone-ci.yml <<'YAML'
+          name: Standalone RLM CI
+
+          on:
+            push:
+              branches:
+                - main
+            pull_request:
+              branches:
+                - main
+            workflow_dispatch:
+
+          permissions:
+            contents: read
+
+          jobs:
+            validate:
+              runs-on: ubuntu-24.04
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/setup-node@v4
+                  with:
+                    node-version: '24'
+                - uses: denoland/setup-deno@v2
+                  with:
+                    deno-version: v2.x
+                - name: Install dependencies
+                  run: npm ci --ignore-scripts
+                - name: Validate standalone tree
+                  run: npm test
+          YAML
+
+          python - <<'PY'
+          from pathlib import Path
+          import os, re
+
+          limitations = Path('docs/known-limitations.md')
+          text = limitations.read_text()
+          text = re.sub(
+              r'\n## CI placement while this is a branch tree\n.*?(?=\n## |\Z)',
+              '\n',
+              text,
+              flags=re.S,
+          )
+          limitations.write_text(text.rstrip() + '\n')
+
+          migration = Path('docs/repository-migration.md')
+          mtext = migration.read_text().rstrip()
+          marker = '## Completed migration'
+          if marker not in mtext:
+              mtext += f'''\n\n{marker}\n\nThe dedicated repository cutover is complete.\n\n- source repository: `arttvad9r/Opencode-Autopilot`;\n- source standalone commit: `f72b1fda78ef03d47a4278d2f16687550d5927fe`;\n- source Git tree: `0ea96ee9a9b979d1d7cce506f597dc5c277e719e`;\n- target repository: `arttvad9r/RLM`;\n- target exact-tree migration commit: `{os.environ['EXACT_COMMIT']}`;\n- target exact-tree Git tree: `{os.environ['EXACT_TREE']}`.\n\nThe target repository had temporary bootstrap/transport commits because the migration connector could not create a parentless GitHub root commit. The migration boundary is therefore the exact-tree commit above: its Git tree is byte-identical to the certified source tree. All later target commits are RLM-repository-owned CI/documentation changes.\n'''
+          migration.write_text(mtext + '\n')
+          PY
+
+          rm -f .target-finalize-trigger
+          rm -f .github/workflows/finalize-target.yml
+
+      - name: Validate final target tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npm test
+          git add -A
+          echo "final target tree: $(git write-tree)"
+
+      - name: Commit target-owned finalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: finalize dedicated RLM repository'
+          echo "final target commit: $(git rev-parse HEAD)"
+          echo "final target tree: $(git rev-parse HEAD^{tree})"
+          git push origin HEAD:main
