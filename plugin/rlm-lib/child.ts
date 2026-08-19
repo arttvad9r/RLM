@@ -136,8 +136,9 @@ export async function callChildLlm(
   const rootModel = { providerID: rawModel.providerID, modelID: rawModel.modelID }
 
   // 2. Full deny tool map: every available tool ID => false. Fail closed when
-  //    the server cannot enumerate any tools; adding the explicit rlm_exec deny
-  //    must not make an empty enumeration appear valid.
+  //    the server cannot enumerate a runtime-valid string inventory; adding
+  //    the explicit rlm_exec deny must not make malformed/empty data appear
+  //    like a valid full deny map.
   const toolRes = await awaitPreflightWithAbort(
     client.tool.ids({ query: { directory: dir } }),
     preflightSignal,
@@ -146,9 +147,17 @@ export async function callChildLlm(
   if (toolRes.error) {
     throw new RlmError("CHILD_FAILED", `failed to list tool IDs: ${JSON.stringify(toolRes.error)}`)
   }
-  const toolIDs = toolRes.data ?? []
-  if (toolIDs.length === 0) {
-    throw new RlmError("CHILD_FAILED", "tool.ids() returned an empty list; refusing to run child without deny map")
+  const toolIDs = toolRes.data
+  if (!Array.isArray(toolIDs) || toolIDs.length === 0) {
+    throw new RlmError("CHILD_FAILED", "tool.ids() returned an invalid or empty list; refusing to run child without deny map")
+  }
+  for (let index = 0; index < toolIDs.length; index++) {
+    if (typeof toolIDs[index] !== "string" || toolIDs[index].length === 0) {
+      throw new RlmError(
+        "CHILD_FAILED",
+        `tool.ids() returned an invalid tool id at index ${index}; refusing to run child without deny map`,
+      )
+    }
   }
   const denyTools: Record<string, boolean> = {}
   for (const id of toolIDs) denyTools[id] = false
