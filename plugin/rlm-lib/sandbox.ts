@@ -45,14 +45,6 @@ const TEST_EXEC_TIMEOUT_MS = Number(process.env.RLM_TEST_EXEC_TIMEOUT_MS) || 0
 const RUNNER_PATH = fileURLToPath(new URL("../rlm-runner/runner.ts", import.meta.url))
 const GENERATED_WORKER_PATH = fileURLToPath(new URL("../rlm-runner/generated-worker.ts", import.meta.url))
 
-/**
- * The trusted transport runner may read only its fixed Worker entry module so
- * Deno can instantiate it. Project config, lockfile discovery, npm resolution
- * and remote module resolution are disabled explicitly; its module graph is
- * fixed and local. `--unstable-worker-options` then lets runner.ts revoke every
- * permission inside the generated-code Worker. The final V8 flag is host-owned
- * and overrides any inherited DENO_V8_FLAGS value.
- */
 export function sandboxDenoArgs(
   runnerPath = RUNNER_PATH,
   generatedWorkerPath = GENERATED_WORKER_PATH,
@@ -75,7 +67,6 @@ interface LineReader {
   next: () => Promise<string | undefined>
 }
 
-/** Bounded line-oriented reader for untrusted sandbox stdout. */
 function makeLineReader(stream: NodeJS.ReadableStream): LineReader {
   const decoder = new TextDecoder()
   let buffer = ""
@@ -241,6 +232,7 @@ export async function executeRlmExec(
       `rlm turn budget exceeded: ${turn.reason} (turnId=${s.turnId}, execs=${s.execCount}/${MAX_RLM_EXECS_PER_TURN}, childCalls=${s.childCallCount}/${MAX_CHILD_CALLS_PER_TURN}, wallMsUsed=${s.wallMsUsed}, execsRemaining=${s.execsRemaining}, childCallsRemaining=${s.childCallsRemaining}, wallMsRemaining=${s.wallMsRemaining})`,
     )
   }
+  const execTurnId = turn.snapshot.turnId
   const turnStartedAt = Date.now()
   const execTimeoutMs = turn.reservedWallMs
   const state = new RlmRunState({ workspaceRoot: ws.root, broadWorkspaceRoot: ws.broad, timeoutMs: execTimeoutMs })
@@ -250,6 +242,7 @@ export async function executeRlmExec(
   let stderrText = ""
   let stderrTruncated = false
   let turnFinished = false
+  let turnSuperseded = false
   let ignoredStdoutLines = 0
   const inflight = new Map<string, Promise<void>>()
   const requestGate = new ProtocolRequestGate()
@@ -266,8 +259,15 @@ export async function executeRlmExec(
   const finishTurn = (): void => {
     if (turnFinished) return
     turnFinished = true
-    turnGovernor.finishExec(parentSessionID, Date.now() - turnStartedAt, execTimeoutMs)
+    if (!turnGovernor.finishExecForTurn(parentSessionID, execTurnId, Date.now() - turnStartedAt, execTimeoutMs)) {
+      turnSuperseded = true
+    }
   }
+
+  const staleTurnError = (): RlmErrorInfo => ({
+    code: "BUDGET_EXCEEDED",
+    message: `rlm execution turn ${execTurnId} is no longer current for session ${parentSessionID}`,
+  })
 
   const appendStderr = (text: string): void => {
     const remaining = MAX_SANDBOX_STDERR_CHARS - stderrText.length
@@ -312,6 +312,7 @@ export async function executeRlmExec(
   try {
     await log("debug", "rlm_exec started", {
       parentSessionID,
+      turnId: execTurnId,
       directory: dir,
       workspaceRoot: ws.root,
       denoOldSpaceLimitMb: MAX_DENO_OLD_SPACE_MB,
@@ -364,8 +365,8 @@ export async function executeRlmExec(
         writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `rlm budget exceeded: maximum ${MAX_SUBCALLS_CONCURRENT} concurrent llm calls` } })
         return
       }
-      if (!turnGovernor.childAllowed(parentSessionID)) {
-        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `rlm turn budget exceeded: maximum ${MAX_CHILD_CALLS_PER_TURN} child calls per user turn` } })
+      if (!turnGovernor.isCurrentTurn(parentSessionID, execTurnId)) {
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: staleTurnError() })
         return
       }
       if (typeof promptValue !== "string" || promptValue.trim().length === 0) {
@@ -376,13 +377,26 @@ export async function executeRlmExec(
         writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `llm: prompt exceeds ${MAX_PROMPT_CHARS} characters` } })
         return
       }
+      if (!turnGovernor.registerChildStartForTurn(parentSessionID, execTurnId)) {
+        const error = turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
+          ? { code: "BUDGET_EXCEEDED" as const, message: `rlm turn budget exceeded: maximum ${MAX_CHILD_CALLS_PER_TURN} child calls per user turn` }
+          : staleTurnError()
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error })
+        return
+      }
 
       state.activeChildSessions.set(id, { sessionID: "", abort: () => {} })
-      turnGovernor.registerChildStart(parentSessionID)
       try {
         const res = await callChildLlm(
           client,
-          { prompt: promptValue, parentSessionID, directory: dir, title: "rlm_exec child", signal: abortController.signal },
+          {
+            prompt: promptValue,
+            parentSessionID,
+            parentUserMessageID: execTurnId,
+            directory: dir,
+            title: "rlm_exec child",
+            signal: abortController.signal,
+          },
           log,
         )
         state.childSessionIDs.push(res.childSessionID)
@@ -403,8 +417,15 @@ export async function executeRlmExec(
     }
 
     const handleContext = async (id: string, msg: ContextRequestMessage): Promise<void> => {
-      if (!turnGovernor.beginContextCall(parentSessionID)) {
-        writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `rlm turn budget exceeded: maximum ${turnGovernor.ctxCallsLimit()} context calls per user turn` } })
+      if (!turnGovernor.isCurrentTurn(parentSessionID, execTurnId)) {
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: staleTurnError() })
+        return
+      }
+      if (!turnGovernor.beginContextCallForTurn(parentSessionID, execTurnId)) {
+        const error = turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
+          ? { code: "BUDGET_EXCEEDED" as const, message: `rlm turn budget exceeded: maximum ${turnGovernor.ctxCallsLimit()} context calls per user turn` }
+          : staleTurnError()
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error })
         return
       }
       state.contextCallCount++
@@ -420,6 +441,10 @@ export async function executeRlmExec(
         writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: info })
         return
       }
+      if (!turnGovernor.isCurrentTurn(parentSessionID, execTurnId)) {
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: staleTurnError() })
+        return
+      }
       const serialized = JSON.stringify(value)
       if (serialized === undefined) {
         writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: { code: "PROTOCOL_ERROR", message: "context result is not JSON-serializable" } })
@@ -429,8 +454,11 @@ export async function executeRlmExec(
         writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `context budget exceeded: total context data exceeds ${MAX_TOTAL_CONTEXT_CHARS} characters per rlm_exec` } })
         return
       }
-      if (!turnGovernor.addContextChars(parentSessionID, serialized.length)) {
-        writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `rlm turn budget exceeded: total context data exceeds ${turnGovernor.ctxCharsLimit()} characters per user turn` } })
+      if (!turnGovernor.addContextCharsForTurn(parentSessionID, execTurnId, serialized.length)) {
+        const error = turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
+          ? { code: "BUDGET_EXCEEDED" as const, message: `rlm turn budget exceeded: total context data exceeds ${turnGovernor.ctxCharsLimit()} characters per user turn` }
+          : staleTurnError()
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error })
         return
       }
       state.contextCharsSent += serialized.length
@@ -540,12 +568,14 @@ export async function executeRlmExec(
       exitCode: state.exitCode,
       stderrTruncated,
       ignoredStdoutLines,
+      turnId: execTurnId,
     }
 
     finishTurn()
+    turnSuperseded ||= !turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
+    metadata.turnSuperseded = turnSuperseded
     const turnSnap = turnGovernor.snapshot(parentSessionID)
-    if (turnSnap) {
-      metadata.turnId = turnSnap.turnId
+    if (!turnSuperseded && turnSnap?.turnId === execTurnId) {
       metadata.turnExecCount = turnSnap.execCount
       metadata.turnChildCallCount = turnSnap.childCallCount
       metadata.turnContextCallCount = turnSnap.contextCallCount
@@ -562,8 +592,11 @@ export async function executeRlmExec(
   } catch (error) {
     const info = toErrorInfo(error)
     finishTurn()
+    turnSuperseded ||= !turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
     await log("error", "rlm_exec failed", {
       parentSessionID,
+      turnId: execTurnId,
+      turnSuperseded,
       exitCode: state.exitCode,
       workspaceRoot: ws.root,
       childSessionIDs: [...state.childSessionIDs],

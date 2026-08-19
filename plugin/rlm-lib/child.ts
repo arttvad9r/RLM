@@ -4,7 +4,7 @@
  *
  * Behavior:
  *   - child session with parentID = root sessionID, same directory;
- *   - inherits the root provider/model from the parent user message;
+ *   - inherits the root provider/model from the execution's user message;
  *   - zero tools: every available tool ID mapped to false;
  *   - blocking session.prompt, text-only extraction, explicit error throw;
  *   - abort linked to the provided AbortSignal;
@@ -19,7 +19,7 @@ type Client = {
     messages: (args: {
       path: { id: string }
       query: { directory: string }
-    }) => Promise<{ error?: unknown; data?: Array<{ info: { role: string; model?: unknown } }> }>
+    }) => Promise<{ error?: unknown; data?: Array<{ info: { id?: string; role: string; model?: unknown } }> }>
     create: (args: {
       body: { parentID: string; title: string }
       query: { directory: string }
@@ -54,6 +54,8 @@ type Client = {
 export interface ChildLlmInput {
   prompt: string
   parentSessionID: string
+  /** User-message identity captured when the parent rlm_exec began. */
+  parentUserMessageID?: string
   directory: string
   title?: string
   signal?: AbortSignal
@@ -77,9 +79,10 @@ export async function callChildLlm(
   const { prompt, parentSessionID, directory: dir, signal } = input
   let childSessionID: string | undefined
 
-  // 1. Resolve the provider/model supported by the pinned SDK from the
-  // parent session's current user message. Do not invent unsupported model
-  // fields such as a variant that is absent from @opencode-ai/sdk 1.1.26.
+  // 1. Resolve the provider/model from the user message captured by the parent
+  // execution. Falling back to the latest user is retained only for direct
+  // callers/tests that do not supply parentUserMessageID; production rlm_exec
+  // always supplies it so a later user turn cannot switch an in-flight child.
   const modelRes = await client.session.messages({
     path: { id: parentSessionID },
     query: { directory: dir },
@@ -87,10 +90,17 @@ export async function callChildLlm(
   if (modelRes.error) {
     throw new RlmError("CHILD_FAILED", `failed to read parent messages: ${JSON.stringify(modelRes.error)}`)
   }
-  const lastUser = [...(modelRes.data ?? [])].reverse().find((m) => m.info.role === "user")
-  const rawModel = lastUser?.info.model as { providerID: string; modelID: string } | undefined
-  if (!rawModel?.providerID || !rawModel?.modelID) {
-    throw new RlmError("CHILD_FAILED", "could not resolve root model (no user message with model found)")
+  const messages = modelRes.data ?? []
+  const modelUser = input.parentUserMessageID
+    ? messages.find((m) => m.info.role === "user" && m.info.id === input.parentUserMessageID)
+    : [...messages].reverse().find((m) => m.info.role === "user")
+  if (input.parentUserMessageID && !modelUser) {
+    throw new RlmError("CHILD_FAILED", `could not resolve captured parent user message: ${input.parentUserMessageID}`)
+  }
+  const rawModel = modelUser?.info.model as { providerID?: unknown; modelID?: unknown } | undefined
+  if (typeof rawModel?.providerID !== "string" || rawModel.providerID.length === 0
+    || typeof rawModel?.modelID !== "string" || rawModel.modelID.length === 0) {
+    throw new RlmError("CHILD_FAILED", "could not resolve root model from the selected parent user message")
   }
   const rootModel = { providerID: rawModel.providerID, modelID: rawModel.modelID }
 
@@ -124,6 +134,7 @@ export async function callChildLlm(
     await log("info", "child created", {
       childSessionID,
       parentSessionID,
+      parentUserMessageID: input.parentUserMessageID,
       model: `${rootModel.providerID}/${rootModel.modelID}`,
       deniedToolCount: Object.keys(denyTools).length,
     })
