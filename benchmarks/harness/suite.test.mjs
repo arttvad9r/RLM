@@ -128,7 +128,7 @@ test("suite rejects wrong corpus size and reused run identities", () => {
     () => compareSemanticStateAuditSuite(fairSuite({
       normal192: scoreReport({ benchmarkId: "semantic-state-audit-v2-192", total: 191, mode: "normal", runId: "normal-192" }),
     })),
-    /192 normal score must contain exactly 192 benchmark cases/,
+    /benchmark case-count mismatch/,
   )
 
   assert.throws(
