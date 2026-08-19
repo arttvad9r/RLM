@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url"
-import { MAX_RESULT_CHARS } from "../rlm-lib/constants.ts"
+import { MAX_PROTOCOL_REQUESTS_TOTAL, MAX_RESULT_CHARS } from "../rlm-lib/constants.ts"
 import { parseSandboxFrame } from "../rlm-lib/protocol.ts"
 import { sandboxDenoArgs } from "../rlm-lib/sandbox.ts"
 
@@ -89,6 +89,24 @@ Deno.test("runner rejects finalization with outstanding RPCs", async () => {
   const error = last?.error as { code?: string; message?: string } | undefined
   assert(error?.code === "PROTOCOL_ERROR", `expected PROTOCOL_ERROR, got ${error?.code}`)
   assert(error?.message?.includes("still pending") === true, "expected pending-RPC diagnostic")
+})
+
+Deno.test("generated worker rejects RPC creation above the per-exec total before transport", async () => {
+  const code = `
+    for (let i = 0; i < ${MAX_PROTOCOL_REQUESTS_TOTAL}; i++) void context.files("")
+    await context.files("")
+    return "unreachable"
+  `
+  const result = await runRunner(code)
+  assert(!result.status.success, "runner must fail when generated code exceeds the RPC creation budget")
+  const output = frames(result.stdout)
+  const requests = output.filter((frame) => frame.type === "context")
+  assert(requests.length === MAX_PROTOCOL_REQUESTS_TOTAL, `expected exactly ${MAX_PROTOCOL_REQUESTS_TOTAL} transported requests, got ${requests.length}`)
+  const last = output.at(-1)
+  assert(last?.type === "error", "expected terminal error frame")
+  const error = last?.error as { code?: string; message?: string } | undefined
+  assert(error?.code === "BUDGET_EXCEEDED", `expected BUDGET_EXCEEDED, got ${error?.code}`)
+  assert(error?.message?.includes(`maximum ${MAX_PROTOCOL_REQUESTS_TOTAL} RPC requests`) === true, "expected RPC budget diagnostic")
 })
 
 Deno.test("runner rejects oversized final results", async () => {
