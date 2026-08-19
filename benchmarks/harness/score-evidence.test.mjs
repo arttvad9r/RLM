@@ -69,3 +69,16 @@ test("A/B comparator requires distinct run identities", () => {
     /distinct run_id values/,
   )
 })
+
+test("A/B comparator rejects inconsistent ground-truth counts and reused run hashes", () => {
+  const normal = score("normal", "normal-counts")
+  const rlm = score("rlm", "rlm-counts")
+  rlm.counts = { total: 2, expected_violations: 1, predicted_violations: 0, tp: 0, fp: 0, fn: 1, tn: 1 }
+  rlm.metrics = { violation_precision: 0, violation_recall: 0, violation_f1: 0, specificity: 1, accuracy: 0.5, balanced_accuracy: 0.5 }
+  assert.throws(() => compareScores(normal, rlm), /benchmark case-count mismatch/)
+
+  const normalHash = score("normal", "normal-hash")
+  const rlmHash = score("rlm", "rlm-hash")
+  rlmHash.integrity.run_sha256 = normalHash.integrity.run_sha256
+  assert.throws(() => compareScores(normalHash, rlmHash), /distinct run_sha256 values/)
+})
