@@ -29,6 +29,7 @@ import type {
   RlmErrorInfo,
   SandboxToHostMessage,
 } from "../rlm-lib/types.ts"
+import { writeAllSync } from "./write-all.ts"
 
 const encoder = new TextEncoder()
 const GENERATED_WORKER_URL = new URL("./generated-worker.ts", import.meta.url).href
@@ -42,7 +43,7 @@ function writeMessage(message: SandboxToHostMessage): void {
   if (line.length > MAX_PROTOCOL_LINE_CHARS) {
     throw new RlmError("BUDGET_EXCEEDED", `sandbox protocol line exceeds ${MAX_PROTOCOL_LINE_CHARS} characters`)
   }
-  Deno.stdout.writeSync(encoder.encode(line + "\n"))
+  writeAllSync(Deno.stdout, encoder.encode(line + "\n"))
 }
 
 function fail(error: RlmErrorInfo): never {
