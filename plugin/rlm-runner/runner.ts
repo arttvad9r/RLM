@@ -12,6 +12,7 @@
 import {
   MAX_PROTOCOL_LINE_CHARS,
   MAX_PROTOCOL_QUEUE_LINES,
+  MAX_PROTOCOL_REQUESTS_TOTAL,
   MAX_READ_MANY_FILES,
   MAX_RESULT_CHARS,
   PROTOCOL_VERSION,
@@ -279,6 +280,7 @@ async function main(): Promise<void> {
       protocolVersion: PROTOCOL_VERSION,
       maxReadManyFiles: MAX_READ_MANY_FILES,
       maxResultChars: MAX_RESULT_CHARS,
+      maxProtocolRequestsTotal: MAX_PROTOCOL_REQUESTS_TOTAL,
     },
   }, [channel.port2])
   await completion

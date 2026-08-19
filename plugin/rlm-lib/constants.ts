@@ -30,6 +30,8 @@ export const MAX_DENO_OLD_SPACE_MB = 768
 export const MAX_RESULT_CHARS = 256 * 1024
 export const MAX_PROTOCOL_LINE_CHARS = 2 * 1024 * 1024
 export const MAX_PROTOCOL_QUEUE_LINES = 128
+export const MAX_PROTOCOL_REQUESTS_TOTAL = 128
+export const MAX_PROTOCOL_REQUEST_ID_CHARS = 128
 export const MAX_SANDBOX_STDERR_CHARS = 16 * 1024
 
 // per-user-turn governor (host side, reset on each new user message)
