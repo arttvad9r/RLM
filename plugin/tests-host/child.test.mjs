@@ -6,12 +6,13 @@ import { activeRlmChildCount } from "../rlm-lib/child-system.ts"
 import { RlmError } from "../rlm-lib/errors.ts"
 
 const log = async () => {}
+const baseInput = { prompt: "x", parentSessionID: "root", parentTurnID: "user-1", directory: "/workspace" }
 
 function baseClient(overrides = {}) {
   return {
     session: {
       messages: async () => ({
-        data: [{ info: { role: "user", model: { providerID: "provider", modelID: "model" } } }],
+        data: [{ info: { id: "user-1", role: "user", model: { providerID: "provider", modelID: "model" } } }],
       }),
       create: async () => ({ data: { id: "child-1" } }),
       abort: async () => ({}),
@@ -38,7 +39,7 @@ test("child refuses to start when tool inventory is empty", async () => {
   })
 
   await assert.rejects(
-    () => callChildLlm(client, { prompt: "x", parentSessionID: "root", directory: "/workspace" }, log),
+    () => callChildLlm(client, baseInput, log),
     (error) => error instanceof RlmError && error.code === "CHILD_FAILED" && /empty list/.test(error.message),
   )
   assert.equal(createCalls, 0)
@@ -66,11 +67,7 @@ test("child prompt receives pinned-SDK model shape and a full deny map", async (
     tool: { ids: async () => ({ data: ["read", "bash", "edit"] }) },
   })
 
-  const result = await callChildLlm(
-    client,
-    { prompt: "x", parentSessionID: "root", directory: "/workspace" },
-    log,
-  )
+  const result = await callChildLlm(client, baseInput, log)
   assert.deepEqual(model, { providerID: "provider", modelID: "model" })
   assert.deepEqual(bodyKeys, ["model", "parts", "tools"])
   assert.deepEqual(tools, { read: false, bash: false, edit: false, rlm_exec: false })
@@ -97,7 +94,7 @@ test("provider-side child errors always clean the active-child registry", async 
   })
 
   await assert.rejects(
-    () => callChildLlm(client, { prompt: "x", parentSessionID: "root", directory: "/workspace" }, log),
+    () => callChildLlm(client, baseInput, log),
     (error) => error instanceof RlmError && error.code === "CHILD_FAILED" && /boom/.test(error.message),
   )
   assert.equal(activeRlmChildCount(), 0)
@@ -122,11 +119,7 @@ test("a pre-aborted parent aborts the child and still cleans registry state", as
   })
 
   await assert.rejects(
-    () => callChildLlm(
-      client,
-      { prompt: "x", parentSessionID: "root", directory: "/workspace", signal: controller.signal },
-      log,
-    ),
+    () => callChildLlm(client, { ...baseInput, signal: controller.signal }, log),
     (error) => error instanceof RlmError && error.code === "CHILD_FAILED" && /parent aborted/.test(error.message),
   )
   assert.equal(abortCalls, 1)
