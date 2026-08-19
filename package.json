@@ -12,6 +12,7 @@
     "test:plugin": "deno test --unstable-worker-options --allow-run --allow-read --allow-write --allow-sys=homedir --allow-env=HOME,XDG_CONFIG_HOME,OPENCODE_RLM_CONTEXT_ROOT,OPENCODE_RLM_CONTEXT_POLICY,RLM_TEST_TURN_WALL_MS,RLM_TEST_TURN_EXECS,RLM_TEST_TURN_CTX_CALLS,RLM_TEST_TURN_CTX_CHARS,RLM_TEST_EXEC_TIMEOUT_MS plugin/tests/*.test.ts",
     "test:benchmarks": "node --test benchmarks/harness/harness.test.mjs",
     "verify:benchmarks": "node benchmarks/generator/verify.mjs && node benchmarks/generator/verify-v2.mjs && node benchmarks/generator/verify-v3.mjs",
+    "verify:resource-envelope": "node scripts/verify-resource-envelope.mjs",
     "test": "npm run check:standalone && npm run test:host-runtime && npm run typecheck && npm run test:plugin && npm run test:benchmarks && npm run verify:benchmarks"
   },
   "dependencies": {
