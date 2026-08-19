@@ -33,7 +33,7 @@ Required run format:
 }
 ```
 
-For `normal` runs all child/RLM counters must be zero. For RLM runs set `mode` to `rlm` and record aggregate `rlm_exec` metadata. Use the same full source commit and root model/variant for both sides of an A/B pair.
+For `normal` runs all child/RLM counters must be zero. For RLM runs set `mode` to `rlm`, record aggregate `rlm_exec` metadata, and require `rlm_exec_count > 0`; an arm that merely had RLM available but never invoked it is not valid RLM benchmark evidence. Use the same full source commit and root model/variant for both sides of an A/B pair.
 
 Score a run against the exact frozen corpus and task-prompt bytes:
 
@@ -56,4 +56,4 @@ node benchmarks/harness/compare-runs.mjs \
   --out benchmarks/runs/<pair>.comparison.json
 ```
 
-The scorer fails closed on task-prompt hash mismatch, ground-truth hash mismatch, corpus aggregate mismatch, unknown/duplicate prediction paths, invalid usage data or malformed run metadata. The comparator rejects pairs with different prompt/corpus/ground-truth data, source commit or root model/variant. It reports deltas only; adoption policy remains outside the scorer.
+The scorer fails closed on task-prompt hash mismatch, ground-truth hash mismatch, corpus aggregate mismatch, unknown/duplicate prediction paths, invalid usage data, RLM-mode records without observed `rlm_exec`, or malformed run metadata. The comparator rejects pairs with different prompt/corpus/ground-truth data, source commit or root model/variant. It reports deltas only; adoption policy remains outside the scorer.
