@@ -44,7 +44,7 @@ export function corpusAggregate(entries) {
       invariant(typeof entry.content === "string", `corpus entry content must be a string: ${entry.name}`)
       return { name: entry.name, content: entry.content }
     })
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => a.name === b.name ? 0 : a.name < b.name ? -1 : 1)
   const seen = new Set()
   const hash = createHash("sha256")
   for (const entry of normalized) {
