@@ -260,6 +260,7 @@ export async function executeRlmExec(
   let finalResultChars = 0
   let haveResult = false
   let sandboxError: RlmErrorInfo | null = null
+  let stdinError: Error | undefined
 
   const finishTurn = (): void => {
     if (turnFinished) return
@@ -321,6 +322,12 @@ export async function executeRlmExec(
     })
 
     child.stderr.on("data", (d: Buffer) => appendStderr(d.toString()))
+    child.stdin.on("error", (error: Error) => {
+      stdinError ??= error
+      appendStderr(`\n[stdin error] ${error.message}`)
+      abortController.abort()
+      if (child && child.exitCode === null) child.kill("SIGKILL")
+    })
     child.on("error", (error) => appendStderr(`\n[spawn error] ${error.message}`))
     child.on("exit", (exitCode) => {
       state.exitCode = exitCode
@@ -502,6 +509,9 @@ export async function executeRlmExec(
     const stderr = stderrDiagnostic()
     if (timedOut) {
       throw new RlmError("TIMEOUT", `rlm_exec: timeout after ${execTimeoutMs}ms (sandbox killed)${stderr ? `:\n${stderr}` : ""}`)
+    }
+    if (stdinError) {
+      throw new RlmError("RUNTIME_ERROR", `rlm_exec: sandbox stdin failed: ${stdinError.message}${stderr ? `:\n${stderr}` : ""}`)
     }
     if (sandboxError) throw new RlmError(sandboxError.code, sandboxError.message)
     if (state.exitCode !== 0) {
