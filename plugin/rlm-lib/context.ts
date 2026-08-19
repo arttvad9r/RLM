@@ -44,13 +44,24 @@ class NonTextFileError extends RlmError {
   }
 }
 
+function assertContextActive(state: RlmRunState): void {
+  if (Date.now() >= state.deadlineAt) {
+    throw new RlmError("TIMEOUT", "host context operation exceeded the rlm_exec deadline")
+  }
+  if (state.abort.signal.aborted) {
+    throw new RlmError("RUNTIME_ERROR", "host context operation aborted with the parent rlm_exec")
+  }
+}
+
 export async function executeContextOperation(
   _client: Client,
   state: RlmRunState,
   _directory: string,
   msg: ContextRequestMessage,
 ): Promise<{ value: unknown }> {
+  assertContextActive(state)
   const policy = await resolveActiveRlmContextPolicy()
+  assertContextActive(state)
   switch (msg.operation) {
     case "read":
       return { value: await opRead(state, policy, msg.path ?? "") }
@@ -71,7 +82,9 @@ async function targetInfo(
   policy: RlmContextPolicy,
   inputPath: string,
 ): Promise<{ target: string; relative: string }> {
+  assertContextActive(state)
   const target = await confinePath(state.workspaceRoot, inputPath)
+  assertContextActive(state)
   const relative = relativeWorkspacePath(state.workspaceRoot, target)
   assertRlmContextPathAllowed(relative, policy)
   return { target, relative }
@@ -93,6 +106,7 @@ async function readText(
   const { target, relative } = await targetInfo(state, policy, inputPath)
 
   let info
+  assertContextActive(state)
   try {
     info = await stat(target)
   } catch (error) {
@@ -100,6 +114,7 @@ async function readText(
     if (code === "ENOENT") throw readFailure(relative || inputPath, "file does not exist")
     throw readFailure(relative || inputPath, "cannot stat file")
   }
+  assertContextActive(state)
   if (!info.isFile()) throw readFailure(relative || inputPath, "target is not a regular file")
   if (BINARY_EXTENSIONS.has(path.extname(relative).toLowerCase())) {
     throw nonTextFailure(relative, "binary file extension is not allowed")
@@ -115,13 +130,18 @@ async function readText(
   let handle
   let total = 0
   try {
+    assertContextActive(state)
     handle = await open(target, "r")
+    assertContextActive(state)
     while (total < buffer.length) {
+      assertContextActive(state)
       const { bytesRead } = await handle.read(buffer, total, buffer.length - total, null)
+      assertContextActive(state)
       if (bytesRead === 0) break
       total += bytesRead
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof RlmError) throw error
     throw readFailure(relative, "bounded file read failed")
   } finally {
     await handle?.close().catch(() => undefined)
@@ -134,6 +154,7 @@ async function readText(
     )
   }
 
+  assertContextActive(state)
   const bytes = buffer.subarray(0, total)
   if (bytes.includes(0)) throw nonTextFailure(relative, "binary/NUL content is not allowed")
   let content: string
@@ -150,6 +171,7 @@ async function opRead(
   policy: RlmContextPolicy,
   inputPath: string,
 ): Promise<string> {
+  assertContextActive(state)
   return (await readText(state, policy, inputPath)).content
 }
 
@@ -168,9 +190,14 @@ async function opReadMany(
   }
   const items: ReadManyItem[] = []
   for (const item of paths) {
+    assertContextActive(state)
     try {
       items.push({ path: item, content: await opRead(state, policy, item) })
     } catch (error) {
+      // Per-file read failures are part of readMany's result contract, but a
+      // parent abort/deadline must terminate the entire host operation rather
+      // than being converted into dozens of per-file errors.
+      assertContextActive(state)
       items.push({ path: item, error: toErrorInfo(error) })
     }
   }
@@ -186,11 +213,14 @@ async function opGrep(
     throw new RlmError("INVALID_ARGUMENT", "context.grep: pattern must be a non-empty string")
   }
 
+  assertContextActive(state)
   const evaluator = await createSafeRegexEvaluator(pattern)
   try {
+    assertContextActive(state)
     const files = await opFiles(state, policy, "")
     const matches: GrepMatch[] = []
     for (const file of files) {
+      assertContextActive(state)
       let item: Awaited<ReturnType<typeof readText>>
       try {
         item = await readText(state, policy, file)
@@ -198,9 +228,11 @@ async function opGrep(
         if (error instanceof NonTextFileError) continue
         throw error
       }
+      assertContextActive(state)
       const lines = item.content.split("\n")
       const remaining = policy.maxGrepMatches - matches.length
       const indices = await evaluator.scan(item.content, remaining)
+      assertContextActive(state)
       for (const index of indices) {
         matches.push({ path: item.relative, line: index + 1, text: lines[index] })
         if (matches.length > policy.maxGrepMatches) {
@@ -220,6 +252,7 @@ async function opFiles(
   query: string,
 ): Promise<string[]> {
   if (typeof query !== "string") throw new RlmError("INVALID_ARGUMENT", "context.files: query must be a string")
+  assertContextActive(state)
 
   const needle = query.toLowerCase()
   const files: string[] = []
@@ -230,6 +263,7 @@ async function opFiles(
   let entryLimitHit = false
 
   const visit = async (relativeDir: string, depth: number): Promise<void> => {
+    assertContextActive(state)
     if (depthLimitHit || dirLimitHit || entryLimitHit) return
     if (files.length > policy.maxListEntries || files.length > MAX_GLOB_PATHS) return
     if (depth > 12) {
@@ -243,10 +277,13 @@ async function opFiles(
     if (!mayTraverseRlmContextPath(relativeDir, policy)) return
 
     const target = await confinePath(state.workspaceRoot, relativeDir || ".")
+    assertContextActive(state)
     visitedDirs++
     try {
       const directory = await opendir(target)
+      assertContextActive(state)
       for await (const entry of directory) {
+        assertContextActive(state)
         scannedEntries++
         if (scannedEntries > MAX_CONTEXT_ENTRIES_SCANNED) {
           entryLimitHit = true
@@ -265,12 +302,14 @@ async function opFiles(
         if (name.includes(needle) || relative.toLowerCase().includes(needle)) files.push(relative)
         if (files.length > policy.maxListEntries || files.length > MAX_GLOB_PATHS) return
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof RlmError) throw error
       throw new RlmError("READ_FAILED", `context.files: cannot read approved directory: ${relativeDir || "."}`)
     }
   }
 
   await visit("", 0)
+  assertContextActive(state)
   if (files.length > policy.maxListEntries) {
     throw new RlmError("BUDGET_EXCEEDED", `context.files: more than ${policy.maxListEntries} approved paths; narrow the query`)
   }
