@@ -30,7 +30,7 @@ const manifest = {
   sha256: { ground_truth: groundTruthSha256, corpus_aggregate: corpusAggregateSha256 },
 }
 const baseRun = {
-  schema_version: 1,
+  schema_version: 2,
   benchmark_id: "fixture-v1",
   run_id: "normal-1",
   mode: "normal",
@@ -81,6 +81,7 @@ test("corpus aggregate matches verifier ordering independent of input order", ()
 
 test("scores binary violation detection deterministically", () => {
   const report = score(baseRun)
+  assert.equal(report.schema_version, 2)
   assert.deepEqual(report.counts, {
     total: 4,
     expected_violations: 2,
@@ -94,6 +95,10 @@ test("scores binary violation detection deterministically", () => {
   assert.equal(report.metrics.violation_recall, 0.5)
   assert.equal(report.metrics.violation_f1, 0.5)
   assert.equal(report.metrics.accuracy, 0.5)
+})
+
+test("rejects legacy run schema after evidence contract changes", () => {
+  assert.throws(() => score({ ...baseRun, schema_version: 1 }), /run schema_version must be 2/)
 })
 
 test("rejects predictions outside the frozen benchmark", () => {
@@ -143,12 +148,24 @@ test("compares only fair normal-vs-rlm runs", () => {
     },
   })
   const comparison = compareScores(normal, rlm)
+  assert.equal(comparison.schema_version, 2)
   assert.equal(comparison.quality.rlm_minus_normal.violation_f1, 0.5)
   assert.equal(comparison.efficiency.rlm_minus_normal.total_tokens, 50)
   assert.equal(comparison.efficiency.rlm_minus_normal.wall_ms, 500)
   assert.equal(comparison.integrity.corpus_aggregate_sha256, corpusAggregateSha256)
   assert.equal(comparison.integrity.task_prompt_sha256, taskPromptSha256)
   assert.equal(comparison.integrity.experiment_config_sha256, experimentConfigSha256)
+})
+
+test("rejects A/B comparison when score schema differs", () => {
+  const normal = score(baseRun)
+  const rlm = score({
+    ...baseRun,
+    run_id: "rlm-schema",
+    mode: "rlm",
+    usage: { ...baseRun.usage, rlm_exec_count: 1 },
+  })
+  assert.throws(() => compareScores({ ...normal, schema_version: 1 }, rlm), /score schema_version must be 2/)
 })
 
 test("rejects A/B comparison when root model differs", () => {
