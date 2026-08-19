@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
+import { assertCorpusNamesMatchGroundTruth } from "./corpus-layout.mjs"
 import { corpusAggregate, parseArgs, scoreRun, sha256 } from "./lib.mjs"
 
 const args = parseArgs(process.argv.slice(2), ["ground-truth", "manifest", "corpus", "task-prompt", "experiment-config", "run", "out"])
@@ -22,6 +23,7 @@ const corpusEntries = await Promise.all(corpusNames.map(async (name) => ({
 const groundTruth = JSON.parse(groundTruthBytes.toString("utf8"))
 const manifest = JSON.parse(manifestBytes.toString("utf8"))
 const run = JSON.parse(runBytes.toString("utf8"))
+assertCorpusNamesMatchGroundTruth(groundTruth, corpusNames)
 const report = scoreRun({
   groundTruth,
   manifest,
