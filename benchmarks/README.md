@@ -62,9 +62,23 @@ node benchmarks/harness/compare-runs.mjs \
   --out /path/to/comparison.json
 ```
 
+For the 192/384 acceptance suite, bind all four scored arms into one evidence record after the two pairs have been scored:
+
+```sh
+node benchmarks/harness/compare-suite.mjs \
+  --192-normal /path/to/192-normal.score.json \
+  --192-rlm /path/to/192-rlm.score.json \
+  --384-normal /path/to/384-normal.score.json \
+  --384-rlm /path/to/384-rlm.score.json \
+  --out /path/to/semantic-state-audit-192-384.suite.json
+```
+
+The suite comparator reruns the pair-level validation, requires the expected 192 and 384 benchmark identities/counts, requires four distinct run IDs/content hashes, and rejects any cross-size drift in source commit, task prompt, experiment configuration or root model/variant. This prevents two individually fair A/B pairs from being combined into a nominal 192/384 result when they were actually executed under different root conditions.
+
 ## Isolation rules
 
 - Models must never receive benchmark ground truth or manifests as runtime context.
 - Standalone RLM runs must set the trusted host context root to the exact corpus workspace. Keeping ground truth merely in a sibling directory is not an isolation boundary.
 - Corpus, task prompt, source revision, root model/variant and shared experiment-config bytes must remain unchanged across A/B arms; only RLM availability/use may differ.
+- The 192 and 384 pairs in the acceptance suite must also share source revision, root model/variant, task prompt and experiment-config identity; persist the `compare-suite.mjs` output as the four-arm evidence record.
 - Downstream integrations may build their own A/B runners around this harness, but project-specific Planner/Worker contracts do not belong in this standalone tree.
