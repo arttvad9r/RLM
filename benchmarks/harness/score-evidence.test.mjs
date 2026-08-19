@@ -99,3 +99,13 @@ test("corpus aggregate uses the verifier's locale-independent code-unit order", 
   }
   assert.equal(corpusAggregate(entries), hash.digest("hex"))
 })
+
+test("score comparator rejects an impossible zero-case benchmark report", () => {
+  const normal = score("normal", "normal-zero")
+  const rlm = score("rlm", "rlm-zero")
+  for (const report of [normal, rlm]) {
+    report.counts = { total: 0, expected_violations: 0, predicted_violations: 0, tp: 0, fp: 0, fn: 0, tn: 0 }
+    report.metrics = { violation_precision: 0, violation_recall: 0, violation_f1: 0, specificity: 0, accuracy: 0, balanced_accuracy: 0 }
+  }
+  assert.throws(() => compareScores(normal, rlm), /score counts.total must be positive/)
+})
