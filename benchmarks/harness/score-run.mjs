@@ -3,11 +3,12 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { corpusAggregate, parseArgs, scoreRun, sha256 } from "./lib.mjs"
 
-const args = parseArgs(process.argv.slice(2), ["ground-truth", "manifest", "corpus", "task-prompt", "run", "out"])
-const [groundTruthBytes, manifestBytes, taskPromptBytes, runBytes] = await Promise.all([
+const args = parseArgs(process.argv.slice(2), ["ground-truth", "manifest", "corpus", "task-prompt", "experiment-config", "run", "out"])
+const [groundTruthBytes, manifestBytes, taskPromptBytes, experimentConfigBytes, runBytes] = await Promise.all([
   readFile(args["ground-truth"]),
   readFile(args.manifest),
   readFile(args["task-prompt"]),
+  readFile(args["experiment-config"]),
   readFile(args.run),
 ])
 
@@ -28,6 +29,7 @@ const report = scoreRun({
   groundTruthSha256: sha256(groundTruthBytes),
   corpusAggregateSha256: corpusAggregate(corpusEntries),
   taskPromptSha256: sha256(taskPromptBytes),
+  experimentConfigSha256: sha256(experimentConfigBytes),
   runSha256: sha256(runBytes),
 })
 
