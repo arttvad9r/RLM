@@ -31,7 +31,7 @@
  */
 import type { Plugin } from "@opencode-ai/plugin"
 import { tool } from "@opencode-ai/plugin/tool"
-import { RLM_CHILD_SYSTEM_PROMPT, isRlmChild } from "./rlm-lib/child-system.ts"
+import { RLM_CHILD_SYSTEM_PROMPT, forgetDeletedRlmChild, isRlmChild } from "./rlm-lib/child-system.ts"
 import { executeRlmExec } from "./rlm-lib/sandbox.ts"
 import { turnGovernor } from "./rlm-lib/turn.ts"
 import type { Logger, LogLevel } from "./rlm-lib/types.ts"
@@ -53,7 +53,11 @@ export default (async ({ client, directory, worktree }) => {
 
   return {
     event: async ({ event }) => {
-      if (event.type === "session.deleted") turnGovernor.evictSession(event.properties.info.id)
+      if (event.type === "session.deleted") {
+        const sessionID = event.properties.info.id
+        forgetDeletedRlmChild(sessionID)
+        turnGovernor.evictSession(sessionID)
+      }
     },
     "experimental.chat.system.transform": async (
       input: { sessionID?: string },
