@@ -147,3 +147,59 @@ test("beginExec reserves wall atomically across concurrent starts", async () => 
   assert.equal(first.reservedWallMs + second.reservedWallMs, MAX_RLM_WALL_MS_PER_TURN)
   assert.equal((await governor.beginExec(sdk, "session-1", "/workspace", "assistant-1", 1)).allowed, false)
 })
+
+test("overlapping turn lookups cannot roll session state backward when an older lookup resolves late", async () => {
+  const governor = new TurnGovernor()
+  let releaseOld
+  let markOldStarted
+  const oldGate = new Promise((resolve) => { releaseOld = resolve })
+  const oldStarted = new Promise((resolve) => { markOldStarted = resolve })
+  let calls = 0
+  const sdk = {
+    session: {
+      messages: async () => {
+        calls++
+        if (calls === 1) {
+          markOldStarted()
+          await oldGate
+          return { data: [{ info: { id: "user-old", role: "user" } }] }
+        }
+        return { data: [{ info: { id: "user-new", role: "user" } }] }
+      },
+    },
+  }
+
+  const older = governor.beginExec(sdk, "session-1", "/workspace", "assistant-old")
+  await oldStarted
+  const newer = governor.beginExec(sdk, "session-1", "/workspace", "assistant-new")
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(calls, 1, "new turn lookup must wait for the older cache transition in the same session")
+
+  releaseOld()
+  const [oldResult, newResult] = await Promise.all([older, newer])
+  assert.equal(oldResult.snapshot.turnId, "user-old")
+  assert.equal(newResult.snapshot.turnId, "user-new")
+  assert.equal(governor.snapshot("session-1")?.turnId, "user-new")
+  assert.equal(governor.snapshot("session-1")?.execCount, 1)
+})
+
+test("turn resolution locks are isolated per root session", async () => {
+  const governor = new TurnGovernor()
+  let releaseA
+  let markAStarted
+  const gateA = new Promise((resolve) => { releaseA = resolve })
+  const startedA = new Promise((resolve) => { markAStarted = resolve })
+  const clientA = client(async () => {
+    markAStarted()
+    await gateA
+    return { data: [{ info: { id: "user-a", role: "user" } }] }
+  })
+  const clientB = client(() => ({ data: [{ info: { id: "user-b", role: "user" } }] }))
+
+  const a = governor.beginExec(clientA, "session-a", "/workspace", "assistant-a")
+  await startedA
+  const b = await governor.beginExec(clientB, "session-b", "/workspace", "assistant-b")
+  assert.equal(b.snapshot.turnId, "user-b")
+  releaseA()
+  assert.equal((await a).snapshot.turnId, "user-a")
+})
