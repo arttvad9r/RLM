@@ -34,7 +34,7 @@ The verification scripts bind generator source, ground truth, corpus aggregate a
 
 ## Run records
 
-`harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt, shared experiment configuration and ground truth. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
+The hardened run/score/comparison evidence contract is schema version 2. `harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt, shared experiment configuration and ground truth. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
 
 Before inference, freeze one shared experiment-config file containing every non-mode inference/runtime setting that is not already represented by the source revision and root model identity. Both arms must use the exact same bytes. The scorer binds each run to that file's SHA-256 and the comparator rejects mismatched configuration identities.
 
