@@ -8,7 +8,8 @@
  *     active RLM turn, never from a later user message that arrived meanwhile;
  *   - zero tools: every available tool ID mapped to false;
  *   - blocking session.prompt, text-only extraction, explicit error throw;
- *   - abort linked to the provided AbortSignal;
+ *   - abort linked to the provided AbortSignal and settles locally even if the
+ *     underlying SDK prompt Promise does not settle after session.abort();
  *   - child session is intentionally NOT deleted (trace/debugging).
  */
 import { RlmError, toErrorInfo } from "./errors.ts"
@@ -145,10 +146,18 @@ export async function callChildLlm(
       abortChild()
       throw new RlmError("CHILD_FAILED", "parent aborted before child prompt")
     }
-    signal?.addEventListener("abort", abortChild, { once: true })
+    let rejectAbort: ((error: Error) => void) | undefined
+    const abortPromise = signal
+      ? new Promise<never>((_, reject) => { rejectAbort = reject })
+      : undefined
+    const onAbort = () => {
+      abortChild()
+      rejectAbort?.(new RlmError("CHILD_FAILED", "parent aborted during child prompt"))
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
 
     try {
-      const result = await client.session.prompt({
+      const promptPromise = client.session.prompt({
         path: { id: childSessionID },
         body: {
           parts: [{ type: "text", text: prompt }],
@@ -157,6 +166,9 @@ export async function callChildLlm(
         },
         query: { directory: dir },
       })
+      const result = abortPromise
+        ? await Promise.race([promptPromise, abortPromise])
+        : await promptPromise
 
       if (result.error) {
         throw new RlmError("CHILD_FAILED", `child session error: ${JSON.stringify(result.error)}`)
@@ -197,7 +209,7 @@ export async function callChildLlm(
     } catch (err) {
       throw err instanceof RlmError ? err : new RlmError("CHILD_FAILED", toErrorInfo(err).message)
     } finally {
-      signal?.removeEventListener("abort", abortChild)
+      signal?.removeEventListener("abort", onAbort)
     }
   } finally {
     unregisterRlmChild(childSessionID)
