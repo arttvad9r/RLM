@@ -102,7 +102,7 @@ export function isRlmHiddenPath(relativePath: string): boolean {
   const segments = relativePath.split("/").filter(Boolean)
   if (segments.includes(".git")) return true
   return segments.some(
-    (segment) => segment === ".env" || (segment.startsWith(".env.") && segment !== ".env.example"),
+    (segment) => segment.startsWith(".env") && segment !== ".env.example",
   )
 }
 
