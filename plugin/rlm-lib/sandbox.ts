@@ -77,6 +77,7 @@ interface LineReader {
 
 /** Bounded line-oriented reader for untrusted sandbox stdout. */
 function makeLineReader(stream: NodeJS.ReadableStream): LineReader {
+  const decoder = new TextDecoder()
   let buffer = ""
   const lines: string[] = []
   const waiting: Array<{
@@ -134,8 +135,11 @@ function makeLineReader(stream: NodeJS.ReadableStream): LineReader {
     }
   }
 
-  stream.on("data", (chunk: Buffer) => push(chunk.toString()))
+  stream.on("data", (chunk: Buffer) => push(decoder.decode(chunk, { stream: true })))
   stream.on("end", () => {
+    if (done) return
+    const tail = decoder.decode()
+    if (tail) push(tail)
     if (done) return
     if (buffer.length > MAX_PROTOCOL_LINE_CHARS) {
       fail(`sandbox stdout line exceeds ${MAX_PROTOCOL_LINE_CHARS} characters`)
@@ -257,6 +261,7 @@ export async function executeRlmExec(
   let finalResultChars = 0
   let haveResult = false
   let sandboxError: RlmErrorInfo | null = null
+  let stdinError: Error | undefined
 
   const finishTurn = (): void => {
     if (turnFinished) return
@@ -318,6 +323,12 @@ export async function executeRlmExec(
     })
 
     child.stderr.on("data", (d: Buffer) => appendStderr(d.toString()))
+    child.stdin.on("error", (error: Error) => {
+      stdinError ??= error
+      appendStderr(`\n[stdin error] ${error.message}`)
+      abortController.abort()
+      if (child && child.exitCode === null) child.kill("SIGKILL")
+    })
     child.on("error", (error) => appendStderr(`\n[spawn error] ${error.message}`))
     child.on("exit", (exitCode) => {
       state.exitCode = exitCode
@@ -498,6 +509,9 @@ export async function executeRlmExec(
     const stderr = stderrDiagnostic()
     if (timedOut) {
       throw new RlmError("TIMEOUT", `rlm_exec: timeout after ${execTimeoutMs}ms (sandbox killed)${stderr ? `:\n${stderr}` : ""}`)
+    }
+    if (stdinError) {
+      throw new RlmError("RUNTIME_ERROR", `rlm_exec: sandbox stdin failed: ${stdinError.message}${stderr ? `:\n${stderr}` : ""}`)
     }
     if (sandboxError) throw new RlmError(sandboxError.code, sandboxError.message)
     if (state.exitCode !== 0) {
