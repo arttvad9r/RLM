@@ -248,6 +248,9 @@ function validateScoreReport(report, expectedMode) {
   invariant(typeof report.run.model.provider_id === "string" && report.run.model.provider_id.length > 0, "score model.provider_id is required")
   invariant(typeof report.run.model.model_id === "string" && report.run.model.model_id.length > 0, "score model.model_id is required")
   invariant(report.run.model.variant === null || report.run.model.variant === undefined || typeof report.run.model.variant === "string", "score model.variant must be string or null")
+  invariant(typeof report.run.started_at === "string" && Number.isFinite(Date.parse(report.run.started_at)), "score started_at must be an ISO-compatible timestamp")
+  invariant(typeof report.run.finished_at === "string" && Number.isFinite(Date.parse(report.run.finished_at)), "score finished_at must be an ISO-compatible timestamp")
+  invariant(Date.parse(report.run.finished_at) >= Date.parse(report.run.started_at), "score finished_at must not precede started_at")
   invariant(isRecord(report.run.usage), "score usage block is required")
   for (const field of USAGE_INT_FIELDS) {
     invariant(Number.isInteger(report.run.usage[field]) && report.run.usage[field] >= 0, `score usage.${field} must be a non-negative integer`)
@@ -304,6 +307,7 @@ function validateScoreReport(report, expectedMode) {
 export function compareScores(normal, rlm) {
   validateScoreReport(normal, "normal")
   validateScoreReport(rlm, "rlm")
+  invariant(normal.run.run_id !== rlm.run.run_id, "normal and rlm runs must have distinct run_id values")
   invariant(normal.benchmark_id === rlm.benchmark_id, "benchmark_id mismatch")
   invariant(normal.integrity?.actual_ground_truth_sha256 === rlm.integrity?.actual_ground_truth_sha256, "ground-truth hash mismatch")
   invariant(normal.integrity?.actual_corpus_aggregate_sha256 === rlm.integrity?.actual_corpus_aggregate_sha256, "corpus aggregate hash mismatch")
