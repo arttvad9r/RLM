@@ -97,11 +97,17 @@ See `benchmarks/README.md`. Ground truth and manifests are benchmark infrastruct
 
 ## Provenance
 
-This is the dedicated standalone repository for OpenCode RLM, created by a
-clean-root migration from the Autopilot project (no Autopilot ancestry was
-carried over).
+This is the dedicated standalone repository for OpenCode RLM. Its standalone content was migrated from a certified Autopilot source tree without carrying Autopilot development ancestry into this repository.
+
+The target repository already contained temporary bootstrap/transport commits used to provision the migration. Therefore `clean-root migration` means that Autopilot commit ancestry was not imported; it does not mean that the target repository history begins with a parentless copy of the source tree.
 
 - Source repository: `arttvad9r/Opencode-Autopilot`
 - Source commit: `f72b1fda78ef03d47a4278d2f16687550d5927fe` (`rlm/standalone` migration source)
 - Source Git tree: `0ea96ee9a9b979d1d7cce506f597dc5c277e719e`
-- Migration boundary: see `docs/repository-migration.md`
+- Target repository: `arttvad9r/RLM`
+- Target migration/finalization commit: `16e53467a0f22f370056d66c8992dded7dc98f1f`
+- Target tree at that commit: `ce25647c17682b93c83e9fac988f0ad7f244b7ef`
+- First target default-branch CI run for that commit: `32228268021` (`success`)
+- Migration record: `docs/repository-migration.md`
+
+The source and target tree SHAs are intentionally recorded separately. Target-owned finalization changed repository-only material such as default-branch CI and removed migration scaffolding, so the finalized target tree must not be described as byte-identical to the frozen source tree.
