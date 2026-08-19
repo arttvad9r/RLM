@@ -57,11 +57,20 @@ export function corpusAggregate(entries) {
   return hash.digest("hex")
 }
 
-export function validateBundle({ groundTruth, manifest, run, groundTruthSha256, corpusAggregateSha256, taskPromptSha256 }) {
+export function validateBundle({
+  groundTruth,
+  manifest,
+  run,
+  groundTruthSha256,
+  corpusAggregateSha256,
+  taskPromptSha256,
+  experimentConfigSha256,
+}) {
   invariant(isRecord(groundTruth), "ground truth must be an object")
   invariant(typeof groundTruth.benchmark === "string" && groundTruth.benchmark.length > 0, "ground truth benchmark is required")
   invariant(Array.isArray(groundTruth.cases) && groundTruth.cases.length > 0, "ground truth cases must be a non-empty array")
   invariant(typeof taskPromptSha256 === "string" && SHA256_RE.test(taskPromptSha256), "task prompt sha256 is invalid")
+  invariant(typeof experimentConfigSha256 === "string" && SHA256_RE.test(experimentConfigSha256), "experiment config sha256 is invalid")
 
   const pathToClass = new Map()
   for (const entry of groundTruth.cases) {
@@ -81,11 +90,11 @@ export function validateBundle({ groundTruth, manifest, run, groundTruthSha256, 
   invariant(manifest.sha256.corpus_aggregate === corpusAggregateSha256, "corpus bytes do not match manifest aggregate sha256")
   invariant(manifest.generated_file_count === groundTruth.cases.length, "manifest file count does not match ground truth")
 
-  validateRun(run, groundTruth.benchmark, pathToClass, taskPromptSha256)
+  validateRun(run, groundTruth.benchmark, pathToClass, taskPromptSha256, experimentConfigSha256)
   return pathToClass
 }
 
-export function validateRun(run, benchmarkId, pathToClass, taskPromptSha256) {
+export function validateRun(run, benchmarkId, pathToClass, taskPromptSha256, experimentConfigSha256) {
   invariant(isRecord(run), "run must be an object")
   invariant(run.schema_version === 1, "run schema_version must be 1")
   invariant(run.benchmark_id === benchmarkId, "run benchmark_id does not match ground truth")
@@ -94,6 +103,8 @@ export function validateRun(run, benchmarkId, pathToClass, taskPromptSha256) {
   invariant(typeof run.source_commit === "string" && COMMIT_RE.test(run.source_commit), "source_commit must be a full lowercase 40-char SHA")
   invariant(typeof run.task_prompt_sha256 === "string" && SHA256_RE.test(run.task_prompt_sha256), "task_prompt_sha256 must be lowercase sha256")
   invariant(run.task_prompt_sha256 === taskPromptSha256, "run task_prompt_sha256 does not match canonical task prompt")
+  invariant(typeof run.experiment_config_sha256 === "string" && SHA256_RE.test(run.experiment_config_sha256), "experiment_config_sha256 must be lowercase sha256")
+  invariant(run.experiment_config_sha256 === experimentConfigSha256, "run experiment_config_sha256 does not match shared experiment config")
   invariant(isRecord(run.model), "model block is required")
   invariant(typeof run.model.provider_id === "string" && run.model.provider_id.length > 0, "model.provider_id is required")
   invariant(typeof run.model.model_id === "string" && run.model.model_id.length > 0, "model.model_id is required")
@@ -129,8 +140,25 @@ export function validateRun(run, benchmarkId, pathToClass, taskPromptSha256) {
   }
 }
 
-export function scoreRun({ groundTruth, manifest, run, groundTruthSha256, corpusAggregateSha256, taskPromptSha256, runSha256 }) {
-  const pathToClass = validateBundle({ groundTruth, manifest, run, groundTruthSha256, corpusAggregateSha256, taskPromptSha256 })
+export function scoreRun({
+  groundTruth,
+  manifest,
+  run,
+  groundTruthSha256,
+  corpusAggregateSha256,
+  taskPromptSha256,
+  experimentConfigSha256,
+  runSha256,
+}) {
+  const pathToClass = validateBundle({
+    groundTruth,
+    manifest,
+    run,
+    groundTruthSha256,
+    corpusAggregateSha256,
+    taskPromptSha256,
+    experimentConfigSha256,
+  })
   const positives = new Set([...pathToClass.entries()].filter(([, cls]) => cls === "violation").map(([path]) => path))
   const predicted = new Set(run.predicted_violations)
 
@@ -164,6 +192,7 @@ export function scoreRun({ groundTruth, manifest, run, groundTruthSha256, corpus
       mode: run.mode,
       source_commit: run.source_commit,
       task_prompt_sha256: run.task_prompt_sha256,
+      experiment_config_sha256: run.experiment_config_sha256,
       model: run.model,
       started_at: run.started_at,
       finished_at: run.finished_at,
@@ -175,6 +204,7 @@ export function scoreRun({ groundTruth, manifest, run, groundTruthSha256, corpus
       manifest_corpus_aggregate_sha256: manifest.sha256.corpus_aggregate,
       actual_corpus_aggregate_sha256: corpusAggregateSha256,
       canonical_task_prompt_sha256: taskPromptSha256,
+      canonical_experiment_config_sha256: experimentConfigSha256,
       run_sha256: runSha256,
     },
     counts: {
@@ -209,8 +239,10 @@ export function compareScores(normal, rlm) {
   invariant(normal.integrity?.actual_ground_truth_sha256 === rlm.integrity?.actual_ground_truth_sha256, "ground-truth hash mismatch")
   invariant(normal.integrity?.actual_corpus_aggregate_sha256 === rlm.integrity?.actual_corpus_aggregate_sha256, "corpus aggregate hash mismatch")
   invariant(normal.integrity?.canonical_task_prompt_sha256 === rlm.integrity?.canonical_task_prompt_sha256, "canonical task prompt hash mismatch")
+  invariant(normal.integrity?.canonical_experiment_config_sha256 === rlm.integrity?.canonical_experiment_config_sha256, "experiment config hash mismatch")
   invariant(normal.run.source_commit === rlm.run.source_commit, "source_commit mismatch")
   invariant(normal.run.task_prompt_sha256 === rlm.run.task_prompt_sha256, "task prompt mismatch")
+  invariant(normal.run.experiment_config_sha256 === rlm.run.experiment_config_sha256, "experiment config mismatch")
   invariant(sameModel(normal.run.model, rlm.run.model), "root model/variant mismatch")
 
   const delta = (field) => round6(rlm.metrics[field] - normal.metrics[field])
@@ -224,11 +256,13 @@ export function compareScores(normal, rlm) {
     benchmark_id: normal.benchmark_id,
     source_commit: normal.run.source_commit,
     task_prompt_sha256: normal.run.task_prompt_sha256,
+    experiment_config_sha256: normal.run.experiment_config_sha256,
     model: normal.run.model,
     integrity: {
       ground_truth_sha256: normal.integrity.actual_ground_truth_sha256,
       corpus_aggregate_sha256: normal.integrity.actual_corpus_aggregate_sha256,
       task_prompt_sha256: normal.integrity.canonical_task_prompt_sha256,
+      experiment_config_sha256: normal.integrity.canonical_experiment_config_sha256,
     },
     runs: { normal: normal.run.run_id, rlm: rlm.run.run_id },
     quality: {
