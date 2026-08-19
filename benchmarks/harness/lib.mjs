@@ -231,11 +231,79 @@ function sameModel(a, b) {
   return a.provider_id === b.provider_id && a.model_id === b.model_id && (a.variant ?? null) === (b.variant ?? null)
 }
 
+const SCORE_COUNT_FIELDS = ["total", "expected_violations", "predicted_violations", "tp", "fp", "fn", "tn"]
+const SCORE_METRIC_FIELDS = ["violation_precision", "violation_recall", "violation_f1", "specificity", "accuracy", "balanced_accuracy"]
+
+function validateScoreReport(report, expectedMode) {
+  invariant(isRecord(report) && report.kind === "rlm_benchmark_score", "inputs must be scored benchmark reports")
+  invariant(report.schema_version === 2, "score schema_version must be 2")
+  invariant(typeof report.benchmark_id === "string" && report.benchmark_id.length > 0, "score benchmark_id is required")
+  invariant(isRecord(report.run), "score run block is required")
+  invariant(report.run.mode === expectedMode, `${expectedMode} report must have mode=${expectedMode}`)
+  invariant(typeof report.run.run_id === "string" && report.run.run_id.trim().length > 0, "score run_id is required")
+  invariant(typeof report.run.source_commit === "string" && COMMIT_RE.test(report.run.source_commit), "score source_commit is invalid")
+  invariant(typeof report.run.task_prompt_sha256 === "string" && SHA256_RE.test(report.run.task_prompt_sha256), "score task prompt hash is invalid")
+  invariant(typeof report.run.experiment_config_sha256 === "string" && SHA256_RE.test(report.run.experiment_config_sha256), "score experiment config hash is invalid")
+  invariant(isRecord(report.run.model), "score model block is required")
+  invariant(typeof report.run.model.provider_id === "string" && report.run.model.provider_id.length > 0, "score model.provider_id is required")
+  invariant(typeof report.run.model.model_id === "string" && report.run.model.model_id.length > 0, "score model.model_id is required")
+  invariant(report.run.model.variant === null || report.run.model.variant === undefined || typeof report.run.model.variant === "string", "score model.variant must be string or null")
+  invariant(isRecord(report.run.usage), "score usage block is required")
+  for (const field of USAGE_INT_FIELDS) {
+    invariant(Number.isInteger(report.run.usage[field]) && report.run.usage[field] >= 0, `score usage.${field} must be a non-negative integer`)
+  }
+  const expectedTotalTokens = report.run.usage.root_input_tokens + report.run.usage.root_output_tokens + report.run.usage.child_input_tokens + report.run.usage.child_output_tokens
+  invariant(report.run.usage.total_tokens === expectedTotalTokens, "score usage.total_tokens is inconsistent")
+  invariant(
+    report.run.usage.cost_usd === null || (typeof report.run.usage.cost_usd === "number" && Number.isFinite(report.run.usage.cost_usd) && report.run.usage.cost_usd >= 0),
+    "score usage.cost_usd is invalid",
+  )
+  if (expectedMode === "normal") {
+    for (const field of ["child_input_tokens", "child_output_tokens", "rlm_exec_count", "rlm_child_calls", "rlm_context_calls", "rlm_context_chars"]) {
+      invariant(report.run.usage[field] === 0, `normal score must have usage.${field}=0`)
+    }
+  } else {
+    invariant(report.run.usage.rlm_exec_count > 0, "rlm score must have usage.rlm_exec_count > 0")
+  }
+
+  invariant(isRecord(report.integrity), "score integrity block is required")
+  for (const field of ["manifest_ground_truth_sha256", "actual_ground_truth_sha256", "manifest_corpus_aggregate_sha256", "actual_corpus_aggregate_sha256", "canonical_task_prompt_sha256", "canonical_experiment_config_sha256", "run_sha256"]) {
+    invariant(typeof report.integrity[field] === "string" && SHA256_RE.test(report.integrity[field]), `score integrity.${field} is invalid`)
+  }
+  invariant(report.integrity.manifest_ground_truth_sha256 === report.integrity.actual_ground_truth_sha256, "score ground-truth integrity mismatch")
+  invariant(report.integrity.manifest_corpus_aggregate_sha256 === report.integrity.actual_corpus_aggregate_sha256, "score corpus integrity mismatch")
+  invariant(report.integrity.canonical_task_prompt_sha256 === report.run.task_prompt_sha256, "score task-prompt integrity mismatch")
+  invariant(report.integrity.canonical_experiment_config_sha256 === report.run.experiment_config_sha256, "score experiment-config integrity mismatch")
+
+  invariant(isRecord(report.counts), "score counts block is required")
+  for (const field of SCORE_COUNT_FIELDS) {
+    invariant(Number.isInteger(report.counts[field]) && report.counts[field] >= 0, `score counts.${field} must be a non-negative integer`)
+  }
+  invariant(report.counts.total === report.counts.tp + report.counts.fp + report.counts.fn + report.counts.tn, "score counts.total is inconsistent")
+  invariant(report.counts.expected_violations === report.counts.tp + report.counts.fn, "score expected_violations is inconsistent")
+  invariant(report.counts.predicted_violations === report.counts.tp + report.counts.fp, "score predicted_violations is inconsistent")
+
+  invariant(isRecord(report.metrics), "score metrics block is required")
+  const precision = ratio(report.counts.tp, report.counts.tp + report.counts.fp)
+  const recall = ratio(report.counts.tp, report.counts.tp + report.counts.fn)
+  const specificity = ratio(report.counts.tn, report.counts.tn + report.counts.fp)
+  const expectedMetrics = {
+    violation_precision: round6(precision),
+    violation_recall: round6(recall),
+    violation_f1: round6(precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall)),
+    specificity: round6(specificity),
+    accuracy: round6(ratio(report.counts.tp + report.counts.tn, report.counts.total)),
+    balanced_accuracy: round6((recall + specificity) / 2),
+  }
+  for (const field of SCORE_METRIC_FIELDS) {
+    invariant(typeof report.metrics[field] === "number" && Number.isFinite(report.metrics[field]), `score metrics.${field} must be finite`)
+    invariant(report.metrics[field] === expectedMetrics[field], `score metrics.${field} is inconsistent`)
+  }
+}
+
 export function compareScores(normal, rlm) {
-  invariant(normal?.kind === "rlm_benchmark_score" && rlm?.kind === "rlm_benchmark_score", "inputs must be scored benchmark reports")
-  invariant(normal.schema_version === 2 && rlm.schema_version === 2, "score schema_version must be 2")
-  invariant(normal.run?.mode === "normal", "normal report must have mode=normal")
-  invariant(rlm.run?.mode === "rlm", "rlm report must have mode=rlm")
+  validateScoreReport(normal, "normal")
+  validateScoreReport(rlm, "rlm")
   invariant(normal.benchmark_id === rlm.benchmark_id, "benchmark_id mismatch")
   invariant(normal.integrity?.actual_ground_truth_sha256 === rlm.integrity?.actual_ground_truth_sha256, "ground-truth hash mismatch")
   invariant(normal.integrity?.actual_corpus_aggregate_sha256 === rlm.integrity?.actual_corpus_aggregate_sha256, "corpus aggregate hash mismatch")
