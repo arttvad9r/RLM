@@ -124,6 +124,8 @@ export function validateRun(run, benchmarkId, pathToClass, taskPromptSha256) {
     for (const field of ["child_input_tokens", "child_output_tokens", "rlm_exec_count", "rlm_child_calls", "rlm_context_calls", "rlm_context_chars"]) {
       invariant(run.usage[field] === 0, `normal run must have usage.${field}=0`)
     }
+  } else {
+    invariant(run.usage.rlm_exec_count > 0, "rlm run must have usage.rlm_exec_count > 0")
   }
 }
 
