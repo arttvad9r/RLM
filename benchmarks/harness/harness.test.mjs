@@ -168,6 +168,28 @@ test("rejects A/B comparison when score schema differs", () => {
   assert.throws(() => compareScores({ ...normal, schema_version: 1 }, rlm), /score schema_version must be 2/)
 })
 
+test("rejects internally inconsistent scored reports", () => {
+  const normal = score(baseRun)
+  const rlm = score({
+    ...baseRun,
+    run_id: "rlm-tamper",
+    mode: "rlm",
+    usage: { ...baseRun.usage, rlm_exec_count: 1 },
+  })
+  assert.throws(
+    () => compareScores({ ...normal, metrics: { ...normal.metrics, violation_f1: 0.999 } }, rlm),
+    /score metrics.violation_f1 is inconsistent/,
+  )
+  assert.throws(
+    () => compareScores({ ...normal, counts: { ...normal.counts, total: normal.counts.total + 1 } }, rlm),
+    /score counts.total is inconsistent/,
+  )
+  assert.throws(
+    () => compareScores({ ...normal, run: { ...normal.run, usage: { ...normal.run.usage, total_tokens: normal.run.usage.total_tokens + 1 } } }, rlm),
+    /score usage.total_tokens is inconsistent/,
+  )
+})
+
 test("rejects A/B comparison when root model differs", () => {
   const normal = score(baseRun)
   const rlm = score({
