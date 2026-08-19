@@ -30,15 +30,15 @@ Verify the frozen benchmark identity:
 npm run verify:benchmarks
 ```
 
-The verification scripts bind generator source, ground truth, corpus aggregate and expected generated file count to the manifests.
+The verification scripts bind generator source, ground truth, the exact `src/*.ts` filename set, corpus aggregate and expected generated file count to the manifests. The filename-set check is derived from `ground-truth.cases[].path` and is performed before trusting the legacy aggregate hash, so file-boundary ambiguity in the concatenated aggregate representation cannot substitute a differently laid-out corpus.
 
 ## Run records
 
-The hardened run/score/comparison evidence contract is schema version 2. `harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt, shared experiment configuration and ground truth. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
+The hardened run/score/comparison evidence contract is schema version 2. `harness/score-run.mjs` scores a supplied execution record against a frozen corpus, manifest, task prompt, shared experiment configuration and ground truth. Before scoring it also requires the actual corpus filename set to match ground truth exactly. `harness/compare-runs.mjs` compares scored normal and RLM runs only when their benchmark identity and experiment invariants are compatible.
 
 Before inference, freeze one shared experiment-config file containing every non-mode inference/runtime setting that is not already represented by the source revision and root model identity. Both arms must use the exact same bytes. The scorer binds each run to that file's SHA-256 and the comparator rejects mismatched configuration identities.
 
-Run records can carry root/child token usage, RLM context/call telemetry, cost and wall time. An RLM-mode run must record at least one observed `rlm_exec`; merely making the tool available is not RLM execution evidence. The harness is an evaluator; it deliberately does not embed a particular model provider or downstream project runtime.
+Run records can carry root/child token usage, RLM context/call telemetry, cost and wall time. An RLM-mode run must record at least one observed `rlm_exec`; merely making the tool available is not RLM execution evidence. Loaded score reports are revalidated before comparison, including timestamp ordering, counts/metrics/usage consistency and raw run identity. Normal and RLM pair arms must have distinct run IDs and run hashes, and their ground-truth-derived case/violation counts must agree. The harness is an evaluator; it deliberately does not embed a particular model provider or downstream project runtime.
 
 Example scoring shape:
 
