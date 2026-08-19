@@ -282,6 +282,7 @@ function validateScoreReport(report, expectedMode) {
   for (const field of SCORE_COUNT_FIELDS) {
     invariant(Number.isInteger(report.counts[field]) && report.counts[field] >= 0, `score counts.${field} must be a non-negative integer`)
   }
+  invariant(report.counts.total > 0, "score counts.total must be positive")
   invariant(report.counts.total === report.counts.tp + report.counts.fp + report.counts.fn + report.counts.tn, "score counts.total is inconsistent")
   invariant(report.counts.expected_violations === report.counts.tp + report.counts.fn, "score expected_violations is inconsistent")
   invariant(report.counts.predicted_violations === report.counts.tp + report.counts.fp, "score predicted_violations is inconsistent")
