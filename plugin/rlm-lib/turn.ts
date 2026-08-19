@@ -97,6 +97,7 @@ async function userTurnForAssistantMessage(
 export class TurnGovernor {
   private readonly cache = new Map<string, SessionCache>()
   private readonly beginExecTails = new Map<string, Promise<void>>()
+  private readonly invalidatedBeginExecSessions = new Set<string>()
   private readonly wallLimitMs: number
 
   constructor() {
@@ -115,6 +116,10 @@ export class TurnGovernor {
     return TEST_TURN_CTX_CHARS > 0 ? TEST_TURN_CTX_CHARS : MAX_CONTEXT_CHARS_PER_TURN
   }
 
+  private sessionDeletedError(sessionID: string): RlmError {
+    return new RlmError("RUNTIME_ERROR", `RLM session ${sessionID} was deleted while rlm_exec was resolving turn authority`)
+  }
+
   private async withBeginExecLock<T>(sessionID: string, task: () => Promise<T>): Promise<T> {
     const previous = this.beginExecTails.get(sessionID) ?? Promise.resolve()
     let release!: () => void
@@ -123,10 +128,14 @@ export class TurnGovernor {
     this.beginExecTails.set(sessionID, tail)
     await previous
     try {
+      if (this.invalidatedBeginExecSessions.has(sessionID)) throw this.sessionDeletedError(sessionID)
       return await task()
     } finally {
       release()
-      if (this.beginExecTails.get(sessionID) === tail) this.beginExecTails.delete(sessionID)
+      if (this.beginExecTails.get(sessionID) === tail) {
+        this.beginExecTails.delete(sessionID)
+        this.invalidatedBeginExecSessions.delete(sessionID)
+      }
     }
   }
 
@@ -197,6 +206,9 @@ export class TurnGovernor {
   ): Promise<{ allowed: boolean; reason?: string; snapshot: TurnSnapshot; reservedWallMs: number }> {
     return this.withBeginExecLock(sessionID, async () => {
       const c = await this.cacheFor(client, sessionID, directory, messageID)
+      if (this.invalidatedBeginExecSessions.has(sessionID) || this.cache.get(sessionID) !== c) {
+        throw this.sessionDeletedError(sessionID)
+      }
       const snap = this.snap(c)
       if (c.budget.execCount >= this.execsLimit()) {
         return { allowed: false, reason: `maximum ${this.execsLimit()} rlm_exec per user turn reached`, snapshot: snap, reservedWallMs: 0 }
@@ -258,7 +270,7 @@ export class TurnGovernor {
   }
 
   evictSession(sessionID: string): boolean {
-    this.beginExecTails.delete(sessionID)
+    if (this.beginExecTails.has(sessionID)) this.invalidatedBeginExecSessions.add(sessionID)
     return this.cache.delete(sessionID)
   }
 
