@@ -10,7 +10,7 @@ Deno.test("child fails closed when tool inventory is empty", async () => {
   const client = {
     session: {
       messages: async () => ({
-        data: [{ info: { role: "user", model: { providerID: "provider", modelID: "model" } } }],
+        data: [{ info: { id: "user-1", role: "user", model: { providerID: "provider", modelID: "model" } } }],
       }),
       create: async () => {
         createCalled = true
@@ -28,7 +28,7 @@ Deno.test("child fails closed when tool inventory is empty", async () => {
   try {
     await callChildLlm(
       client,
-      { prompt: "classify", parentSessionID: "parent", directory: "/project" },
+      { prompt: "classify", parentSessionID: "parent", parentTurnID: "user-1", directory: "/project" },
       async () => {},
     )
   } catch (error) {
@@ -46,7 +46,7 @@ Deno.test("child prompt uses only the provider/model fields supported by pinned 
   const client = {
     session: {
       messages: async () => ({
-        data: [{ info: { role: "user", model: { providerID: "provider", modelID: "model" } } }],
+        data: [{ info: { id: "user-1", role: "user", model: { providerID: "provider", modelID: "model" } } }],
       }),
       create: async () => ({ data: { id: "child" } }),
       abort: async () => ({}),
@@ -65,7 +65,7 @@ Deno.test("child prompt uses only the provider/model fields supported by pinned 
 
   const result = await callChildLlm(
     client,
-    { prompt: "classify", parentSessionID: "parent", directory: "/project" },
+    { prompt: "classify", parentSessionID: "parent", parentTurnID: "user-1", directory: "/project" },
     async () => {},
   )
   assert(JSON.stringify(body?.model) === JSON.stringify({ providerID: "provider", modelID: "model" }), "unexpected child model body")
