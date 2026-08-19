@@ -80,6 +80,41 @@ Deno.test("runner ignores generated-code traffic on worker parentPort", async ()
   assert(output[0].type === "result" && output[0].value === "real-parent-port", "global worker channel must not be trusted")
 })
 
+Deno.test("generated worker permissions:none denies direct read write env net and subprocess capabilities", async () => {
+  const code = `
+    const denied = { read: false, write: false, env: false, net: false, run: false }
+    try {
+      const fs = await import("node:fs/promises")
+      await fs.readFile("/etc/hosts", "utf8")
+    } catch { denied.read = true }
+    try {
+      const fs = await import("node:fs/promises")
+      await fs.writeFile("/tmp/rlm-generated-worker-must-not-write", "x")
+    } catch { denied.write = true }
+    try {
+      const proc = await import("node:process")
+      void proc.env.PATH
+    } catch { denied.env = true }
+    try {
+      await fetch("https://example.com/")
+    } catch { denied.net = true }
+    try {
+      const cp = await import("node:child_process")
+      cp.execFileSync("/bin/echo", ["must-not-run"])
+    } catch { denied.run = true }
+    return denied
+  `
+  const result = await runRunner(code)
+  assert(result.status.success, `runner failed: ${result.stderr}`)
+  const output = frames(result.stdout)
+  assert(output.length === 1, `expected one authenticated result frame, got ${output.length}`)
+  const value = output[0].value as Record<string, unknown> | undefined
+  assert(output[0].type === "result" && value !== undefined, "expected capability result")
+  for (const capability of ["read", "write", "env", "net", "run"]) {
+    assert(value[capability] === true, `generated Worker unexpectedly obtained ${capability} capability`)
+  }
+})
+
 Deno.test("runner rejects finalization with outstanding RPCs", async () => {
   const result = await runRunner('void llm("unfinished"); return "done"')
   assert(!result.status.success, "runner must fail when generated code leaves an RPC pending")
