@@ -20,6 +20,7 @@ type RuntimeLimits = {
   protocolVersion: 1
   maxReadManyFiles: number
   maxResultChars: number
+  maxProtocolRequestsTotal: number
 }
 type BootstrapEnvelope = { kind: "bootstrap"; code: string; port: MessagePort; limits: RuntimeLimits }
 
@@ -44,6 +45,7 @@ function validRuntimeLimits(value: unknown): value is RuntimeLimits {
   return value.protocolVersion === 1
     && Number.isSafeInteger(value.maxReadManyFiles) && Number(value.maxReadManyFiles) > 0
     && Number.isSafeInteger(value.maxResultChars) && Number(value.maxResultChars) > 0
+    && Number.isSafeInteger(value.maxProtocolRequestsTotal) && Number(value.maxProtocolRequestsTotal) > 0
 }
 
 function hideAmbientRuntimeGlobals(): void {
@@ -75,7 +77,9 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
   const PROTOCOL_VERSION = limits.protocolVersion
   const MAX_READ_MANY_FILES = limits.maxReadManyFiles
   const MAX_RESULT_CHARS = limits.maxResultChars
+  const MAX_PROTOCOL_REQUESTS_TOTAL = limits.maxProtocolRequestsTotal
   const pending = new Map<string, Pending>()
+  let requestCount = 0
   const portSend = port.postMessage.bind(port)
   const portSubscribe = port.addEventListener.bind(port)
 
@@ -85,11 +89,20 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
 
   const request = (
     message: Omit<LlmRequestMessage, "id"> | Omit<ContextRequestMessage, "id">,
-  ): Promise<unknown> => new Promise<unknown>((resolve, reject) => {
-    const id = randomUUID()
-    pending.set(id, { resolve, reject })
-    sendProtocol({ ...message, id } as LlmRequestMessage | ContextRequestMessage)
-  })
+  ): Promise<unknown> => {
+    if (requestCount >= MAX_PROTOCOL_REQUESTS_TOTAL) {
+      return Promise.reject(new ApiError(
+        "BUDGET_EXCEEDED",
+        `sandbox request budget exceeded: maximum ${MAX_PROTOCOL_REQUESTS_TOTAL} RPC requests per rlm_exec`,
+      ))
+    }
+    requestCount++
+    return new Promise<unknown>((resolve, reject) => {
+      const id = randomUUID()
+      pending.set(id, { resolve, reject })
+      sendProtocol({ ...message, id } as LlmRequestMessage | ContextRequestMessage)
+    })
+  }
 
   type LlmFn = ((prompt: string) => Promise<string>) & { batch: (prompts: string[]) => Promise<string[]> }
   const llm = ((prompt: string): Promise<string> => {
