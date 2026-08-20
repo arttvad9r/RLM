@@ -2,33 +2,79 @@
 
 Standalone Recursive Language Model runtime/plugin for OpenCode.
 
-This repository contains only the RLM agent, plugin runtime and deterministic benchmark assets. It does not contain or depend on the Autopilot scheduler, Planner/Worker contracts, verifier, acceptance state or Git control plane.
+RLM provides a bounded `rlm_exec` execution surface for large semantic-analysis tasks. Generated JavaScript runs in a zero-permission Deno Worker and can reach the host only through the narrow `llm` and read-only `context` APIs implemented by this repository.
 
-## Layout
+This repository is runtime-only. It does **not** own an Autopilot scheduler, Planner/Worker orchestration, verifier/acceptance authority, Git control plane, or downstream model-routing policy.
 
-- `agent/rlm.md` — RLM-aware OpenCode agent prompt.
-- `plugin/rlm.ts` — plugin entrypoint exposing `rlm_exec`.
-- `plugin/rlm-lib/` — host-side child sessions, context policy, protocol, budgets and sandbox lifecycle.
-- `plugin/rlm-runner/` — trusted Deno transport plus the zero-permission generated-code Worker.
-- `plugin/tests-host/` — Node-native host/runtime regressions that do not require Deno or a model provider.
-- `plugin/tests/` — Deno runtime/security regressions, including runner/Worker isolation.
-- `benchmarks/` — frozen semantic-state corpora, manifests, ground truth and provider-neutral scoring/comparison harness.
-- `scripts/check-standalone.mjs` — fail-closed guard against reintroducing Autopilot tree/path coupling.
-- `docs/known-limitations.md` — unresolved hardening boundaries that require explicit design and validation.
+## Quick start
 
-## Requirements
+Requirements:
 
-- Node.js 24.x.
-- Deno 2.x.
-- OpenCode plugin/SDK `1.1.26` (pinned in `package.json` and `package-lock.json`).
+- Node.js 24.x;
+- Deno 2.x;
+- npm;
+- OpenCode for real integration testing;
+- Docker for the reproducible container gate.
 
-Install dependencies with:
+The reproducible validation baseline is Node `24.19.0` + Deno `2.9.5`. OpenCode plugin/SDK packages are currently exact-pinned to `1.1.26` in `package.json` and `package-lock.json`.
+
+Install the pinned npm graph:
 
 ```sh
 npm ci --ignore-scripts
 ```
 
-The committed lockfile pins the transitive npm dependency graph used by the standalone validation environment.
+Run the fast host-only gate:
+
+```sh
+npm run gate:host
+```
+
+Run the complete native gate on a machine with Node 24.x and Deno 2.x:
+
+```sh
+npm run gate:local
+```
+
+Run the exact reproducible Node/Deno container gate:
+
+```sh
+npm run gate:container
+```
+
+For the full machine-acceptance procedure, OpenCode smoke test, benchmark plan and evidence requirements, use [`docs/local-development.md`](docs/local-development.md).
+
+For a ready-to-paste local coding-agent instruction, use [`docs/local-agent-prompt.md`](docs/local-agent-prompt.md).
+
+## Repository layout
+
+- `agent/rlm.md` — RLM-aware OpenCode agent prompt.
+- `plugin/rlm.ts` — plugin entrypoint exposing `rlm_exec`.
+- `plugin/rlm-lib/` — host-side child sessions, context policy, protocol, budgets and sandbox lifecycle.
+- `plugin/rlm-runner/` — trusted Deno transport and zero-permission generated-code Worker.
+- `plugin/tests-host/` — Node-native host/runtime regressions.
+- `plugin/tests/` — Deno runtime/security regressions.
+- `benchmarks/` — frozen semantic-state corpora and provider-neutral scoring/comparison harness.
+- `scripts/` — standalone/runtime/container/resource-envelope validation tooling.
+- `docs/` — runtime contracts, local/deployment validation, limitations and historical records.
+
+Documentation index: [`docs/README.md`](docs/README.md).
+
+## Validation model
+
+Validation is deliberately tiered:
+
+1. `npm run gate:host` — standalone guard, host regressions, host TypeScript and benchmark fixture/harness integrity;
+2. `npm run typecheck:runner` + `npm run test:plugin` — Deno runner/Worker boundary;
+3. `npm run gate:local` — authoritative native repository gate;
+4. `npm run gate:container` — exact pinned Node/Deno container gate;
+5. real OpenCode smoke test — actual plugin/SDK/host integration;
+6. real normal-vs-RLM benchmark arms — product-value evidence;
+7. target cgroup/container validation — production OS resource-boundary evidence.
+
+See [`docs/validation.md`](docs/validation.md) for what each tier proves and does not prove.
+
+A passing claim is always revision-specific. A historical CI or local pass is not evidence for a later commit.
 
 ## Context authority
 
@@ -54,60 +100,51 @@ A host config has schema:
 }
 ```
 
-When no host config exists, `OPENCODE_RLM_CONTEXT_POLICY` may supply the same `context_policy` object as JSON. Policy values can narrow but cannot widen compiled hard limits. A present host config takes precedence over ambient environment authority. Filesystem root and the user's HOME are rejected as context roots; `.git` and `.env*` namespaces are never exposed by the generic context policy (`.env.example` is allowed). Downstream state/config directories must be excluded explicitly through `allowed_paths` or a downstream authority layer.
+When no host config exists, `OPENCODE_RLM_CONTEXT_POLICY` may provide the same `context_policy` object as JSON. Policy values and test-only budget overrides can narrow compiled limits but cannot widen them.
 
-## Validation commands
-
-```sh
-npm run check:standalone
-npm run test:host-runtime
-npm run typecheck
-npm run test:plugin
-npm run test:benchmarks
-npm run verify:benchmarks
-```
-
-`test:host-runtime` is the fast Node-native layer for host policy, protocol, turn budgets, child lifecycle and filesystem context boundaries. It imports the production TypeScript modules directly and does not require Deno or a live model provider.
-
-`test:plugin` is the Deno-specific layer. It validates the trusted runner, generated-code Worker, sandbox command and Deno permission/transport behavior.
-
-`npm test` runs the complete sequence. These commands are repository interfaces; a passing result must only be claimed after the relevant commands have actually been executed in the target environment. A passing Node-native layer alone is not evidence that the Deno-specific layer passed.
+Filesystem root and the user's HOME are rejected as context roots. Common credential stores, private keys, Terraform state, `.git`, and `.env*` are hard-denied by the generic context boundary; `.env.example` is the deliberate terminal-file exception.
 
 ## Security model
 
-`rlm_exec` does not give model-generated JavaScript filesystem, network, environment, subprocess or FFI authority.
+`rlm_exec` does not intentionally grant model-generated code filesystem, network, environment, subprocess, FFI, OpenCode client/session, or ordinary tool authority.
 
-The host launches a trusted Deno transport runner with narrowly scoped read access to the fixed `generated-worker.ts` entry module. Project config, lockfile discovery, npm resolution and remote module loading are disabled explicitly for that runner. Ambient `DENO_PERMISSION_BROKER_PATH` is removed from the transport environment so an external Deno permission broker cannot replace the runner's host-owned CLI permission envelope. The generated program itself executes in a separate Worker created with `permissions: "none"`. Host/runner frames use a per-execution authenticated channel, and runner/Worker RPC uses a private transferred `MessagePort`.
+The host launches a trusted Deno transport with project config, lockfile discovery, npm resolution and remote loading disabled. Ambient `DENO_PERMISSION_BROKER_PATH` is removed before spawn. The generated program runs in a separate Worker with `permissions: "none"`.
 
-Context access is host-mediated through the read-only `context.files`, `context.read`, `context.readMany` and `context.grep` APIs. The host resolves and confines the approved workspace before context access, then performs directly bounded host filesystem reads/listing under the host-owned context policy; model-generated code never receives filesystem handles. Reads are capped before materialization and preserve exact UTF-8 file text, while known binary, NUL and invalid UTF-8 content fail closed. Directory traversal is streamed and bounded by depth, directory, result and scanned-entry limits. Model-supplied regular expressions for `context.grep` are evaluated in a trusted worker thread with a host-owned hard timeout so pathological backtracking cannot block the plugin event loop indefinitely.
+Node-to-runner frames use a per-execution authenticated channel. Runner-to-Worker RPC uses a private transferred `MessagePort`. Request identity, transport lines, unauthenticated stdout, child output, context output and key host-side materialization paths are bounded.
 
-RLM child sessions are semantic workers. They do not inherit ordinary OpenCode tools, repository context, AGENTS/skills/MCP instructions or prior conversation history. Child creation fails closed if the host cannot enumerate the available tool inventory needed to construct the full deny map.
+Context access is host-mediated through read-only `context.files`, `context.read`, `context.readMany` and `context.grep`. RLM child sessions are stateless semantic workers with a complete false-valued tool deny map and no inherited repository prompt/history/tool surface.
 
-Turn budgets are keyed to an authoritative user-message ID. If the host cannot resolve that ID, execution fails closed rather than substituting a fallback identity that could reset the budget. The per-session TurnGovernor cache is evicted only when the pinned OpenCode SDK publishes the authoritative `session.deleted` lifecycle event; no TTL/LRU eviction can reset an active session budget.
+Security/correctness invariants are documented in [`docs/runtime-invariants.md`](docs/runtime-invariants.md). Unresolved boundaries are documented in [`docs/known-limitations.md`](docs/known-limitations.md) and must not be represented as solved.
 
-The remaining resource/lifecycle caveats are documented in `docs/known-limitations.md`; in particular, the V8 heap ceiling is not an OS-level RSS/cgroup boundary.
+## Important unresolved boundaries
 
-## Integration boundary
+The main explicit limitations are:
 
-Downstream projects may expose this plugin behind their own runtime selector or authority layer. Those integrations remain downstream responsibilities. Project-specific scheduler state, acceptance authority, verifier logic and external Planner/Worker contracts must not be moved into this standalone runtime.
+- pathname confinement is not yet resistant to a malicious concurrent filesystem mutator; descriptor-relative/openat-style traversal remains separate work;
+- the Deno V8 heap ceiling is not a complete OS RSS/CPU/PID boundary;
+- repository tests do not prove compatibility with every newer OpenCode release beyond the exact-pinned SDK baseline;
+- benchmark harness integrity does not prove RLM is useful until real normal/RLM inference arms are recorded.
+
+See [`docs/known-limitations.md`](docs/known-limitations.md) and [`docs/resource-envelope.md`](docs/resource-envelope.md).
 
 ## Benchmarks
 
-See `benchmarks/README.md`. Ground truth and manifests are benchmark infrastructure and must never be included in the runtime context root used for a benchmark execution.
+See [`benchmarks/README.md`](benchmarks/README.md).
+
+Ground truth and manifests are evaluator infrastructure and must never be included in the runtime context root or otherwise exposed to the model during a benchmark inference arm.
+
+## Development workflow
+
+Before changing runtime/security behavior, read:
+
+- [`docs/runtime-invariants.md`](docs/runtime-invariants.md);
+- [`docs/known-limitations.md`](docs/known-limitations.md);
+- [`docs/local-development.md`](docs/local-development.md).
+
+Do not weaken limits, permissions, deny rules or regression tests to obtain a green gate. First reproduce the failure, determine whether it is implementation, fixture, dependency/API or environment behavior, then make the narrowest defensible change and add a regression.
+
+Dependency/SDK migrations should be isolated from unrelated hardening work. Establish a green pinned baseline before evaluating newer OpenCode packages.
 
 ## Provenance
 
-This is the dedicated standalone repository for OpenCode RLM. Its standalone content was migrated from a certified Autopilot source tree without carrying Autopilot development ancestry into this repository.
-
-The target repository already contained temporary bootstrap/transport commits used to provision the migration. Therefore `clean-root migration` means that Autopilot commit ancestry was not imported; it does not mean that the target repository history begins with a parentless copy of the source tree.
-
-- Source repository: `arttvad9r/Opencode-Autopilot`
-- Source commit: `f72b1fda78ef03d47a4278d2f16687550d5927fe` (`rlm/standalone` migration source)
-- Source Git tree: `0ea96ee9a9b979d1d7cce506f597dc5c277e719e`
-- Target repository: `arttvad9r/RLM`
-- Target migration/finalization commit: `16e53467a0f22f370056d66c8992dded7dc98f1f`
-- Target tree at that commit: `ce25647c17682b93c83e9fac988f0ad7f244b7ef`
-- First target default-branch CI run for that commit: `32228268021` (`success`)
-- Migration record: `docs/repository-migration.md`
-
-The source and target tree SHAs are intentionally recorded separately. Target-owned finalization changed repository-only material such as default-branch CI and removed migration scaffolding, so the finalized target tree must not be described as byte-identical to the frozen source tree.
+RLM was migrated from a certified standalone source tree in `arttvad9r/Opencode-Autopilot` into this dedicated repository without importing Autopilot development ancestry. The exact source/target commits, trees and migration validation record are retained in [`docs/repository-migration.md`](docs/repository-migration.md).
