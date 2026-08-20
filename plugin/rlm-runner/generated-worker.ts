@@ -7,6 +7,7 @@ import type {
   RlmErrorInfo,
   SandboxToHostMessage,
 } from "../rlm-lib/types.ts"
+import { toErrorInfo } from "../rlm-lib/errors.ts"
 
 class ApiError extends Error {
   constructor(readonly code: RlmErrorInfo["code"], message: string) {
@@ -36,8 +37,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function errorInfo(error: unknown): RlmErrorInfo {
-  if (error instanceof ApiError) return { code: error.code, message: error.message }
-  return { code: "RUNTIME_ERROR", message: error instanceof Error ? error.message : String(error) }
+  if (error instanceof ApiError) return { code: error.code, message: toErrorInfo(new Error(error.message)).message }
+  return toErrorInfo(error)
 }
 
 function validRuntimeLimits(value: unknown): value is RuntimeLimits {
@@ -228,7 +229,7 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
       try {
         serialized = safeStringify(value)
       } catch (error) {
-        throw new ApiError("RUNTIME_ERROR", `final result is not JSON-serializable: ${error instanceof Error ? error.message : String(error)}`)
+        throw new ApiError("RUNTIME_ERROR", `final result is not JSON-serializable: ${error instanceof Error ? error.message : "serialization failed"}`)
       }
       if (serialized === undefined) throw new ApiError("RUNTIME_ERROR", "final result is not JSON-serializable")
       if (serialized.length > MAX_RESULT_CHARS) {
