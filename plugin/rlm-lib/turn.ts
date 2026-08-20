@@ -281,6 +281,7 @@ export class TurnGovernor {
     const safeReservedMs = Number.isFinite(reservedMs) && reservedMs > 0 ? reservedMs : 0
     c.budget.wallMsUsed += safeWallMs
     c.budget.wallReservedMs = Math.max(0, c.budget.wallReservedMs - safeReservedMs)
+    if (safeReservedMs > 0) c.activeExecCount = Math.max(0, c.activeExecCount - 1)
     return true
   }
 

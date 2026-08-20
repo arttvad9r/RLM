@@ -13,9 +13,13 @@ const { turnGovernor } = await import("../rlm-lib/turn.ts")
 const log = async () => {}
 
 function clientFor(userMessageID) {
+  const suffix = userMessageID.startsWith("user-") ? userMessageID.slice("user-".length) : userMessageID
   return {
     session: {
-      messages: async () => ({ data: [{ info: { id: userMessageID, role: "user" } }] }),
+      messages: async () => ({ data: [
+        { info: { id: userMessageID, role: "user" } },
+        { info: { id: `assistant-${suffix}`, role: "assistant" } },
+      ] }),
     },
     tool: { ids: async () => ({ data: ["read"] }) },
     file: {},

@@ -17,6 +17,14 @@ export interface RlmContextPolicy {
 }
 
 const POLICY_KEYS = new Set(["allowed_paths", "max_read_bytes", "max_grep_matches", "max_list_entries"])
+const HIDDEN_CREDENTIAL_SEGMENTS = new Set([".git", ".ssh", ".aws", ".kube", ".gnupg"])
+const HIDDEN_CREDENTIAL_BASENAMES = new Set([
+  ".npmrc",
+  ".netrc",
+  "credentials.json",
+  "application_default_credentials.json",
+])
+const HIDDEN_KEY_EXTENSIONS = new Set([".pem", ".key", ".p12", ".pfx"])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -104,10 +112,14 @@ export async function resolveActiveRlmContextPolicy(env: NodeJS.ProcessEnv = pro
 
 export function isRlmHiddenPath(relativePath: string): boolean {
   const segments = relativePath.split("/").filter(Boolean)
-  if (segments.includes(".git")) return true
-  return segments.some(
-    (segment) => segment.startsWith(".env") && segment !== ".env.example",
-  )
+  if (segments.some((segment) => HIDDEN_CREDENTIAL_SEGMENTS.has(segment))) return true
+  if (segments.some((segment) => segment.startsWith(".env") && segment !== ".env.example")) return true
+  const basename = segments.at(-1) ?? ""
+  if (HIDDEN_CREDENTIAL_BASENAMES.has(basename)) return true
+  const lower = basename.toLowerCase()
+  if (HIDDEN_KEY_EXTENSIONS.has(path.posix.extname(lower))) return true
+  if (lower === "terraform.tfstate" || lower.startsWith("terraform.tfstate.")) return true
+  return false
 }
 
 export function isRlmContextPathAllowed(relativePath: string, policy: RlmContextPolicy): boolean {

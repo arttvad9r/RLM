@@ -1,0 +1,144 @@
+import assert from "node:assert/strict"
+import test from "node:test"
+
+import { callChildLlm } from "../rlm-lib/child.ts"
+import { activeRlmChildCount } from "../rlm-lib/child-system.ts"
+import { RlmError } from "../rlm-lib/errors.ts"
+
+const log = async () => {}
+const NEVER = () => new Promise(() => {})
+
+function baseClient(overrides = {}) {
+  const aborts = []
+  let creates = 0
+  let prompts = 0
+  const client = {
+    session: {
+      messages: async () => ({ data: [{ info: { id: "user-1", role: "user", model: { providerID: "p", modelID: "m" } } }] }),
+      create: async () => { creates++; return { data: { id: "child-1" } } },
+      abort: async ({ path }) => { aborts.push(path.id) },
+      prompt: async () => { prompts++; return { data: { info: { finish: "stop" }, parts: [{ type: "text", text: "ok" }] } } },
+      ...overrides.session,
+    },
+    tool: {
+      ids: async () => ({ data: ["read"] }),
+      ...overrides.tool,
+    },
+  }
+  return { client, aborts, counts: () => ({ creates, prompts }) }
+}
+
+async function expectAbortSettles(stage, overrides) {
+  const { client } = baseClient(overrides)
+  const controller = new AbortController()
+  const call = callChildLlm(client, {
+    prompt: "work",
+    parentSessionID: "root",
+    parentUserMessageID: "user-1",
+    directory: "/workspace",
+    signal: controller.signal,
+  }, log)
+  await new Promise((resolve) => setImmediate(resolve))
+  controller.abort()
+  const outcome = await Promise.race([
+    call.then(() => ({ ok: true }), (error) => ({ error })),
+    new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), 100)),
+  ])
+  assert.equal(outcome.timeout, undefined, `${stage} remained pending after parent abort`)
+  assert.ok(outcome.error instanceof RlmError)
+  assert.equal(outcome.error.code, "CHILD_FAILED")
+  assert.match(outcome.error.message, /parent aborted/)
+  assert.equal(activeRlmChildCount(), 0)
+}
+
+test("parent abort settles all child SDK stages even when provider promises hang", async () => {
+  await expectAbortSettles("messages", { session: { messages: NEVER } })
+  await expectAbortSettles("tool.ids", { tool: { ids: NEVER } })
+  await expectAbortSettles("session.create", { session: { create: NEVER } })
+
+  let started
+  const promptStarted = new Promise((resolve) => { started = resolve })
+  const fixture = baseClient({ session: { prompt: async () => { started(); return await NEVER() } } })
+  const controller = new AbortController()
+  const call = callChildLlm(fixture.client, {
+    prompt: "work",
+    parentSessionID: "root",
+    parentUserMessageID: "user-1",
+    directory: "/workspace",
+    signal: controller.signal,
+  }, log)
+  await promptStarted
+  assert.equal(activeRlmChildCount(), 1)
+  controller.abort()
+  await assert.rejects(call, (error) => error instanceof RlmError && error.code === "CHILD_FAILED")
+  assert.deepEqual(fixture.aborts, ["child-1"])
+  assert.equal(activeRlmChildCount(), 0)
+})
+
+test("a child created after local abort is provider-aborted instead of orphaned", async () => {
+  let resolveCreate
+  const create = new Promise((resolve) => { resolveCreate = resolve })
+  const fixture = baseClient({ session: { create: () => create } })
+  const controller = new AbortController()
+  const call = callChildLlm(fixture.client, {
+    prompt: "work",
+    parentSessionID: "root",
+    parentUserMessageID: "user-1",
+    directory: "/workspace",
+    signal: controller.signal,
+  }, log)
+  await new Promise((resolve) => setImmediate(resolve))
+  controller.abort()
+  await assert.rejects(call, (error) => error instanceof RlmError && error.code === "CHILD_FAILED")
+  resolveCreate({ data: { id: "late-child" } })
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.deepEqual(fixture.aborts, ["late-child"])
+  assert.equal(activeRlmChildCount(), 0)
+})
+
+test("child rejects malformed tool inventory before child creation", async () => {
+  for (const inventory of ["bash", ["read", 7], ["read", ""]]) {
+    const fixture = baseClient({ tool: { ids: async () => ({ data: inventory }) } })
+    await assert.rejects(
+      () => callChildLlm(fixture.client, {
+        prompt: "x",
+        parentSessionID: "root",
+        parentUserMessageID: "user-1",
+        directory: "/workspace",
+      }, log),
+      (error) => error instanceof RlmError && error.code === "CHILD_FAILED" && /tool\.ids\(\) returned an invalid/.test(error.message),
+    )
+    assert.deepEqual(fixture.counts(), { creates: 0, prompts: 0 })
+  }
+  const sparse = new Array(2)
+  sparse[0] = "read"
+  const fixture = baseClient({ tool: { ids: async () => ({ data: sparse }) } })
+  await assert.rejects(
+    () => callChildLlm(fixture.client, {
+      prompt: "x",
+      parentSessionID: "root",
+      parentUserMessageID: "user-1",
+      directory: "/workspace",
+    }, log),
+    /invalid tool id at index 1/,
+  )
+  assert.deepEqual(fixture.counts(), { creates: 0, prompts: 0 })
+})
+
+test("pre-aborted parent preserves provider-side child abort cleanup", async () => {
+  const fixture = baseClient()
+  const controller = new AbortController()
+  controller.abort()
+  await assert.rejects(
+    () => callChildLlm(fixture.client, {
+      prompt: "x",
+      parentSessionID: "root",
+      parentUserMessageID: "user-1",
+      directory: "/workspace",
+      signal: controller.signal,
+    }, log),
+    /parent aborted before child prompt/,
+  )
+  assert.deepEqual(fixture.aborts, ["child-1"])
+  assert.equal(activeRlmChildCount(), 0)
+})

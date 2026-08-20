@@ -119,3 +119,20 @@ test("cgroup parsers reject non-v2 membership and prevent mount escape", () => {
     /no cgroup v2 mount covers/,
   )
 })
+
+test("resource envelope verifier rejects a root process that disappears during the snapshot", { skip: process.platform !== "linux" }, async () => {
+  const f = await fixture()
+  const fifo = path.join(f.root, "mountinfo.fifo")
+  const { execFileSync } = await import("node:child_process")
+  const { unlink } = await import("node:fs/promises")
+  execFileSync("mkfifo", [fifo])
+  try {
+    const pending = inspectResourceEnvelope({ rootPid: 100, procRoot: f.procRoot, mountInfoPath: fifo })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    await unlink(path.join(f.procRoot, "100", "cgroup"))
+    await writeFile(fifo, `29 23 0:26 /system.slice ${f.cgroupMount} rw,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw\n`)
+    await assert.rejects(pending, /root process 100 disappeared during process-tree snapshot/)
+  } finally {
+    await rm(f.root, { recursive: true, force: true })
+  }
+})

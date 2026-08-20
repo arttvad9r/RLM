@@ -40,7 +40,7 @@ test('new user turn fails closed while a prior-turn production exec is active', 
   )
   assert.deepEqual(governor.snapshot('session'), before, 'failed transition must not reset or charge either turn')
 
-  governor.finishExec('session', 25, oldExec.reservedWallMs)
+  assert.equal(governor.finishExecForTurn('session', oldExec.snapshot.turnId, 25, oldExec.reservedWallMs), true)
   const next = await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 100)
   assert.equal(next.allowed, true)
   assert.equal(next.snapshot.turnId, 'user-2')
@@ -58,12 +58,27 @@ test('all prior-turn production execs must finish before transition', async () =
   const second = await governor.beginExec(sdk, 'session', '/workspace', 'assistant-1', 10)
   messages = secondTurn()
 
-  governor.finishExec('session', 1, first.reservedWallMs)
+  assert.equal(governor.finishExecForTurn('session', first.snapshot.turnId, 1, first.reservedWallMs), true)
   await assert.rejects(
     () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10),
     /prior-turn exec\(s\) are still active/,
   )
-  governor.finishExec('session', 1, second.reservedWallMs)
+  assert.equal(governor.finishExecForTurn('session', second.snapshot.turnId, 1, second.reservedWallMs), true)
+  assert.equal((await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10)).snapshot.turnId, 'user-2')
+})
+
+test('finish for a non-authoritative turn cannot release active exec state', async () => {
+  const governor = new TurnGovernor()
+  let messages = firstTurn()
+  const sdk = sdkFor(() => messages)
+  const active = await governor.beginExec(sdk, 'session', '/workspace', 'assistant-1', 10)
+  assert.equal(governor.finishExecForTurn('session', 'wrong-turn', 1, active.reservedWallMs), false)
+  messages = secondTurn()
+  await assert.rejects(
+    () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10),
+    /prior-turn exec\(s\) are still active/,
+  )
+  assert.equal(governor.finishExecForTurn('session', active.snapshot.turnId, 1, active.reservedWallMs), true)
   assert.equal((await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10)).snapshot.turnId, 'user-2')
 })
 
