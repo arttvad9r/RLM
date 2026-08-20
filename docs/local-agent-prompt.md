@@ -1,29 +1,229 @@
 # Prompt for a local AI coding agent
 
-Copy the prompt below into an AI coding agent that has shell access to a local checkout of this repository. The agent should work on the checked-out revision, not on a reconstructed copy.
+Copy the prompt below into an AI coding agent that has shell access to the real local checkout. The synchronization stage is mandatory because the local repository and GitHub may contain materially different work.
 
 ```text
-Ты работаешь как senior TypeScript/Deno security/runtime engineer в локальном checkout репозитория OpenCode RLM.
+Ты работаешь как senior TypeScript/Deno security/runtime engineer в реальном локальном checkout репозитория OpenCode RLM на NixOS.
 
-Главная цель: проверить текущую ветку на реальной машине, исправить только подтверждённые дефекты, довести доступные локальные gates до зелёного состояния и собрать точный evidence report. Не выдавай частичную проверку за полный успех.
+КЛЮЧЕВОЕ УСЛОВИЕ: локальный repository и GitHub repository сейчас могут сильно отличаться. НЕ НАЧИНАЙ разработку, Nix setup, npm install, тесты, рефакторинг или исправления кода, пока не исследуешь и безопасно не синхронизируешь обе стороны.
+
+Главная цель состоит из двух последовательных частей:
+1. безопасно объединить все релевантные локальные и GitHub изменения без потери данных и получить понятную синхронизированную feature branch;
+2. только после этого проверить текущую ветку на реальной машине, исправить подтверждённые дефекты, довести доступные gates до зелёного состояния и собрать точный evidence report.
 
 Критические правила:
-1. Сначала зафиксируй исходное состояние:
-   - git status --short
-   - git branch --show-current
-   - git rev-parse HEAD
-   - git log -1 --oneline
-2. Не делай rebase, reset --hard, force push, merge, squash или удаление веток.
-3. Не пушь изменения и не меняй состояние PR без отдельного явного разрешения пользователя.
-4. Не обновляй @opencode-ai/plugin / @opencode-ai/sdk до завершения baseline-проверки текущих pinned версий.
-5. Не ослабляй security limits, permission model, context deny rules, sandbox isolation, turn budgets или regression tests ради зелёного теста.
-6. Не считай pathname TOCTOU проблему решённой: docs/known-limitations.md остаётся авторитетной границей до descriptor-relative/openat-style redesign.
-7. Не используй ground truth или benchmark manifests как model context во время реальных benchmark inference arms.
-8. Если инструмент отсутствует (Deno, Docker, OpenCode, credentials), не имитируй успешный результат. Зафиксируй blocker и продолжи всё, что можно выполнить независимо.
-9. Любой найденный дефект сначала воспроизведи или докажи по коду, затем внеси минимальный исправляющий patch и regression test.
-10. После каждого исправления повтори наиболее узкий релевантный test, затем соответствующий gate.
+1. Никогда не считай GitHub автоматически более правильным, чем local checkout, и наоборот.
+2. Не теряй uncommitted, local-only или remote-only изменения.
+3. Не используй `git reset --hard`, `git clean -fd`, `git restore .`, force push, `--force-with-lease`, массовое удаление веток или слепое разрешение конфликтов через `ours`/`theirs`.
+4. Не merge PR в main, не закрывай PR/issues, не меняй draft/ready state и не удаляй branches в рамках этой задачи.
+5. Обычный non-force push текущей feature branch разрешён только как финальный шаг синхронизации после проверки точного diff/commit set; если remote успел измениться после fetch, сначала снова интегрируй изменения и только потом push.
+6. Не обновляй `@opencode-ai/plugin` / `@opencode-ai/sdk` до завершения baseline-проверки текущих pinned версий.
+7. Не ослабляй security limits, permission model, context deny rules, sandbox isolation, turn budgets или regression tests ради зелёного теста.
+8. Не считай pathname TOCTOU проблему решённой: `docs/known-limitations.md` остаётся авторитетной границей до descriptor-relative/openat-style redesign.
+9. Не используй ground truth или benchmark manifests как model context во время реальных benchmark inference arms.
+10. Если инструмент отсутствует (Deno, Docker, OpenCode, credentials), не имитируй успешный результат. Зафиксируй blocker и продолжи всё, что можно выполнить независимо.
+11. Любой найденный дефект сначала воспроизведи или докажи по коду, затем внеси минимальный исправляющий patch и regression test.
+12. После каждого исправления повтори наиболее узкий релевантный test, затем соответствующий gate.
 
-Прочитай перед работой:
+==================================================
+STAGE 0 — ОБЯЗАТЕЛЬНАЯ СИНХРОНИЗАЦИЯ LOCAL ↔ GITHUB
+==================================================
+
+0.1. Убедись, что это правильный repository.
+
+Выполни:
+
+pwd
+git rev-parse --show-toplevel
+git remote -v
+git status --short --branch
+git branch --show-current
+git rev-parse HEAD
+git log --oneline --decorate -20
+
+Ожидаемый GitHub repository:
+
+arttvad9r/RLM
+
+Если `origin` указывает на другой repository, не переписывай remote вслепую. Сначала установи причину и зафиксируй blocker.
+
+0.2. Зафиксируй все локальные изменения до fetch/integration.
+
+Выполни:
+
+git status --porcelain=v1
+git diff
+git diff --staged
+git ls-files --others --exclude-standard
+
+Запиши:
+- исходную branch;
+- исходный HEAD;
+- tracked modifications;
+- staged modifications;
+- untracked files.
+
+Если worktree грязный, создай recoverable safety state:
+
+BACKUP_BRANCH="backup/pre-sync-$(date +%Y%m%d-%H%M%S)"
+git branch "$BACKUP_BRANCH" HEAD
+git stash push -u -m "pre-sync safety snapshot"
+git stash list
+git status --short
+
+Если имя branch конфликтует, выбери другое уникальное имя.
+
+НЕ удаляй safety branch/stash, пока синхронизация и восстановление локальной работы не подтверждены.
+
+Если worktree clean, всё равно сохрани исходный SHA в отчёте.
+
+0.3. Получи фактическое состояние GitHub.
+
+Выполни:
+
+git fetch --all --prune
+git remote show origin
+git branch -vv
+git status --short --branch
+git rev-parse origin/main
+
+Для текущей hardening работы проверь наличие:
+
+origin/fix/consolidate-audit-hardening
+
+Если branch существует:
+
+git rev-parse origin/fix/consolidate-audit-hardening
+
+Если доступен `gh`, используй read-only inspection:
+
+gh repo view
+gh pr view 30
+
+Не выполняй GitHub write-actions на этом этапе.
+
+0.4. Определи реальное расхождение истории.
+
+Для актуальной feature branch выполни:
+
+git merge-base HEAD origin/<branch>
+git rev-list --left-right --count HEAD...origin/<branch>
+git log --oneline --left-right --graph HEAD...origin/<branch>
+git log --oneline origin/<branch>..HEAD
+git log --oneline HEAD..origin/<branch>
+git diff --stat HEAD..origin/<branch>
+git diff --stat origin/<branch>..HEAD
+
+Также сравни feature branch с main:
+
+git rev-list --left-right --count origin/main...HEAD
+
+Классифицируй состояние строго как одно из:
+A. local == remote;
+B. local только behind;
+C. local только ahead;
+D. local и remote diverged;
+E. релевантная работа находится в другой local branch;
+F. любой из вариантов плюс сохранённый stash/uncommitted work.
+
+Не меняй историю, пока эта классификация не установлена.
+
+0.5. Интегрируй безопасно.
+
+A. Если local == remote:
+ничего с историей не делай.
+
+B. Если local только behind:
+
+git merge --ff-only origin/<branch>
+
+C. Если local только ahead:
+сначала внимательно проверь local-only commits и diff. Не push'ь случайные/unrelated commits.
+
+D. Если histories diverged:
+- изучи обе стороны;
+- сохрани обе группы релевантных commits;
+- предпочитай normal merge на feature/integration branch;
+- не делай reset/rebase опубликованной истории только ради красоты;
+- конфликты разрешай содержательно после чтения обеих версий.
+
+Допустимый подход после анализа:
+
+git merge origin/<branch>
+
+Если безопаснее, создай временную integration branch от текущего состояния и объединяй там. Не уничтожай исходные refs.
+
+0.6. Верни сохранённый local work.
+
+Если создавался stash:
+
+git stash apply <stash>
+git status
+git diff
+git diff --staged
+
+Используй `apply`, не `pop`, пока результат не проверен.
+
+Если возникают конфликты, разрешай их семантически. Не теряй remote или local функциональность.
+
+0.7. Перед публикацией проверь итоговый branch.
+
+Выполни:
+
+git status --short --branch
+git log --oneline --decorate -20
+git diff
+git diff --check
+git fetch origin
+git rev-list --left-right --count HEAD...origin/<branch>
+git log --oneline origin/<branch>..HEAD
+
+Убедись, что commits, которые собираешься публиковать, относятся только к нужной синхронизации/feature work.
+
+0.8. Если после интеграции local содержит нужные commits, которых нет на GitHub, синхронизируй feature branch обычным non-force push:
+
+git push origin HEAD:<branch>
+
+Запрещено:
+- `git push --force`;
+- `git push --force-with-lease`;
+- push в `main`;
+- merge PR;
+- изменение unrelated remote branches.
+
+0.9. После push немедленно подтвердить синхронизацию:
+
+git fetch origin
+git rev-list --left-right --count HEAD...origin/<branch>
+git status --short --branch
+
+Для синхронизированной branch ожидается:
+
+0 0
+
+Если remote снова изменился параллельно — НЕ перезаписывай его. Повтори fetch → compare → integration.
+
+0.10. Сформируй промежуточный synchronization report:
+- initial local branch;
+- initial local SHA;
+- initial remote SHA;
+- local-only commit count;
+- remote-only commit count;
+- были ли uncommitted changes;
+- backup branch/stash;
+- integration method;
+- conflicts и их resolution;
+- final synchronized branch;
+- final synchronized SHA;
+- final `HEAD...origin/<branch>` count.
+
+ТОЛЬКО когда intended local branch и GitHub feature branch синхронизированы и `HEAD...origin/<branch>` показывает `0 0`, переходи к разработке.
+
+==================================================
+STAGE 1 — ПРОЧИТАТЬ АКТУАЛЬНЫЙ REPOSITORY ПОСЛЕ SYNC
+==================================================
+
+После синхронизации прочитай:
 - README.md
 - docs/README.md
 - docs/local-development.md
@@ -33,51 +233,100 @@ Copy the prompt below into an AI coding agent that has shell access to a local c
 - docs/resource-envelope.md
 - benchmarks/README.md
 - package.json
+- package-lock.json
+- scripts/check-runtime.mjs
+- scripts/check-standalone.mjs
 
-Этап A — окружение и чистота checkout
+Проверяй именно синхронизированное состояние. Не опирайся на предположения о старой local или GitHub версии.
+
+==================================================
+STAGE 2 — NIXOS / RUNTIME ENVIRONMENT
+==================================================
+
+Пользователь работает на NixOS. Предпочитай reproducible project-local development environment (`nix develop`/flake), а не глобальную установку Node/Deno в `/etc/nixos/configuration.nix`.
+
+Сначала проверь, есть ли уже:
+- flake.nix;
+- flake.lock;
+- shell.nix;
+- default.nix;
+- .envrc.
+
+Если синхронизированный repository уже содержит подходящий maintained Nix environment — используй/исправляй его, не создавай конкурирующий.
+
+Если Nix environment отсутствует и задача включает его реализацию, добавь простой maintained `flake.nix` + `flake.lock` после baseline анализа repository.
+
+Dev shell должен предоставлять compatible:
+- Node 24.x;
+- npm;
+- Deno 2.x;
+- Git.
+
+Exact reproducible reference остаётся:
+- Node 24.19.0;
+- Deno 2.9.5.
+
+Не создавай хрупкие custom derivations только ради exact patch versions, если nixpkgs даёт совместимые 24.x/2.x; exact pair уже проверяется container gate.
+
+Не запускай npm install/tests автоматически из shellHook.
+Не делай Docker daemon частью dev shell.
+Не изменяй `/etc/nixos/configuration.nix` ради проекта.
+
+После входа в environment выполни:
+
+node --version
+npm --version
+deno --version
+git --version
+docker version
+opencode --version
+node scripts/check-runtime.mjs --exact
+
+Если exact check не проходит, но Node 24.x/Deno 2.x совместимы, зафиксируй это как compatibility environment, а не exact-baseline evidence.
+
+==================================================
+STAGE 3 — PINNED DEPENDENCIES
+==================================================
+
 Выполни:
-  node --version
-  npm --version
-  deno --version
-  git --version
-  docker version
-  opencode --version
-  node scripts/check-runtime.mjs --exact
 
-Ожидаемый reproducible baseline репозитория: Node 24.19.0 и Deno 2.9.5. Если версии другие, отдельно укажи это в отчёте. Node 24.x / Deno 2.x допустимы для compatibility development, но не называй это exact-baseline validation.
+rm -rf node_modules
+npm ci --ignore-scripts
+git status --short
 
-Проверь, что worktree не содержит неожиданных пользовательских изменений. Не трогай несвязанные файлы.
+Установка не должна менять tracked files. Если `package.json` или lockfile меняются без намеренного действия — расследуй причину.
 
-Этап B — pinned dependencies
+==================================================
+STAGE 4 — HOST GATE
+==================================================
+
 Выполни:
-  rm -rf node_modules
-  npm ci --ignore-scripts
-  git status --short
 
-Установка не должна менять tracked files. Если lockfile или package.json меняются без намеренного действия — остановись и расследуй причину.
-
-Этап C — host gate
-Выполни:
-  npm run gate:host
+npm run gate:host
 
 Если есть failure:
 - локализуй конкретный test/typecheck/verifier;
-- прочитай production implementation и соответствующий regression;
-- определи, это реальный дефект implementation, устаревший fixture или проблема окружения;
+- прочитай implementation и regression;
+- определи: implementation bug, stale fixture, environment issue или documentation drift;
 - внеси минимальную правку;
-- добавь/исправь regression test;
-- повтори узкий test и затем npm run gate:host.
+- добавь/исправь regression;
+- повтори узкий test;
+- затем снова `npm run gate:host`.
 
 Не продолжай к широким изменениям, пока host gate не объяснён.
 
-Этап D — Deno sandbox boundary
+==================================================
+STAGE 5 — DENO SANDBOX BOUNDARY
+==================================================
+
 Выполни отдельно:
-  npm run typecheck:runner
-  npm run test:plugin
+
+npm run typecheck:runner
+npm run test:plugin
 
 Особенно проверь:
-- Worker permissions:none;
-- отсутствие usable filesystem/network/env/process authority у generated code;
+- Worker `permissions: "none"`;
+- отсутствие usable filesystem/network/env/process authority;
 - authenticated runner frames;
 - private MessagePort RPC;
 - host stdin EOF fail-closed behavior;
@@ -85,113 +334,156 @@ Copy the prompt below into an AI coding agent that has shell access to a local c
 - oversized results/protocol requests;
 - cancellation/transport settlement.
 
-Если Deno поведение отличается из-за версии, не делай heuristic workaround, пока не определишь точную API/behavioral причину.
+Не делай heuristic workaround для Deno version difference, пока не установлен root cause.
 
-Этап E — authoritative local gate
+==================================================
+STAGE 6 — AUTHORITATIVE LOCAL GATE
+==================================================
+
 Выполни:
-  npm run gate:local
 
-Полный PASS этого шага должен относиться к exact git SHA, который будет указан в финальном отчёте.
+npm run gate:local
 
-Этап F — container gate
+PASS должен быть привязан к точному `git rev-parse HEAD`.
+
+==================================================
+STAGE 7 — CONTAINER GATE
+==================================================
+
 Если Docker доступен:
-  npm run gate:container
 
-Проверь, что image использует exact Node 24.19.0 + Deno 2.9.5 и что внутри контейнера реально выполняется npm test.
+npm run gate:container
 
-Если Docker отсутствует или daemon недоступен — зафиксируй blocker, не называй container gate пройденным.
+Проверь, что image использует exact Node 24.19.0 + Deno 2.9.5 и реально запускает `npm test`.
 
-Этап G — реальный OpenCode smoke test
-Создай отдельный disposable workspace, не используй секретный/рабочий репозиторий.
+Если Docker unavailable — статус `SKIPPED/BLOCKED`, не PASS.
 
-Проверь через реальный загруженный RLM plugin:
-1. rlm_exec с простым deterministic return;
-2. context.read обычного файла;
-3. denial для .env;
-4. denial для secret.pem;
-5. denial symlink escape вроде escape/passwd -> /etc/passwd;
-6. generated code не получает usable Deno/process/Worker/MessageChannel;
-7. fetch/network attempt denied;
-8. llm(...) возвращает текст и не получает обычные OpenCode tools;
-9. llm.batch из 4 независимых prompts завершается без deadlock;
-10. cancellation: запусти намеренно незавершающийся rlm_exec, отмени его, затем сразу выполни маленький rlm_exec и проверь, что lifecycle/budget освобождён.
+==================================================
+STAGE 8 — REAL OPENCODE SMOKE TEST
+==================================================
+
+Создай отдельный disposable workspace без реальных секретов.
+
+Проверь через реально загруженный RLM plugin:
+1. простой deterministic `rlm_exec`;
+2. `context.read` обычного файла;
+3. denial `.env`;
+4. denial `secret.pem`;
+5. denial symlink escape `escape/passwd -> /etc/passwd`;
+6. generated code не получает usable `Deno/process/Worker/MessageChannel`;
+7. network/fetch denied;
+8. `llm(...)` возвращает text и не получает обычные OpenCode tools;
+9. `llm.batch` из 4 prompts завершается без deadlock;
+10. cancellation non-settling `rlm_exec`, после чего следующий маленький exec работает и budget/lifecycle освобождён.
 
 Зафиксируй:
-- opencode --version;
-- @opencode-ai/plugin version;
-- @opencode-ai/sdk version;
+- OpenCode version;
+- `@opencode-ai/plugin` version;
+- `@opencode-ai/sdk` version;
 - provider/model;
-- git SHA RLM;
-- PASS/FAIL каждого smoke case.
+- RLM SHA;
+- PASS/FAIL каждого case.
 
-Если pinned SDK 1.1.26 не работает с установленным OpenCode, сначала определи точку несовместимости. Не обновляй пакеты в той же ветке автоматически.
+Если pinned SDK 1.1.26 несовместим с установленным OpenCode, сначала локализуй incompatibility. Не обновляй SDK в той же baseline работе автоматически.
 
-Этап H — compatibility upgrade только после зелёного baseline
-Только если pinned baseline полностью понятен и пользователь хочет проверить новый OpenCode SDK:
-  npm view @opencode-ai/plugin version
-  npm view @opencode-ai/sdk version
+==================================================
+STAGE 9 — SDK COMPATIBILITY ОТДЕЛЬНО
+==================================================
 
-Создай отдельную ветку для SDK migration. Обновляй plugin+sdk согласованно и exact-pinned. После изменения повтори:
-  npm run gate:host
-  npm run typecheck:runner
-  npm run test:plugin
-  npm run gate:local
-  npm run gate:container
-  OpenCode smoke test
+Только после понятного pinned baseline и если это действительно требуется:
 
-Не смешивай SDK upgrade с unrelated hardening fixes.
+npm view @opencode-ai/plugin version
+npm view @opencode-ai/sdk version
 
-Этап I — benchmark value gate
-Не ограничивайся benchmark harness tests. Для оценки полезности RLM нужны реальные четыре arms:
-- 192 normal
-- 192 RLM
-- 384 normal
-- 384 RLM
+SDK migration делай в отдельной branch, exact-pin обе зависимости и повторяй полный local/container/OpenCode smoke sequence.
 
-Для всех arms держи одинаковыми source revision, model/provider/variant, task prompt и experiment config; отличается только доступность RLM. Ground truth/manifests не должны попадать в model context. RLM arm обязан содержать telemetry реального rlm_exec.
+Не смешивай SDK upgrade с unrelated hardening.
 
-Используй benchmarks/README.md и существующий harness для scoring/comparison. Сохрани raw run records, score JSON, comparison JSON, suite JSON, tokens, cost и wall time.
+==================================================
+STAGE 10 — BENCHMARK VALUE GATE
+==================================================
 
-Вывод по benchmark формулируй через качество + scaling + cost/latency, а не только через один accuracy number.
+Для оценки реальной полезности RLM нужны четыре настоящих arms:
+- 192 normal;
+- 192 RLM;
+- 384 normal;
+- 384 RLM.
 
-Этап J — deployment envelope
+Для всех arms держи одинаковыми source revision, model/provider/variant, prompt и experiment config. Отличается только доступность RLM.
+
+Ground truth/manifests не должны попадать в model context.
+RLM arm обязан иметь telemetry реального `rlm_exec`.
+
+Сохрани raw runs, score JSON, comparison JSON, suite JSON, token usage, cost и wall time.
+
+Вывод делай по quality + scaling + cost/latency.
+
+==================================================
+STAGE 11 — DEPLOYMENT ENVELOPE
+==================================================
+
 Если машина Linux/cgroup v2 и есть реальный OpenCode/RLM service process:
-- примени controls из docs/resource-envelope.md;
+- применяй controls из `docs/resource-envelope.md`;
 - выполни:
-  npm run verify:resource-envelope -- --root-pid <service-root-pid>
+
+npm run verify:resource-envelope -- --root-pid <service-root-pid>
+
 - сохрани JSON evidence;
-- отдельно проведи deliberate resource-limit termination/recovery test.
+- отдельно проведи deliberate resource-limit termination/recovery.
 
-Не утверждай hard OS isolation только по repository tests.
+Repository tests сами по себе не доказывают hard OS isolation.
 
-Этап K — финальный audit
+==================================================
+STAGE 12 — FINAL AUDIT
+==================================================
+
 После всех исправлений:
-1. git status --short
-2. git diff --check
-3. git diff
-4. git rev-parse HEAD
-5. повтори все доступные gates, затронутые изменениями.
 
-Проверь документацию на drift:
+git status --short
+git diff --check
+git diff
+git rev-parse HEAD
+git fetch origin
+git rev-list --left-right --count HEAD...origin/<branch>
+
+Повтори все gates, затронутые изменениями.
+
+Проверь documentation drift:
 - README команды совпадают с package.json;
-- docs/local-development.md соответствует реальным gates;
-- runtime-invariants описывает текущий implementation;
-- known-limitations не скрывает нерешённые границы;
+- `docs/local-development.md` соответствует реальным gates;
+- runtime-invariants соответствует implementation;
+- known-limitations не скрывает нерешённые boundaries;
 - session-lifecycle соответствует реальному OpenCode поведению;
-- benchmark docs не обещают результат без реальных arms.
+- benchmark docs не обещают эффективность без реальных arms.
 
-Финальный ответ пользователю должен содержать:
-- исходный SHA и финальный SHA/working-tree state;
-- точный список изменённых файлов и зачем;
-- команды, которые реально были выполнены;
-- PASS/FAIL/SKIPPED по gate:host, typecheck:runner, test:plugin, gate:local, gate:container, OpenCode smoke;
-- обнаруженные реальные дефекты и их исправления;
+Финальный report должен содержать два отдельных раздела.
+
+A. Repository synchronization:
+- initial local branch/SHA;
+- initial remote branch/SHA;
+- uncommitted local work;
+- local-only и remote-only commits;
+- backup branch/stash;
+- integration method;
+- conflicts;
+- push result;
+- final synchronized SHA;
+- final `HEAD...origin/<branch>` count.
+
+B. Development/validation:
+- исходный synchronized SHA и финальный SHA/working-tree state;
+- изменённые файлы и причины;
+- найденные bugs и fixes;
+- реально выполненные команды;
+- PASS/FAIL/SKIPPED для gate:host, typecheck:runner, test:plugin, gate:local, gate:container и OpenCode smoke;
+- environment versions;
 - оставшиеся blockers/known limitations;
-- отдельный verdict: готово ли изменение к merge с технической точки зрения.
+- отдельный verdict: технически готова ли ветка к merge.
 
-Не пиши "всё работает", если не прошли Deno + local gate + реальный OpenCode smoke на текущем SHA. Если часть проверки невозможна, закончи максимально полным частичным результатом и перечисли точные команды, которые остаётся выполнить.
+Не пиши "всё работает", если на текущем SHA не прошли Deno + `gate:local` + реальный OpenCode smoke.
+Не начинай разработку, если local/GitHub synchronization ещё не завершён и не подтверждён.
 ```
 
 ## Recommended use
 
-For the current hardening work, give the agent the repository checkout and ask it to execute the prompt from the existing pull-request head without rebasing or upgrading the SDK first. Once the pinned baseline is green, SDK compatibility, benchmark experiments, and deployment-envelope work should remain separate evidence tracks.
+Run this prompt against the real local checkout. The first deliverable is a synchronization report, not code changes. Only after the local feature branch and its GitHub counterpart are reconciled should the agent proceed into Nix/environment setup, tests, implementation fixes, OpenCode smoke testing, benchmarks, or deployment evidence.
