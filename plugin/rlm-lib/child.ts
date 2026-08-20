@@ -73,8 +73,41 @@ export interface ChildLlmResult {
   tokensOutput?: number
 }
 
+const MAX_PROVIDER_ERROR_MESSAGE_CHARS = 4096
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function boundedDiagnostic(value: string): string {
+  return value.length <= MAX_PROVIDER_ERROR_MESSAGE_CHARS
+    ? value
+    : `${value.slice(0, MAX_PROVIDER_ERROR_MESSAGE_CHARS)}…`
+}
+
+/**
+ * SDK/provider error envelopes are untrusted runtime data. Never stringify an
+ * arbitrary envelope: cyclic values, BigInt, hostile toJSON/toString hooks and
+ * oversized provider payloads must not replace a stable CHILD_FAILED outcome or
+ * dump unrelated response fields (for example headers/tokens) into model-visible
+ * diagnostics.
+ */
+function providerErrorDiagnostic(value: unknown): string {
+  if (typeof value === "string" && value.length > 0) return boundedDiagnostic(value)
+  if (value instanceof Error) return boundedDiagnostic(value.message || value.name || "provider error")
+  if (isRecord(value)) {
+    if (typeof value.message === "string" && value.message.length > 0) {
+      return boundedDiagnostic(value.message)
+    }
+    const data = isRecord(value.data) ? value.data : undefined
+    if (typeof data?.message === "string" && data.message.length > 0) {
+      return boundedDiagnostic(data.message)
+    }
+    if (typeof value.code === "string" && value.code.length > 0) {
+      return boundedDiagnostic(`provider error ${value.code}`)
+    }
+  }
+  return "provider returned an opaque error"
 }
 
 function startSdkCall<T>(call: () => Promise<T>): Promise<T> {
@@ -150,7 +183,7 @@ export async function callChildLlm(
     throw new RlmError("CHILD_FAILED", "parent messages response was not an object")
   }
   if (modelRes.error) {
-    throw new RlmError("CHILD_FAILED", `failed to read parent messages: ${JSON.stringify(modelRes.error)}`)
+    throw new RlmError("CHILD_FAILED", `failed to read parent messages: ${providerErrorDiagnostic(modelRes.error)}`)
   }
   if (!Array.isArray(modelRes.data)) {
     throw new RlmError("CHILD_FAILED", "parent messages response did not contain a valid message list")
@@ -181,7 +214,7 @@ export async function callChildLlm(
     throw new RlmError("CHILD_FAILED", "tool.ids() returned an invalid response object")
   }
   if (toolRes.error) {
-    throw new RlmError("CHILD_FAILED", `failed to list tool IDs: ${JSON.stringify(toolRes.error)}`)
+    throw new RlmError("CHILD_FAILED", `failed to list tool IDs: ${providerErrorDiagnostic(toolRes.error)}`)
   }
   const toolIDs = toolRes.data
   if (!Array.isArray(toolIDs) || toolIDs.length === 0) {
@@ -230,7 +263,7 @@ export async function callChildLlm(
     throw new RlmError("CHILD_FAILED", "child session creation returned an invalid response object")
   }
   if (childRes.error) {
-    throw new RlmError("CHILD_FAILED", `failed to create child session: ${JSON.stringify(childRes.error)}`)
+    throw new RlmError("CHILD_FAILED", `failed to create child session: ${providerErrorDiagnostic(childRes.error)}`)
   }
   const createdID = isRecord(childRes.data) ? childRes.data.id : undefined
   if (typeof createdID !== "string" || createdID.length === 0) {
@@ -285,7 +318,7 @@ export async function callChildLlm(
         throw new RlmError("CHILD_FAILED", "child session returned an invalid response object")
       }
       if (result.error) {
-        throw new RlmError("CHILD_FAILED", `child session error: ${JSON.stringify(result.error)}`)
+        throw new RlmError("CHILD_FAILED", `child session error: ${providerErrorDiagnostic(result.error)}`)
       }
       const data = isRecord(result.data) ? result.data : undefined
       const info = isRecord(data?.info) ? data.info : undefined
@@ -298,9 +331,12 @@ export async function callChildLlm(
       const infoError = isRecord(info?.error) ? info.error : undefined
       if (infoError) {
         const errorData = isRecord(infoError.data) ? infoError.data : undefined
+        const detail = typeof errorData?.message === "string" && errorData.message.length > 0
+          ? boundedDiagnostic(errorData.message)
+          : providerErrorDiagnostic(infoError)
         throw new RlmError(
           "CHILD_FAILED",
-          `child session failed (${typeof infoError.name === "string" ? infoError.name : "error"}): ${typeof errorData?.message === "string" ? errorData.message : JSON.stringify(infoError)}`,
+          `child session failed (${typeof infoError.name === "string" ? boundedDiagnostic(infoError.name) : "error"}): ${detail}`,
         )
       }
 
