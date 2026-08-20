@@ -4,10 +4,13 @@ import test from "node:test"
 import plugin from "../rlm.ts"
 import { TurnGovernor, turnGovernor } from "../rlm-lib/turn.ts"
 
-function messagesClient(userMessageID = "user-1") {
+function messagesClient(userMessageID = "user-1", assistantMessageID = "assistant-1") {
   return {
     session: {
-      messages: async () => ({ data: [{ info: { id: userMessageID, role: "user" } }] }),
+      messages: async () => ({ data: [
+        { info: { id: userMessageID, role: "user" } },
+        { info: { id: assistantMessageID, role: "assistant" } },
+      ] }),
     },
   }
 }
@@ -30,7 +33,13 @@ test("TurnGovernor evicts one deleted session and leaves later accounting fail-c
 
 test("plugin session.deleted hook evicts the matching root turn cache", async () => {
   const sessionID = `session-delete-${Date.now()}-${Math.random()}`
-  const started = await turnGovernor.beginExec(messagesClient("user-hook"), sessionID, "/repo", "assistant-hook", 100)
+  const started = await turnGovernor.beginExec(
+    messagesClient("user-hook", "assistant-hook"),
+    sessionID,
+    "/repo",
+    "assistant-hook",
+    100,
+  )
   assert.equal(started.allowed, true)
   assert.ok(turnGovernor.snapshot(sessionID))
 
