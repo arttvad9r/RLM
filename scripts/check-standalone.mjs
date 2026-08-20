@@ -7,6 +7,7 @@ const ROOT = fileURLToPath(new URL("../", import.meta.url))
 const TEXT_EXTENSIONS = new Set([".json", ".md", ".mjs", ".ts", ".yml", ".yaml"])
 const SKIP_DIRS = new Set([".git", "node_modules", "corpora", "ground-truth"])
 const ALLOWED_ROOT_ENTRIES = new Set([
+  ".dockerignore",
   ".git",
   ".github",
   ".gitignore",
@@ -17,6 +18,8 @@ const ALLOWED_ROOT_ENTRIES = new Set([
   "agent",
   "benchmarks",
   "docs",
+  "flake.lock",
+  "flake.nix",
   "node_modules",
   "package-lock.json",
   "package.json",
