@@ -40,7 +40,7 @@ With Docker installed:
 npm run gate:container
 ```
 
-The image is built from `scripts/Dockerfile.local-gate`, installs dependencies with `npm ci --ignore-scripts`, verifies the exact pinned Node/Deno versions, and runs `npm test` in the container.
+The image is built from `scripts/Dockerfile.local-gate`. It copies the pinned Deno binary from the official `denoland/deno:bin-2.9.5` image into Node `24.19.0-bookworm-slim`, installs dependencies with `npm ci --ignore-scripts`, verifies the exact pinned Node/Deno versions, and runs `npm test` in the container.
 
 Hosted GitHub Actions should use the same runtime versions, but hosted execution is not itself a security boundary. A job that fails before recording any step is infrastructure failure, not evidence that repository tests failed.
 
