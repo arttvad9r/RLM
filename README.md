@@ -18,7 +18,7 @@ This repository contains only the RLM agent, plugin runtime and deterministic be
 
 ## Requirements
 
-- Node.js 24 or newer.
+- Node.js 24.x.
 - Deno 2.x.
 - OpenCode plugin/SDK `1.1.26` (pinned in `package.json` and `package-lock.json`).
 
@@ -77,7 +77,7 @@ npm run verify:benchmarks
 
 `rlm_exec` does not give model-generated JavaScript filesystem, network, environment, subprocess or FFI authority.
 
-The host launches a trusted Deno transport runner with narrowly scoped read access to the fixed `generated-worker.ts` entry module. Project config, lockfile discovery, npm resolution and remote module loading are disabled explicitly for that runner. The generated program itself executes in a separate Worker created with `permissions: "none"`. Host/runner frames use a per-execution authenticated channel, and runner/Worker RPC uses a private transferred `MessagePort`.
+The host launches a trusted Deno transport runner with narrowly scoped read access to the fixed `generated-worker.ts` entry module. Project config, lockfile discovery, npm resolution and remote module loading are disabled explicitly for that runner. Ambient `DENO_PERMISSION_BROKER_PATH` is removed from the transport environment so an external Deno permission broker cannot replace the runner's host-owned CLI permission envelope. The generated program itself executes in a separate Worker created with `permissions: "none"`. Host/runner frames use a per-execution authenticated channel, and runner/Worker RPC uses a private transferred `MessagePort`.
 
 Context access is host-mediated through the read-only `context.files`, `context.read`, `context.readMany` and `context.grep` APIs. The host resolves and confines the approved workspace before context access, then performs directly bounded host filesystem reads/listing under the host-owned context policy; model-generated code never receives filesystem handles. Reads are capped before materialization and preserve exact UTF-8 file text, while known binary, NUL and invalid UTF-8 content fail closed. Directory traversal is streamed and bounded by depth, directory, result and scanned-entry limits. Model-supplied regular expressions for `context.grep` are evaluated in a trusted worker thread with a host-owned hard timeout so pathological backtracking cannot block the plugin event loop indefinitely.
 
