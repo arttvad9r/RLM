@@ -8,9 +8,13 @@ import { open, opendir, stat } from "node:fs/promises"
 import path from "node:path"
 import {
   MAX_CONTEXT_ENTRIES_SCANNED,
+  MAX_CONTEXT_PATH_CHARS,
+  MAX_FILES_QUERY_CHARS,
   MAX_GLOB_DIRS,
   MAX_GLOB_PATHS,
+  MAX_GREP_PATTERN_CHARS,
   MAX_READ_MANY_FILES,
+  MAX_TOTAL_CONTEXT_CHARS,
 } from "./constants.ts"
 import {
   assertRlmContextPathAllowed,
@@ -51,6 +55,45 @@ function assertContextActive(state: RlmRunState): void {
   if (state.abort.signal.aborted) {
     throw new RlmError("RUNTIME_ERROR", "host context operation aborted with the parent rlm_exec")
   }
+}
+
+function assertBoundedArgument(
+  value: unknown,
+  label: string,
+  maxChars: number,
+  allowEmpty = false,
+): asserts value is string {
+  if (typeof value !== "string" || (!allowEmpty && value.trim().length === 0)) {
+    throw new RlmError("INVALID_ARGUMENT", `${label} must be ${allowEmpty ? "a string" : "a non-empty string"}`)
+  }
+  if (value.length > maxChars) {
+    throw new RlmError("BUDGET_EXCEEDED", `${label} exceeds ${maxChars} characters`)
+  }
+}
+
+function addSerializedArrayItemBudget(
+  currentChars: number,
+  item: unknown,
+  hasItems: boolean,
+  operation: string,
+): number {
+  let serialized: string | undefined
+  try {
+    serialized = JSON.stringify(item)
+  } catch {
+    throw new RlmError("PROTOCOL_ERROR", `${operation}: result item is not JSON-serializable`)
+  }
+  if (serialized === undefined) {
+    throw new RlmError("PROTOCOL_ERROR", `${operation}: result item is not JSON-serializable`)
+  }
+  const next = currentChars + (hasItems ? 1 : 0) + serialized.length
+  if (next > MAX_TOTAL_CONTEXT_CHARS) {
+    throw new RlmError(
+      "BUDGET_EXCEEDED",
+      `${operation}: result exceeds ${MAX_TOTAL_CONTEXT_CHARS} characters; narrow the request`,
+    )
+  }
+  return next
 }
 
 export async function executeContextOperation(
@@ -103,6 +146,7 @@ async function readText(
   policy: RlmContextPolicy,
   inputPath: string,
 ): Promise<{ relative: string; content: string; bytes: number }> {
+  assertBoundedArgument(inputPath, "context.read: path", MAX_CONTEXT_PATH_CHARS)
   const { target, relative } = await targetInfo(state, policy, inputPath)
 
   let info
@@ -184,22 +228,29 @@ async function opReadMany(
     throw new RlmError("INVALID_ARGUMENT", `context.readMany: paths must be an array of 1-${MAX_READ_MANY_FILES} strings`)
   }
   for (const item of paths) {
-    if (typeof item !== "string" || item.trim().length === 0) {
-      throw new RlmError("INVALID_ARGUMENT", "context.readMany: every path must be a non-empty string")
-    }
+    assertBoundedArgument(item, "context.readMany: every path", MAX_CONTEXT_PATH_CHARS)
   }
   const items: ReadManyItem[] = []
+  let serializedChars = 2 // opening + closing array brackets
   for (const item of paths) {
     assertContextActive(state)
+    let result: ReadManyItem
     try {
-      items.push({ path: item, content: await opRead(state, policy, item) })
+      result = { path: item, content: await opRead(state, policy, item) }
     } catch (error) {
       // Per-file read failures are part of readMany's result contract, but a
       // parent abort/deadline must terminate the entire host operation rather
       // than being converted into dozens of per-file errors.
       assertContextActive(state)
-      items.push({ path: item, error: toErrorInfo(error) })
+      result = { path: item, error: toErrorInfo(error) }
     }
+    serializedChars = addSerializedArrayItemBudget(
+      serializedChars,
+      result,
+      items.length > 0,
+      "context.readMany",
+    )
+    items.push(result)
   }
   return items
 }
@@ -209,9 +260,7 @@ async function opGrep(
   policy: RlmContextPolicy,
   pattern: string,
 ): Promise<GrepMatch[]> {
-  if (typeof pattern !== "string" || pattern.trim().length === 0) {
-    throw new RlmError("INVALID_ARGUMENT", "context.grep: pattern must be a non-empty string")
-  }
+  assertBoundedArgument(pattern, "context.grep: pattern", MAX_GREP_PATTERN_CHARS)
 
   assertContextActive(state)
   const evaluator = await createSafeRegexEvaluator(pattern)
@@ -219,6 +268,7 @@ async function opGrep(
     assertContextActive(state)
     const files = await opFiles(state, policy, "")
     const matches: GrepMatch[] = []
+    let serializedChars = 2
     for (const file of files) {
       assertContextActive(state)
       let item: Awaited<ReturnType<typeof readText>>
@@ -234,7 +284,14 @@ async function opGrep(
       const indices = await evaluator.scan(item.content, remaining)
       assertContextActive(state)
       for (const index of indices) {
-        matches.push({ path: item.relative, line: index + 1, text: lines[index] })
+        const match = { path: item.relative, line: index + 1, text: lines[index] }
+        serializedChars = addSerializedArrayItemBudget(
+          serializedChars,
+          match,
+          matches.length > 0,
+          "context.grep",
+        )
+        matches.push(match)
         if (matches.length > policy.maxGrepMatches) {
           throw new RlmError("BUDGET_EXCEEDED", `context.grep: more than ${policy.maxGrepMatches} approved matches; full search cannot be returned`)
         }
@@ -251,11 +308,12 @@ async function opFiles(
   policy: RlmContextPolicy,
   query: string,
 ): Promise<string[]> {
-  if (typeof query !== "string") throw new RlmError("INVALID_ARGUMENT", "context.files: query must be a string")
+  assertBoundedArgument(query, "context.files: query", MAX_FILES_QUERY_CHARS, true)
   assertContextActive(state)
 
   const needle = query.toLowerCase()
   const files: string[] = []
+  let serializedChars = 2
   let visitedDirs = 0
   let scannedEntries = 0
   let depthLimitHit = false
@@ -299,7 +357,15 @@ async function opFiles(
         }
         if (!isRlmContextPathAllowed(relative, policy)) continue
         const name = entry.name.toLowerCase()
-        if (name.includes(needle) || relative.toLowerCase().includes(needle)) files.push(relative)
+        if (name.includes(needle) || relative.toLowerCase().includes(needle)) {
+          serializedChars = addSerializedArrayItemBudget(
+            serializedChars,
+            relative,
+            files.length > 0,
+            "context.files",
+          )
+          files.push(relative)
+        }
         if (files.length > policy.maxListEntries || files.length > MAX_GLOB_PATHS) return
       }
     } catch (error) {

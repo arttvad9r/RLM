@@ -1,0 +1,16 @@
+.git
+node_modules
+coverage
+dist
+.tmp
+.direnv
+result
+result-*
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example

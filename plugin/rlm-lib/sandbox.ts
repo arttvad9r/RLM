@@ -13,8 +13,11 @@ import {
   MAX_CHILD_RESULT_CHARS,
   MAX_CODE_CHARS,
   MAX_CONTEXT_CALLS,
+  MAX_CONTEXT_CALLS_CONCURRENT,
   MAX_DENO_OLD_SPACE_MB,
   MAX_EXEC_TIMEOUT_MS,
+  MAX_IGNORED_STDOUT_CHARS,
+  MAX_IGNORED_STDOUT_LINES,
   MAX_PROMPT_CHARS,
   MAX_PROTOCOL_LINE_CHARS,
   MAX_PROTOCOL_QUEUE_LINES,
@@ -29,6 +32,8 @@ import {
 import { callChildLlm } from "./child.ts"
 import { executeContextOperation } from "./context.ts"
 import { RlmError, toErrorInfo } from "./errors.ts"
+import { narrowedTestLimit } from "./limit-override.ts"
+import { logBestEffort } from "./logging.ts"
 import { encodeMessage, parseSandboxFrame } from "./protocol.ts"
 import { ProtocolRequestGate } from "./protocol-request-gate.ts"
 import { turnGovernor } from "./turn.ts"
@@ -41,7 +46,7 @@ import type {
 import { RlmRunState } from "./types.ts"
 import { resolveWorkspaceRoot } from "./workspace.ts"
 
-const TEST_EXEC_TIMEOUT_MS = Number(process.env.RLM_TEST_EXEC_TIMEOUT_MS) || 0
+const EXEC_TIMEOUT_MS = narrowedTestLimit(process.env.RLM_TEST_EXEC_TIMEOUT_MS, MAX_EXEC_TIMEOUT_MS)
 const RUNNER_PATH = fileURLToPath(new URL("../rlm-runner/runner.ts", import.meta.url))
 const GENERATED_WORKER_PATH = fileURLToPath(new URL("../rlm-runner/generated-worker.ts", import.meta.url))
 
@@ -61,6 +66,19 @@ export function sandboxDenoArgs(
     `--v8-flags=--max-old-space-size=${MAX_DENO_OLD_SPACE_MB}`,
     runnerPath,
   ]
+}
+
+/**
+ * Deno's permission broker replaces CLI permission decision authority when
+ * DENO_PERMISSION_BROKER_PATH is present. The RLM runner permission envelope
+ * must therefore not inherit that ambient override from the OpenCode host.
+ */
+export function sandboxDenoEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const sanitized = { ...env }
+  for (const key of Object.keys(sanitized)) {
+    if (key.toUpperCase() === "DENO_PERMISSION_BROKER_PATH") delete sanitized[key]
+  }
+  return sanitized
 }
 
 interface LineReader {
@@ -207,15 +225,9 @@ export async function executeRlmExec(
   opts: ExecuteRlmExecOptions,
 ): Promise<RlmExecOutcome> {
   const { code, parentSessionID, directory: dir, log } = opts
-  const ws = await resolveWorkspaceRoot(dir, opts.worktree ?? "")
-
-  await log("debug", "rlm_exec workspace root", {
-    workspaceRoot: ws.root,
-    broadWorkspaceRoot: ws.broad,
-    directory: dir,
-    worktree: opts.worktree,
-  })
-
+  if (opts.abort.aborted) {
+    throw new RlmError("RUNTIME_ERROR", "rlm_exec: parent request already aborted")
+  }
   if (typeof code !== "string" || code.trim().length === 0) {
     throw new RlmError("INVALID_ARGUMENT", "rlm_exec: code must be a non-empty string")
   }
@@ -223,8 +235,15 @@ export async function executeRlmExec(
     throw new RlmError("BUDGET_EXCEEDED", `rlm_exec: code exceeds ${MAX_CODE_CHARS} characters`)
   }
 
-  const baseTimeoutMs = TEST_EXEC_TIMEOUT_MS > 0 ? TEST_EXEC_TIMEOUT_MS : MAX_EXEC_TIMEOUT_MS
-  const turn = await turnGovernor.beginExec(client, parentSessionID, dir, opts.messageID, baseTimeoutMs)
+  const ws = await resolveWorkspaceRoot(dir, opts.worktree ?? "")
+  logBestEffort(log, "debug", "rlm_exec workspace root", {
+    workspaceRoot: ws.root,
+    broadWorkspaceRoot: ws.broad,
+    directory: dir,
+    worktree: opts.worktree,
+  })
+
+  const turn = await turnGovernor.beginExec(client, parentSessionID, dir, opts.messageID, EXEC_TIMEOUT_MS)
   if (!turn.allowed) {
     const s = turn.snapshot
     throw new RlmError(
@@ -238,17 +257,21 @@ export async function executeRlmExec(
   const state = new RlmRunState({ workspaceRoot: ws.root, broadWorkspaceRoot: ws.broad, timeoutMs: execTimeoutMs })
 
   let child: ChildProcessWithoutNullStreams | undefined
+  let childClosed: Promise<void> | undefined
   let finished = false
   let stderrText = ""
   let stderrTruncated = false
   let turnFinished = false
   let turnSuperseded = false
   let ignoredStdoutLines = 0
+  let ignoredStdoutChars = 0
   const inflight = new Map<string, Promise<void>>()
+  const activeContextRequests = new Set<string>()
   const requestGate = new ProtocolRequestGate()
   const abortController = state.abort
   const protocolChannel = randomBytes(24).toString("hex")
   let watchdog: ReturnType<typeof setTimeout> | undefined
+  let onRootAbort: (() => void) | undefined
   let timedOut = false
   let finalOutput: string | undefined
   let finalResultChars = 0
@@ -310,7 +333,7 @@ export async function executeRlmExec(
   }
 
   try {
-    await log("debug", "rlm_exec started", {
+    logBestEffort(log, "debug", "rlm_exec started", {
       parentSessionID,
       turnId: execTurnId,
       directory: dir,
@@ -321,6 +344,13 @@ export async function executeRlmExec(
     child = spawn("deno", sandboxDenoArgs(), {
       cwd: dir,
       stdio: ["pipe", "pipe", "pipe"],
+      env: sandboxDenoEnv(),
+    })
+    childClosed = new Promise<void>((resolve) => {
+      child!.once("close", (exitCode) => {
+        state.exitCode = exitCode
+        resolve()
+      })
     })
 
     child.stderr.on("data", (d: Buffer) => appendStderr(d.toString()))
@@ -335,13 +365,16 @@ export async function executeRlmExec(
       state.exitCode = exitCode
     })
 
-    const onRootAbort = () => {
+    onRootAbort = () => {
       abortController.abort()
       if (child && child.exitCode === null) child.kill("SIGKILL")
       for (const p of inflight.values()) void p.catch(() => {})
     }
-    if (opts.abort.aborted) onRootAbort()
     opts.abort.addEventListener("abort", onRootAbort, { once: true })
+    if (opts.abort.aborted) onRootAbort()
+    if (abortController.signal.aborted) {
+      throw new RlmError("RUNTIME_ERROR", "rlm_exec: parent aborted before sandbox bootstrap")
+    }
 
     watchdog = setTimeout(() => {
       timedOut = true
@@ -489,6 +522,12 @@ export async function executeRlmExec(
       }
       if (msg === null) {
         ignoredStdoutLines++
+        ignoredStdoutChars += line.length
+        if (ignoredStdoutLines > MAX_IGNORED_STDOUT_LINES || ignoredStdoutChars > MAX_IGNORED_STDOUT_CHARS) {
+          throw finishWithError(
+            `sandbox unauthenticated stdout exceeds limit (${ignoredStdoutLines} lines, ${ignoredStdoutChars} characters)`,
+          )
+        }
         continue
       }
 
@@ -503,7 +542,23 @@ export async function executeRlmExec(
       if (msg.type === "context") {
         startRequest(
           msg.id,
-          () => handleContext(msg.id, msg),
+          () => {
+            if (activeContextRequests.size >= MAX_CONTEXT_CALLS_CONCURRENT) {
+              writeToSandbox({
+                v: PROTOCOL_VERSION,
+                type: "context_result",
+                id: msg.id,
+                ok: false,
+                error: {
+                  code: "BUDGET_EXCEEDED",
+                  message: `context budget exceeded: maximum ${MAX_CONTEXT_CALLS_CONCURRENT} concurrent context operations`,
+                },
+              })
+              return Promise.resolve()
+            }
+            activeContextRequests.add(msg.id)
+            return handleContext(msg.id, msg).finally(() => activeContextRequests.delete(msg.id))
+          },
           (info) => writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id: msg.id, ok: false, error: info }),
         )
         continue
@@ -522,17 +577,15 @@ export async function executeRlmExec(
       break
     }
 
-    if (child.exitCode === null) {
-      await new Promise<void>((resolve) => {
-        child!.once("exit", () => resolve())
-        child!.once("error", () => resolve())
-      })
-    }
+    if (childClosed) await childClosed
     state.exitCode = child.exitCode
 
     if (watchdog) clearTimeout(watchdog)
     watchdog = undefined
-    opts.abort.removeEventListener("abort", onRootAbort)
+    if (onRootAbort) {
+      opts.abort.removeEventListener("abort", onRootAbort)
+      onRootAbort = undefined
+    }
 
     const stderr = stderrDiagnostic()
     if (timedOut) {
@@ -568,6 +621,7 @@ export async function executeRlmExec(
       exitCode: state.exitCode,
       stderrTruncated,
       ignoredStdoutLines,
+      ignoredStdoutChars,
       turnId: execTurnId,
     }
 
@@ -587,13 +641,13 @@ export async function executeRlmExec(
       metadata.turnContextCharsRemaining = turnSnap.contextCharsRemaining
       metadata.turnWallMsRemaining = turnSnap.wallMsRemaining
     }
-    await log("info", "rlm_exec completed", metadata)
+    logBestEffort(log, "info", "rlm_exec completed", metadata)
     return { output: finalOutput, metadata }
   } catch (error) {
     const info = toErrorInfo(error)
     finishTurn()
     turnSuperseded ||= !turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
-    await log("error", "rlm_exec failed", {
+    logBestEffort(log, "error", "rlm_exec failed", {
       parentSessionID,
       turnId: execTurnId,
       turnSuperseded,
@@ -608,6 +662,7 @@ export async function executeRlmExec(
   } finally {
     finished = true
     if (watchdog) clearTimeout(watchdog)
+    if (onRootAbort) opts.abort.removeEventListener("abort", onRootAbort)
     if (child && child.exitCode === null) child.kill("SIGKILL")
     if (child) {
       try {

@@ -24,6 +24,34 @@ type RuntimeLimits = {
 }
 type BootstrapEnvelope = { kind: "bootstrap"; code: string; port: MessagePort; limits: RuntimeLimits }
 
+const MAX_ERROR_MESSAGE_CHARS = 8192
+
+function boundedMessage(message: string): string {
+  return message.length <= MAX_ERROR_MESSAGE_CHARS
+    ? message
+    : `${message.slice(0, MAX_ERROR_MESSAGE_CHARS)}…`
+}
+
+function safeUnknownMessage(value: unknown): string {
+  try {
+    if (value instanceof Error && typeof value.message === "string" && value.message.length > 0) {
+      return boundedMessage(value.message)
+    }
+  } catch {
+    // A proxy/hostile Error-like value may throw during property access.
+  }
+  try {
+    return boundedMessage(String(value))
+  } catch {
+    return "unprintable runtime error"
+  }
+}
+
+function toErrorInfo(error: unknown): RlmErrorInfo {
+  if (error instanceof ApiError) return { code: error.code, message: boundedMessage(error.message) }
+  return { code: "RUNTIME_ERROR", message: safeUnknownMessage(error) }
+}
+
 const subscribeGlobalMessage = (listener: EventListener): void => {
   globalThis.addEventListener("message", listener)
 }
@@ -36,8 +64,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function errorInfo(error: unknown): RlmErrorInfo {
-  if (error instanceof ApiError) return { code: error.code, message: error.message }
-  return { code: "RUNTIME_ERROR", message: error instanceof Error ? error.message : String(error) }
+  if (error instanceof ApiError) return { code: error.code, message: toErrorInfo(new Error(error.message)).message }
+  return toErrorInfo(error)
 }
 
 function validRuntimeLimits(value: unknown): value is RuntimeLimits {
@@ -228,7 +256,7 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
       try {
         serialized = safeStringify(value)
       } catch (error) {
-        throw new ApiError("RUNTIME_ERROR", `final result is not JSON-serializable: ${error instanceof Error ? error.message : String(error)}`)
+        throw new ApiError("RUNTIME_ERROR", `final result is not JSON-serializable: ${error instanceof Error ? error.message : "serialization failed"}`)
       }
       if (serialized === undefined) throw new ApiError("RUNTIME_ERROR", "final result is not JSON-serializable")
       if (serialized.length > MAX_RESULT_CHARS) {

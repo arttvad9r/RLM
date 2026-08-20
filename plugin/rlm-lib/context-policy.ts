@@ -17,6 +17,23 @@ export interface RlmContextPolicy {
 }
 
 const POLICY_KEYS = new Set(["allowed_paths", "max_read_bytes", "max_grep_matches", "max_list_entries"])
+const HIDDEN_CREDENTIAL_SEGMENTS = new Set([".git", ".ssh", ".aws", ".kube", ".gnupg", ".azure"])
+const HIDDEN_CREDENTIAL_BASENAMES = new Set([
+  ".npmrc",
+  ".netrc",
+  ".pypirc",
+  ".git-credentials",
+  ".authinfo",
+  ".authinfo.gpg",
+  ".vault-token",
+  "credentials.json",
+  "application_default_credentials.json",
+  "id_rsa",
+  "id_dsa",
+  "id_ecdsa",
+  "id_ed25519",
+])
+const HIDDEN_KEY_EXTENSIONS = new Set([".pem", ".key", ".p12", ".pfx", ".ppk", ".jks"])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -104,10 +121,19 @@ export async function resolveActiveRlmContextPolicy(env: NodeJS.ProcessEnv = pro
 
 export function isRlmHiddenPath(relativePath: string): boolean {
   const segments = relativePath.split("/").filter(Boolean)
-  if (segments.includes(".git")) return true
-  return segments.some(
-    (segment) => segment.startsWith(".env") && segment !== ".env.example",
-  )
+  const folded = segments.map((segment) => segment.toLowerCase())
+  if (folded.some((segment) => HIDDEN_CREDENTIAL_SEGMENTS.has(segment))) return true
+  if (folded.some((segment, index) => segment.startsWith(".env")
+    && !(segment === ".env.example" && index === folded.length - 1))) return true
+
+  const basename = folded.at(-1) ?? ""
+  if (folded.some((segment, index) => segment === "gcloud" && folded[index - 1] === ".config")) return true
+  if (folded.some((segment, index) => segment === "config.json" && folded[index - 1] === ".docker")) return true
+  if (folded.some((segment, index) => segment === "credentials" && folded[index - 1] === ".gem")) return true
+  if (HIDDEN_CREDENTIAL_BASENAMES.has(basename)) return true
+  if (HIDDEN_KEY_EXTENSIONS.has(path.posix.extname(basename))) return true
+  if (basename === "terraform.tfstate" || basename.startsWith("terraform.tfstate.")) return true
+  return false
 }
 
 export function isRlmContextPathAllowed(relativePath: string, policy: RlmContextPolicy): boolean {

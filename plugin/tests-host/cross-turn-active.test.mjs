@@ -40,7 +40,7 @@ test('new user turn fails closed while a prior-turn production exec is active', 
   )
   assert.deepEqual(governor.snapshot('session'), before, 'failed transition must not reset or charge either turn')
 
-  governor.finishExec('session', 25, oldExec.reservedWallMs)
+  assert.equal(governor.finishExecForTurn('session', oldExec.snapshot.turnId, 25, oldExec.reservedWallMs), true)
   const next = await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 100)
   assert.equal(next.allowed, true)
   assert.equal(next.snapshot.turnId, 'user-2')
@@ -58,12 +58,27 @@ test('all prior-turn production execs must finish before transition', async () =
   const second = await governor.beginExec(sdk, 'session', '/workspace', 'assistant-1', 10)
   messages = secondTurn()
 
-  governor.finishExec('session', 1, first.reservedWallMs)
+  assert.equal(governor.finishExecForTurn('session', first.snapshot.turnId, 1, first.reservedWallMs), true)
   await assert.rejects(
     () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10),
     /prior-turn exec\(s\) are still active/,
   )
-  governor.finishExec('session', 1, second.reservedWallMs)
+  assert.equal(governor.finishExecForTurn('session', second.snapshot.turnId, 1, second.reservedWallMs), true)
+  assert.equal((await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10)).snapshot.turnId, 'user-2')
+})
+
+test('finish for a non-authoritative turn cannot release active exec state', async () => {
+  const governor = new TurnGovernor()
+  let messages = firstTurn()
+  const sdk = sdkFor(() => messages)
+  const active = await governor.beginExec(sdk, 'session', '/workspace', 'assistant-1', 10)
+  assert.equal(governor.finishExecForTurn('session', 'wrong-turn', 1, active.reservedWallMs), false)
+  messages = secondTurn()
+  await assert.rejects(
+    () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10),
+    /prior-turn exec\(s\) are still active/,
+  )
+  assert.equal(governor.finishExecForTurn('session', active.snapshot.turnId, 1, active.reservedWallMs), true)
   assert.equal((await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 10)).snapshot.turnId, 'user-2')
 })
 
@@ -74,4 +89,37 @@ test('zero-wall unit-test seams do not create production lifecycle locks', async
   assert.equal((await governor.beginExec(sdk, 'session', '/workspace', 'assistant-1')).allowed, true)
   messages = secondTurn()
   assert.equal((await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2')).snapshot.turnId, 'user-2')
+})
+
+test('turn governor releases arbitrary batches of concurrent production reservations', async () => {
+  for (let count = 1; count <= 8; count++) {
+    const governor = new TurnGovernor()
+    let messages = firstTurn()
+    const sdk = sdkFor(() => messages)
+    const execs = await Promise.all(
+      Array.from({ length: count }, () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-1', 17)),
+    )
+    assert.equal(execs.filter((exec) => exec.allowed).length, count)
+    messages = secondTurn()
+
+    for (let index = 0; index < count - 1; index++) {
+      assert.equal(
+        governor.finishExecForTurn('session', 'user-1', 1, execs[index].reservedWallMs),
+        true,
+      )
+      await assert.rejects(
+        () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 1),
+        /prior-turn exec/,
+      )
+    }
+
+    assert.equal(
+      governor.finishExecForTurn('session', 'user-1', 1, execs[count - 1].reservedWallMs),
+      true,
+    )
+    assert.equal(
+      (await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 1)).snapshot.turnId,
+      'user-2',
+    )
+  }
 })

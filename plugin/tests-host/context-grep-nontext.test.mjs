@@ -30,7 +30,7 @@ test("context grep skips approved non-text files and still returns text matches"
     await writeFile(path.join(root, "mystery.raw"), Buffer.from([0xff, 0xfe, 0xfd]))
 
     await withoutContextAuthorityEnv(async () => {
-      const state = { workspaceRoot: root }
+      const state = { workspaceRoot: root, deadlineAt: Date.now() + 10_000, abort: new AbortController() }
       const result = await executeContextOperation({ file: {} }, state, root, {
         v: 1,
         type: "context",
@@ -65,7 +65,7 @@ test("context grep still fails closed when an unclassified text file exceeds the
     await writeFile(path.join(root, "huge.txt"), "x".repeat(128 * 1024 + 1))
 
     await withoutContextAuthorityEnv(async () => {
-      const state = { workspaceRoot: root }
+      const state = { workspaceRoot: root, deadlineAt: Date.now() + 10_000, abort: new AbortController() }
       await assert.rejects(
         () => executeContextOperation({ file: {} }, state, root, {
           v: 1,

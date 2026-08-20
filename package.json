@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check:standalone": "node scripts/check-standalone.mjs",
+    "check:runtime": "node scripts/check-runtime.mjs",
     "typecheck:host": "tsc -p plugin/tsconfig.host.json --noEmit",
     "typecheck:runner": "deno check --unstable-worker-options plugin/rlm-runner/runner.ts plugin/rlm-runner/generated-worker.ts",
     "typecheck": "npm run typecheck:host && npm run typecheck:runner",
@@ -13,6 +14,9 @@
     "test:benchmarks": "node --test benchmarks/harness/*.test.mjs",
     "verify:benchmarks": "node benchmarks/generator/verify.mjs && node benchmarks/generator/verify-v2.mjs && node benchmarks/generator/verify-v3.mjs",
     "verify:resource-envelope": "node scripts/verify-resource-envelope.mjs",
+    "gate:host": "npm run check:standalone && npm run test:host-runtime && npm run typecheck:host && npm run test:benchmarks && npm run verify:benchmarks",
+    "gate:local": "npm run check:runtime && npm test",
+    "gate:container": "node scripts/run-container-gate.mjs",
     "test": "npm run check:standalone && npm run test:host-runtime && npm run typecheck && npm run test:plugin && npm run test:benchmarks && npm run verify:benchmarks"
   },
   "dependencies": {
@@ -24,6 +28,6 @@
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24 <25"
   }
 }

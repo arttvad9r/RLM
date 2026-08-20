@@ -12,7 +12,7 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message)
 }
 
-async function runRunner(code: string): Promise<{ status: Deno.CommandStatus; stdout: string; stderr: string }> {
+async function runRunner(code: string, closeInput = false): Promise<{ status: Deno.CommandStatus; stdout: string; stderr: string }> {
   const child = new Deno.Command(Deno.execPath(), {
     args: sandboxDenoArgs(RUNNER_PATH, GENERATED_WORKER_PATH),
     stdin: "piped",
@@ -22,7 +22,8 @@ async function runRunner(code: string): Promise<{ status: Deno.CommandStatus; st
 
   const writer = child.stdin.getWriter()
   await writer.write(encoder.encode(JSON.stringify({ v: 1, type: "code", code, channel: CHANNEL }) + "\n"))
-  await writer.close()
+  if (closeInput) await writer.close()
+  else writer.releaseLock()
 
   const [status, stdout, stderr] = await Promise.all([
     child.status,
@@ -93,7 +94,7 @@ Deno.test("generated worker permissions:none denies direct read write env net an
     } catch { denied.write = true }
     try {
       const proc = await import("node:process")
-      void proc.env.PATH
+      denied.env = proc.env.PATH === undefined
     } catch { denied.env = true }
     try {
       await fetch("https://example.com/")
@@ -126,6 +127,17 @@ Deno.test("runner rejects finalization with outstanding RPCs", async () => {
   assert(error?.message?.includes("still pending") === true, "expected pending-RPC diagnostic")
 })
 
+Deno.test("runner fails closed when host stdin disappears before an RPC can settle", async () => {
+  const result = await runRunner('return await llm("wait-for-host")', true)
+  assert(!result.status.success, "runner must terminate when the host transport disappears")
+  const output = frames(result.stdout)
+  const last = output.at(-1)
+  assert(last?.type === "error", "expected terminal error frame")
+  const error = last?.error as { code?: string; message?: string } | undefined
+  assert(error?.code === "PROTOCOL_ERROR", `expected PROTOCOL_ERROR, got ${error?.code}`)
+  assert(error?.message?.includes("stdin closed") === true, "expected host-EOF diagnostic")
+})
+
 Deno.test("generated worker rejects RPC creation above the per-exec total before transport", async () => {
   const code = `
     for (let i = 0; i < ${MAX_PROTOCOL_REQUESTS_TOTAL}; i++) void context.files("")
@@ -152,4 +164,26 @@ Deno.test("runner rejects oversized final results", async () => {
   assert(last?.type === "error", "expected terminal error frame")
   const error = last?.error as { code?: string } | undefined
   assert(error?.code === "BUDGET_EXCEEDED", `expected BUDGET_EXCEEDED, got ${error?.code}`)
+})
+
+Deno.test("generated worker normalizes hostile thrown values without hanging or raw stringifier failure", async () => {
+  const result = await runRunner('throw { toString() { throw new Error("nested-stringify-failure") } }')
+  assert(!result.status.success, "hostile thrown value must fail the runner")
+  const output = frames(result.stdout)
+  const last = output.at(-1)
+  assert(last?.type === "error", "expected terminal error frame")
+  const error = last?.error as { code?: string; message?: string } | undefined
+  assert(error?.code === "RUNTIME_ERROR", `expected RUNTIME_ERROR, got ${error?.code}`)
+  assert(error?.message === "unprintable runtime error", `unexpected hostile error diagnostic: ${error?.message}`)
+})
+
+Deno.test("generated worker bounds model-controlled error messages before transport", async () => {
+  const result = await runRunner('throw new Error("x".repeat(20000))')
+  assert(!result.status.success, "oversized error must fail the runner")
+  const output = frames(result.stdout)
+  const last = output.at(-1)
+  assert(last?.type === "error", "expected terminal error frame")
+  const error = last?.error as { code?: string; message?: string } | undefined
+  assert(error?.code === "RUNTIME_ERROR", `expected RUNTIME_ERROR, got ${error?.code}`)
+  assert(typeof error?.message === "string" && error.message.length <= 8193, "expected bounded error message")
 })
