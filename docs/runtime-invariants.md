@@ -9,6 +9,7 @@ These properties are security and correctness requirements rather than implement
 - Provider-side abort is best effort; synchronous throws or rejected abort Promises must not block local settlement.
 - Every settled child call leaves the active RLM-child registry balanced.
 - SDK responses are untrusted runtime data and malformed shapes fail closed with `CHILD_FAILED`.
+- Provider error diagnostics must remain bounded and must not serialize arbitrary SDK error envelopes into model-visible errors.
 - Child prompts receive a complete false-valued tool deny map.
 
 ## Turn authority and budgets
@@ -34,6 +35,9 @@ These properties are security and correctness requirements rather than implement
 - Only authenticated per-exec runner frames are protocol data; unauthenticated stdout is ignored.
 - Request IDs are bounded, unique for the exec lifetime, and total request state is bounded.
 - Generated code does not receive OpenCode client/session authority or host filesystem/process handles.
+- A parent request already aborted before `rlm_exec` setup must not reserve a turn or spawn the Deno transport.
+- The trusted Deno transport must not inherit `DENO_PERMISSION_BROKER_PATH`; ambient broker authority cannot replace the runner's host-owned CLI permission envelope.
+- Sandbox process settlement must be observed before a signal can be delivered, so timeout/root-abort cannot miss a signal-driven exit and remain pending.
 - The application watchdog and deployment resource envelope are independent boundaries.
 
 ## Logging
