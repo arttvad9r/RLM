@@ -1,0 +1,12 @@
+FROM denoland/deno:2.9.5 AS deno
+FROM node:24.19.0-bookworm-slim
+
+COPY --from=deno /usr/bin/deno /usr/local/bin/deno
+WORKDIR /workspace
+
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY . .
+
+RUN node scripts/check-runtime.mjs --exact
+CMD ["npm", "test"]
