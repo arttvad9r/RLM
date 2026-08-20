@@ -8,6 +8,12 @@ The trusted Deno transport is started with a host-owned V8 old-space ceiling and
 
 `docs/resource-envelope.md` defines the supported OS-level deployment contract, a reference cgroup/container profile, and the fail-closed semantics for external transport termination. Repository CI verifies the production failure/cleanup behavior, but it cannot prove that a target deployment actually applies the required cgroup/container controls. Do not claim a hard OS resource guarantee until the target deployment has validated the full OpenCode/RLM process tree inside that envelope.
 
+## Pathname confinement race
+
+`confinePath()` canonicalizes and verifies a candidate path before context code later performs `stat`, `open`, or `opendir`. Those are separate pathname operations. Stable symlink escapes fail closed, but a hostile process with concurrent write authority inside the workspace could theoretically race a rename or symlink replacement between validation and use.
+
+Closing this boundary portably requires descriptor-relative traversal (`openat`/`O_NOFOLLOW`-style semantics or an equivalent native helper) rather than another pathname heuristic. Until that design is implemented and validated, do not represent context confinement as resistant to a malicious concurrent filesystem mutator.
+
 ## Deno runtime compatibility gate
 
 The trusted runner command explicitly disables project config, lockfile discovery, npm resolution and remote module resolution with `--no-config`, `--no-lock`, `--no-npm` and `--no-remote`. Its only Deno permission grant is scoped read access to the fixed generated Worker entry module; generated model code runs in a Worker with `permissions: "none"`.
