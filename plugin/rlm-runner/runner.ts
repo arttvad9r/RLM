@@ -197,6 +197,7 @@ async function main(): Promise<void> {
   generatedPort = port
   const outstanding = new Set<string>()
   let completed = false
+  let hostInputClosed = false
   let resolveCompletion!: () => void
   const completion = new Promise<void>((resolve) => { resolveCompletion = resolve })
 
@@ -226,6 +227,9 @@ async function main(): Promise<void> {
     }
 
     if (message.type === "llm" || message.type === "context") {
+      if (hostInputClosed) {
+        fail({ code: "PROTOCOL_ERROR", message: "host protocol stdin closed while generated code still pending RPC" })
+      }
       if (outstanding.has(message.id)) fail({ code: "PROTOCOL_ERROR", message: `duplicate worker request id: ${message.id}` })
       outstanding.add(message.id)
       writeMessage(message)
@@ -247,7 +251,13 @@ async function main(): Promise<void> {
   const hostLoop = (async (): Promise<void> => {
     for (;;) {
       const line = await stdin.next()
-      if (line === undefined) return
+      if (line === undefined) {
+        hostInputClosed = true
+        if (outstanding.size > 0) {
+          fail({ code: "PROTOCOL_ERROR", message: `host protocol stdin closed with ${outstanding.size} RPC request(s) still pending` })
+        }
+        return
+      }
       let message: HostToSandboxMessage
       try {
         message = parseHostMessage(line)
@@ -271,8 +281,6 @@ async function main(): Promise<void> {
     fail(info)
   })
 
-  // The transferred port is the only Worker channel the runner trusts. Any
-  // global postMessage/parentPort traffic from generated code has no listener.
   worker.postMessage({
     kind: "bootstrap",
     code: first.code,

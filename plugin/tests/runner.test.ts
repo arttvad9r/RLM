@@ -12,7 +12,7 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message)
 }
 
-async function runRunner(code: string): Promise<{ status: Deno.CommandStatus; stdout: string; stderr: string }> {
+async function runRunner(code: string, closeInput = false): Promise<{ status: Deno.CommandStatus; stdout: string; stderr: string }> {
   const child = new Deno.Command(Deno.execPath(), {
     args: sandboxDenoArgs(RUNNER_PATH, GENERATED_WORKER_PATH),
     stdin: "piped",
@@ -22,7 +22,8 @@ async function runRunner(code: string): Promise<{ status: Deno.CommandStatus; st
 
   const writer = child.stdin.getWriter()
   await writer.write(encoder.encode(JSON.stringify({ v: 1, type: "code", code, channel: CHANNEL }) + "\n"))
-  await writer.close()
+  if (closeInput) await writer.close()
+  else writer.releaseLock()
 
   const [status, stdout, stderr] = await Promise.all([
     child.status,
@@ -124,6 +125,17 @@ Deno.test("runner rejects finalization with outstanding RPCs", async () => {
   const error = last?.error as { code?: string; message?: string } | undefined
   assert(error?.code === "PROTOCOL_ERROR", `expected PROTOCOL_ERROR, got ${error?.code}`)
   assert(error?.message?.includes("still pending") === true, "expected pending-RPC diagnostic")
+})
+
+Deno.test("runner fails closed when host stdin disappears before an RPC can settle", async () => {
+  const result = await runRunner('return await llm("wait-for-host")', true)
+  assert(!result.status.success, "runner must terminate when the host transport disappears")
+  const output = frames(result.stdout)
+  const last = output.at(-1)
+  assert(last?.type === "error", "expected terminal error frame")
+  const error = last?.error as { code?: string; message?: string } | undefined
+  assert(error?.code === "PROTOCOL_ERROR", `expected PROTOCOL_ERROR, got ${error?.code}`)
+  assert(error?.message?.includes("stdin closed") === true, "expected host-EOF diagnostic")
 })
 
 Deno.test("generated worker rejects RPC creation above the per-exec total before transport", async () => {
