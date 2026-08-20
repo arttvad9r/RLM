@@ -64,6 +64,19 @@ export function sandboxDenoArgs(
   ]
 }
 
+/**
+ * Deno's permission broker replaces CLI permission decision authority when
+ * DENO_PERMISSION_BROKER_PATH is present. The RLM runner permission envelope
+ * must therefore not inherit that ambient override from the OpenCode host.
+ */
+export function sandboxDenoEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const sanitized = { ...env }
+  for (const key of Object.keys(sanitized)) {
+    if (key.toUpperCase() === "DENO_PERMISSION_BROKER_PATH") delete sanitized[key]
+  }
+  return sanitized
+}
+
 interface LineReader {
   next: () => Promise<string | undefined>
 }
@@ -208,6 +221,9 @@ export async function executeRlmExec(
   opts: ExecuteRlmExecOptions,
 ): Promise<RlmExecOutcome> {
   const { code, parentSessionID, directory: dir, log } = opts
+  if (opts.abort.aborted) {
+    throw new RlmError("RUNTIME_ERROR", "rlm_exec: parent request already aborted")
+  }
   const ws = await resolveWorkspaceRoot(dir, opts.worktree ?? "")
 
   logBestEffort(log, "debug", "rlm_exec workspace root", {
@@ -239,6 +255,7 @@ export async function executeRlmExec(
   const state = new RlmRunState({ workspaceRoot: ws.root, broadWorkspaceRoot: ws.broad, timeoutMs: execTimeoutMs })
 
   let child: ChildProcessWithoutNullStreams | undefined
+  let childClosed: Promise<void> | undefined
   let finished = false
   let stderrText = ""
   let stderrTruncated = false
@@ -322,6 +339,17 @@ export async function executeRlmExec(
     child = spawn("deno", sandboxDenoArgs(), {
       cwd: dir,
       stdio: ["pipe", "pipe", "pipe"],
+      env: sandboxDenoEnv(),
+    })
+    // Subscribe to `close` immediately. For signal termination Node leaves
+    // exitCode=null and may emit `exit` before stdout reaches EOF; registering
+    // an exit waiter only after the read loop can therefore miss the event and
+    // defeat the watchdog/root-abort settlement path.
+    childClosed = new Promise<void>((resolve) => {
+      child!.once("close", (exitCode) => {
+        state.exitCode = exitCode
+        resolve()
+      })
     })
 
     child.stderr.on("data", (d: Buffer) => appendStderr(d.toString()))
@@ -523,12 +551,7 @@ export async function executeRlmExec(
       break
     }
 
-    if (child.exitCode === null) {
-      await new Promise<void>((resolve) => {
-        child!.once("exit", () => resolve())
-        child!.once("error", () => resolve())
-      })
-    }
+    if (childClosed) await childClosed
     state.exitCode = child.exitCode
 
     if (watchdog) clearTimeout(watchdog)
