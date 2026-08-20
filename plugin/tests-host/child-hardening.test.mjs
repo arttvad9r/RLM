@@ -280,3 +280,34 @@ test("child rejects malformed SDK response shapes without raw TypeError", async 
   )
   assert.equal(activeRlmChildCount(), 0)
 })
+
+test("opaque SDK error envelopes fail closed without serialization crashes or secret dumping", async () => {
+  const cyclic = {}
+  cyclic.self = cyclic
+  const secret = "Bearer must-not-leak"
+  const fixtures = [
+    baseClient({ session: { messages: async () => ({ error: cyclic }) } }),
+    baseClient({ tool: { ids: async () => ({ error: { value: 1n, authorization: secret } }) } }),
+    baseClient({ session: { create: async () => ({ error: { nested: cyclic, authorization: secret } }) } }),
+    baseClient({ session: { prompt: async () => ({ error: { nested: cyclic, authorization: secret } }) } }),
+  ]
+
+  for (const fixture of fixtures) {
+    let failure
+    try {
+      await callChildLlm(fixture.client, {
+        prompt: "x",
+        parentSessionID: "root",
+        parentUserMessageID: "user-1",
+        directory: "/workspace",
+      }, log)
+      assert.fail("expected child failure")
+    } catch (error) {
+      failure = error
+    }
+    assert.ok(failure instanceof RlmError)
+    assert.equal(failure.code, "CHILD_FAILED")
+    assert.doesNotMatch(failure.message, /must-not-leak/)
+    assert.equal(activeRlmChildCount(), 0)
+  }
+})
