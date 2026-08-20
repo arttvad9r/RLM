@@ -4,6 +4,9 @@ node_modules/
 coverage/
 dist/
 .tmp/
+.direnv/
+result
+result-*
 .env
 .env.*
 !.env.example
