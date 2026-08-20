@@ -7,7 +7,6 @@ import type {
   RlmErrorInfo,
   SandboxToHostMessage,
 } from "../rlm-lib/types.ts"
-import { toErrorInfo } from "../rlm-lib/errors.ts"
 
 class ApiError extends Error {
   constructor(readonly code: RlmErrorInfo["code"], message: string) {
@@ -24,6 +23,34 @@ type RuntimeLimits = {
   maxProtocolRequestsTotal: number
 }
 type BootstrapEnvelope = { kind: "bootstrap"; code: string; port: MessagePort; limits: RuntimeLimits }
+
+const MAX_ERROR_MESSAGE_CHARS = 8192
+
+function boundedMessage(message: string): string {
+  return message.length <= MAX_ERROR_MESSAGE_CHARS
+    ? message
+    : `${message.slice(0, MAX_ERROR_MESSAGE_CHARS)}…`
+}
+
+function safeUnknownMessage(value: unknown): string {
+  try {
+    if (value instanceof Error && typeof value.message === "string" && value.message.length > 0) {
+      return boundedMessage(value.message)
+    }
+  } catch {
+    // A proxy/hostile Error-like value may throw during property access.
+  }
+  try {
+    return boundedMessage(String(value))
+  } catch {
+    return "unprintable runtime error"
+  }
+}
+
+function toErrorInfo(error: unknown): RlmErrorInfo {
+  if (error instanceof ApiError) return { code: error.code, message: boundedMessage(error.message) }
+  return { code: "RUNTIME_ERROR", message: safeUnknownMessage(error) }
+}
 
 const subscribeGlobalMessage = (listener: EventListener): void => {
   globalThis.addEventListener("message", listener)

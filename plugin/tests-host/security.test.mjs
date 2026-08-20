@@ -33,7 +33,7 @@ test("secret and VCS namespaces are hidden at every path depth", () => {
     assert.equal(isRlmContextPathAllowed(candidate, policy), false, candidate)
   }
   assert.equal(isRlmContextPathAllowed(".env.example", policy), true)
-  assert.equal(isRlmContextPathAllowed("fixtures/.env.example/value", policy), true)
+  assert.equal(isRlmContextPathAllowed("fixtures/.env.example/value", policy), false)
 })
 
 test("context policy cannot widen hard limits and rejects traversal", () => {

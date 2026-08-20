@@ -61,7 +61,7 @@ Deno.test("context policy always hides generic VCS and secret paths", () => {
     assert(!isRlmContextPathAllowed(candidate, policy), `${candidate} must be hidden`)
   }
   assert(isRlmContextPathAllowed(".env.example", policy), ".env.example remains visible")
-  assert(isRlmContextPathAllowed("fixtures/.env.example/value", policy), "nested .env.example fixture remains visible")
+  assert(!isRlmContextPathAllowed("fixtures/.env.example/value", policy), "nested .env.example fixture must remain hidden")
   assert(isRlmContextPathAllowed(".downstream-state/state.json", policy), "downstream state namespaces require explicit host scoping")
 })
 

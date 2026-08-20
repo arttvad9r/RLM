@@ -94,7 +94,7 @@ Deno.test("generated worker permissions:none denies direct read write env net an
     } catch { denied.write = true }
     try {
       const proc = await import("node:process")
-      void proc.env.PATH
+      denied.env = proc.env.PATH === undefined
     } catch { denied.env = true }
     try {
       await fetch("https://example.com/")

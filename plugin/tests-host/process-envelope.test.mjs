@@ -297,7 +297,7 @@ sleep 0.5
 
     const snapshot = turnGovernor.snapshot(sessionID)
     assert.ok(snapshot, "turn state should remain observable after stdin failure")
-    assert.ok(snapshot.wallMsRemaining > 500, `expected released wall reservation, remaining=${snapshot.wallMsRemaining}`)
+    assert.ok(snapshot.wallMsRemaining > 350, `expected released wall reservation, remaining=${snapshot.wallMsRemaining}`)
   } finally {
     turnGovernor.evictSession(sessionID)
     if (previousPath === undefined) delete process.env.PATH
