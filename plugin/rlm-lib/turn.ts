@@ -16,11 +16,12 @@ import {
   MAX_RLM_WALL_MS_PER_TURN,
 } from "./constants.ts"
 import { RlmError } from "./errors.ts"
+import { narrowedTestLimit } from "./limit-override.ts"
 
-const TEST_TURN_WALL_MS = Number(process.env.RLM_TEST_TURN_WALL_MS) || 0
-const TEST_TURN_EXECS = Number(process.env.RLM_TEST_TURN_EXECS) || 0
-const TEST_TURN_CTX_CALLS = Number(process.env.RLM_TEST_TURN_CTX_CALLS) || 0
-const TEST_TURN_CTX_CHARS = Number(process.env.RLM_TEST_TURN_CTX_CHARS) || 0
+const TURN_WALL_MS = narrowedTestLimit(process.env.RLM_TEST_TURN_WALL_MS, MAX_RLM_WALL_MS_PER_TURN)
+const TURN_EXECS = narrowedTestLimit(process.env.RLM_TEST_TURN_EXECS, MAX_RLM_EXECS_PER_TURN)
+const TURN_CTX_CALLS = narrowedTestLimit(process.env.RLM_TEST_TURN_CTX_CALLS, MAX_CONTEXT_CALLS_PER_TURN)
+const TURN_CTX_CHARS = narrowedTestLimit(process.env.RLM_TEST_TURN_CTX_CHARS, MAX_CONTEXT_CHARS_PER_TURN)
 
 export interface TurnSnapshot {
   turnId: string
@@ -101,19 +102,19 @@ export class TurnGovernor {
   private readonly wallLimitMs: number
 
   constructor() {
-    this.wallLimitMs = TEST_TURN_WALL_MS > 0 ? TEST_TURN_WALL_MS : MAX_RLM_WALL_MS_PER_TURN
+    this.wallLimitMs = TURN_WALL_MS
   }
 
   private execsLimit(): number {
-    return TEST_TURN_EXECS > 0 ? TEST_TURN_EXECS : MAX_RLM_EXECS_PER_TURN
+    return TURN_EXECS
   }
 
   ctxCallsLimit(): number {
-    return TEST_TURN_CTX_CALLS > 0 ? TEST_TURN_CTX_CALLS : MAX_CONTEXT_CALLS_PER_TURN
+    return TURN_CTX_CALLS
   }
 
   ctxCharsLimit(): number {
-    return TEST_TURN_CTX_CHARS > 0 ? TEST_TURN_CTX_CHARS : MAX_CONTEXT_CHARS_PER_TURN
+    return TURN_CTX_CHARS
   }
 
   private assertSessionValid(sessionID: string): void {

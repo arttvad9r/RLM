@@ -10,11 +10,17 @@ export const MAX_SUBCALLS_TOTAL = 4
 export const MAX_SUBCALLS_CONCURRENT = 4
 export const MAX_PROMPT_CHARS = 32 * 1024
 export const MAX_CHILD_RESULT_CHARS = 128 * 1024
+export const MAX_CHILD_TOOL_IDS = 1024
+export const MAX_CHILD_TOOL_ID_CHARS = 256
 
 // context operations
 export const MAX_CONTEXT_CALLS = 32
+export const MAX_CONTEXT_CALLS_CONCURRENT = 4
 export const MAX_READ_MANY_FILES = 64
 export const MAX_READ_CHARS = 128 * 1024
+export const MAX_CONTEXT_PATH_CHARS = 4096
+export const MAX_GREP_PATTERN_CHARS = 8 * 1024
+export const MAX_FILES_QUERY_CHARS = 4096
 export const MAX_GREP_MATCHES = 200
 export const MAX_GLOB_PATHS = 4096
 export const MAX_GLOB_DIRS = 2000
@@ -33,6 +39,8 @@ export const MAX_PROTOCOL_QUEUE_LINES = 128
 export const MAX_PROTOCOL_REQUESTS_TOTAL = 128
 export const MAX_PROTOCOL_REQUEST_ID_CHARS = 128
 export const MAX_SANDBOX_STDERR_CHARS = 16 * 1024
+export const MAX_IGNORED_STDOUT_LINES = 64
+export const MAX_IGNORED_STDOUT_CHARS = 64 * 1024
 
 // per-user-turn governor (host side, reset on each new user message)
 // execs is a circuit breaker, not the working budget: cheap probes must not

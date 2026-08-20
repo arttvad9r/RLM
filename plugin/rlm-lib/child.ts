@@ -11,6 +11,11 @@
  *     an SDK/provider Promise does not settle after parent cancellation;
  *   - child session is intentionally NOT deleted (trace/debugging).
  */
+import {
+  MAX_CHILD_RESULT_CHARS,
+  MAX_CHILD_TOOL_ID_CHARS,
+  MAX_CHILD_TOOL_IDS,
+} from "./constants.ts"
 import { RlmError, toErrorInfo } from "./errors.ts"
 import { registerRlmChild, unregisterRlmChild } from "./child-system.ts"
 import { logBestEffort } from "./logging.ts"
@@ -73,41 +78,8 @@ export interface ChildLlmResult {
   tokensOutput?: number
 }
 
-const MAX_PROVIDER_ERROR_MESSAGE_CHARS = 4096
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function boundedDiagnostic(value: string): string {
-  return value.length <= MAX_PROVIDER_ERROR_MESSAGE_CHARS
-    ? value
-    : `${value.slice(0, MAX_PROVIDER_ERROR_MESSAGE_CHARS)}…`
-}
-
-/**
- * SDK/provider error envelopes are untrusted runtime data. Never stringify an
- * arbitrary envelope: cyclic values, BigInt, hostile toJSON/toString hooks and
- * oversized provider payloads must not replace a stable CHILD_FAILED outcome or
- * dump unrelated response fields (for example headers/tokens) into model-visible
- * diagnostics.
- */
-function providerErrorDiagnostic(value: unknown): string {
-  if (typeof value === "string" && value.length > 0) return boundedDiagnostic(value)
-  if (value instanceof Error) return boundedDiagnostic(value.message || value.name || "provider error")
-  if (isRecord(value)) {
-    if (typeof value.message === "string" && value.message.length > 0) {
-      return boundedDiagnostic(value.message)
-    }
-    const data = isRecord(value.data) ? value.data : undefined
-    if (typeof data?.message === "string" && data.message.length > 0) {
-      return boundedDiagnostic(data.message)
-    }
-    if (typeof value.code === "string" && value.code.length > 0) {
-      return boundedDiagnostic(`provider error ${value.code}`)
-    }
-  }
-  return "provider returned an opaque error"
 }
 
 function startSdkCall<T>(call: () => Promise<T>): Promise<T> {
@@ -156,6 +128,13 @@ function messageInfo(value: unknown): Record<string, unknown> | undefined {
   return value.info
 }
 
+function sdkEnvelopeFailure(stage: string): RlmError {
+  // SDK error payloads are opaque/untrusted runtime data. Do not stringify or
+  // echo them: cyclic values and BigInt can throw, and arbitrary envelopes may
+  // contain credentials or provider-private diagnostics.
+  return new RlmError("CHILD_FAILED", stage)
+}
+
 export async function callChildLlm(
   client: Client,
   input: ChildLlmInput,
@@ -182,16 +161,29 @@ export async function callChildLlm(
   if (!isRecord(modelRes)) {
     throw new RlmError("CHILD_FAILED", "parent messages response was not an object")
   }
-  if (modelRes.error) {
-    throw new RlmError("CHILD_FAILED", `failed to read parent messages: ${providerErrorDiagnostic(modelRes.error)}`)
-  }
+  if (modelRes.error) throw sdkEnvelopeFailure("failed to read parent messages")
   if (!Array.isArray(modelRes.data)) {
     throw new RlmError("CHILD_FAILED", "parent messages response did not contain a valid message list")
   }
   const messages = modelRes.data
-  const modelInfo = input.parentUserMessageID
-    ? messages.map(messageInfo).find((info) => info?.role === "user" && info.id === input.parentUserMessageID)
-    : messages.map(messageInfo).reverse().find((info) => info?.role === "user")
+  let modelInfo: Record<string, unknown> | undefined
+  if (input.parentUserMessageID) {
+    for (const message of messages) {
+      const info = messageInfo(message)
+      if (info?.role === "user" && info.id === input.parentUserMessageID) {
+        modelInfo = info
+        break
+      }
+    }
+  } else {
+    for (let index = messages.length - 1; index >= 0; index--) {
+      const info = messageInfo(messages[index])
+      if (info?.role === "user") {
+        modelInfo = info
+        break
+      }
+    }
+  }
   if (input.parentUserMessageID && !modelInfo) {
     throw new RlmError("CHILD_FAILED", `could not resolve captured parent user message: ${input.parentUserMessageID}`)
   }
@@ -213,15 +205,19 @@ export async function callChildLlm(
   if (!isRecord(toolRes)) {
     throw new RlmError("CHILD_FAILED", "tool.ids() returned an invalid response object")
   }
-  if (toolRes.error) {
-    throw new RlmError("CHILD_FAILED", `failed to list tool IDs: ${providerErrorDiagnostic(toolRes.error)}`)
-  }
+  if (toolRes.error) throw sdkEnvelopeFailure("failed to list tool IDs")
   const toolIDs = toolRes.data
   if (!Array.isArray(toolIDs) || toolIDs.length === 0) {
     throw new RlmError("CHILD_FAILED", "tool.ids() returned an invalid or empty list; refusing to run child without deny map")
   }
+  if (toolIDs.length > MAX_CHILD_TOOL_IDS) {
+    throw new RlmError(
+      "CHILD_FAILED",
+      `tool.ids() returned ${toolIDs.length} entries and exceeds the safety limit of ${MAX_CHILD_TOOL_IDS}`,
+    )
+  }
   for (let index = 0; index < toolIDs.length; index++) {
-    if (typeof toolIDs[index] !== "string" || toolIDs[index].length === 0) {
+    if (typeof toolIDs[index] !== "string" || toolIDs[index].length === 0 || toolIDs[index].length > MAX_CHILD_TOOL_ID_CHARS) {
       throw new RlmError(
         "CHILD_FAILED",
         `tool.ids() returned an invalid tool id at index ${index}; refusing to run child without deny map`,
@@ -262,9 +258,7 @@ export async function callChildLlm(
   if (!isRecord(childRes)) {
     throw new RlmError("CHILD_FAILED", "child session creation returned an invalid response object")
   }
-  if (childRes.error) {
-    throw new RlmError("CHILD_FAILED", `failed to create child session: ${providerErrorDiagnostic(childRes.error)}`)
-  }
+  if (childRes.error) throw sdkEnvelopeFailure("failed to create child session")
   const createdID = isRecord(childRes.data) ? childRes.data.id : undefined
   if (typeof createdID !== "string" || createdID.length === 0) {
     throw new RlmError("CHILD_FAILED", "failed to create child session: response did not contain a valid child id")
@@ -317,9 +311,7 @@ export async function callChildLlm(
       if (!isRecord(result)) {
         throw new RlmError("CHILD_FAILED", "child session returned an invalid response object")
       }
-      if (result.error) {
-        throw new RlmError("CHILD_FAILED", `child session error: ${providerErrorDiagnostic(result.error)}`)
-      }
+      if (result.error) throw sdkEnvelopeFailure("child session returned an SDK error envelope")
       const data = isRecord(result.data) ? result.data : undefined
       const info = isRecord(data?.info) ? data.info : undefined
       logBestEffort(log, "info", "child prompt completed", {
@@ -330,25 +322,29 @@ export async function callChildLlm(
 
       const infoError = isRecord(info?.error) ? info.error : undefined
       if (infoError) {
-        const errorData = isRecord(infoError.data) ? infoError.data : undefined
-        const detail = typeof errorData?.message === "string" && errorData.message.length > 0
-          ? boundedDiagnostic(errorData.message)
-          : providerErrorDiagnostic(infoError)
         throw new RlmError(
           "CHILD_FAILED",
-          `child session failed (${typeof infoError.name === "string" ? boundedDiagnostic(infoError.name) : "error"}): ${detail}`,
+          `child session failed (${typeof infoError.name === "string" ? infoError.name : "error"})`,
         )
       }
 
       const parts = Array.isArray(data?.parts) ? data.parts : []
-      const text = parts
-        .filter((part) => isRecord(part)
-          && part.type === "text"
-          && part.synthetic !== true
-          && part.ignored !== true)
-        .map((part) => typeof part.text === "string" ? part.text : "")
-        .join("\n")
-        .trim()
+      const textParts: string[] = []
+      let textChars = 0
+      for (const part of parts) {
+        if (!isRecord(part)
+          || part.type !== "text"
+          || part.synthetic === true
+          || part.ignored === true
+          || typeof part.text !== "string") continue
+        const separatorChars = textParts.length > 0 ? 1 : 0
+        if (textChars + separatorChars + part.text.length > MAX_CHILD_RESULT_CHARS) {
+          throw new RlmError("BUDGET_EXCEEDED", `llm result exceeds ${MAX_CHILD_RESULT_CHARS} characters`)
+        }
+        textParts.push(part.text)
+        textChars += separatorChars + part.text.length
+      }
+      const text = textParts.join("\n").trim()
       if (!text) {
         throw new RlmError(
           "CHILD_FAILED",
