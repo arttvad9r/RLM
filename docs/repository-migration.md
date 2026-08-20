@@ -1,5 +1,7 @@
 # Completed standalone repository migration
 
+> Historical record. This document preserves migration provenance and is not the current development or validation runbook. For current work use [`README.md`](../README.md), [`docs/README.md`](README.md), and [`local-development.md`](local-development.md).
+
 OpenCode RLM now lives in the dedicated repository `arttvad9r/RLM` on default branch `main`.
 
 ## Migration record
@@ -22,23 +24,23 @@ The target repository does not carry Autopilot development ancestry. It did cont
 
 The frozen source tree and the finalized target tree are different identities and must be recorded separately.
 
-`0ea96ee9a9b979d1d7cce506f597dc5c277e719e` is the certified standalone source tree used for the migration. The target migration/finalization commit also applies target-owned repository changes, including adapting standalone CI from the historical `rlm/standalone` branch to target `main` and removing temporary migration scaffolding. Its tree is therefore `ce25647c17682b93c83e9fac988f0ad7f244b7ef` rather than the source tree SHA.
+`0ea96ee9a9b979d1d7cce506f597dc5c277e719e` is the certified standalone source tree used for the migration. The target migration/finalization commit also applied target-owned repository changes, including adapting standalone CI to target `main` and removing temporary migration scaffolding. Its tree is therefore `ce25647c17682b93c83e9fac988f0ad7f244b7ef` rather than the source tree SHA.
 
-Do not describe the finalized target tree as byte-identical to the source tree. Provenance is established by the explicit source commit/tree record, the bounded standalone contents imported from that source, the target migration commit, and target CI validation.
+Do not describe the finalized target tree as byte-identical to the source tree. Provenance is established by the explicit source commit/tree record, the bounded standalone contents imported from that source, the target migration commit, and target validation evidence.
 
-## Target shape
+## Standalone ownership boundary
 
-The dedicated repository owns only the standalone RLM surface:
+The dedicated repository owns the standalone RLM surface:
 
-- `agent/rlm.md`;
+- `agent/**`;
 - `plugin/**`;
 - `benchmarks/**`;
 - `docs/**`;
-- `scripts/check-standalone.mjs`;
+- `scripts/**` validation/deployment tooling;
 - standalone package/TypeScript configuration;
-- `.github/workflows/standalone-ci.yml`.
+- `.github/workflows/standalone-ci.yml` and repository-local ignore/container metadata.
 
-`scripts/check-standalone.mjs` fails closed on known Autopilot tree/path coupling and unexpected top-level entries.
+`scripts/check-standalone.mjs` is the current fail-closed guard against known Autopilot tree/path coupling and unexpected top-level entries. The exact allowed repository shape may evolve after migration; this historical document should not be used as a substitute for that executable guard.
 
 ## Authority boundary after migration
 
@@ -48,4 +50,6 @@ Historical Autopilot branches such as `rlm/integration` and `rlm/planner-ab-stag
 
 ## Validation boundary
 
-The target default branch has its own Standalone RLM CI using Node 24 and Deno 2.x and runs the repository `npm test` gate. A passing claim for any later revision must refer to an actual validation run for that revision; the successful migration run above is evidence for the migration commit, not an evergreen claim for future commits.
+The successful migration CI run above is evidence for the migration commit only. It is not an evergreen passing claim for later revisions.
+
+Current validation tiers, exact runtime baseline and local acceptance procedure are maintained in [`validation.md`](validation.md) and [`local-development.md`](local-development.md).
