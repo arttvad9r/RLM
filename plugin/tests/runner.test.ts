@@ -165,3 +165,25 @@ Deno.test("runner rejects oversized final results", async () => {
   const error = last?.error as { code?: string } | undefined
   assert(error?.code === "BUDGET_EXCEEDED", `expected BUDGET_EXCEEDED, got ${error?.code}`)
 })
+
+Deno.test("generated worker normalizes hostile thrown values without hanging or raw stringifier failure", async () => {
+  const result = await runRunner('throw { toString() { throw new Error("nested-stringify-failure") } }')
+  assert(!result.status.success, "hostile thrown value must fail the runner")
+  const output = frames(result.stdout)
+  const last = output.at(-1)
+  assert(last?.type === "error", "expected terminal error frame")
+  const error = last?.error as { code?: string; message?: string } | undefined
+  assert(error?.code === "RUNTIME_ERROR", `expected RUNTIME_ERROR, got ${error?.code}`)
+  assert(error?.message === "unprintable runtime error", `unexpected hostile error diagnostic: ${error?.message}`)
+})
+
+Deno.test("generated worker bounds model-controlled error messages before transport", async () => {
+  const result = await runRunner('throw new Error("x".repeat(20000))')
+  assert(!result.status.success, "oversized error must fail the runner")
+  const output = frames(result.stdout)
+  const last = output.at(-1)
+  assert(last?.type === "error", "expected terminal error frame")
+  const error = last?.error as { code?: string; message?: string } | undefined
+  assert(error?.code === "RUNTIME_ERROR", `expected RUNTIME_ERROR, got ${error?.code}`)
+  assert(typeof error?.message === "string" && error.message.length <= 8193, "expected bounded error message")
+})
