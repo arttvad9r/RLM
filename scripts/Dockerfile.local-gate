@@ -1,7 +1,7 @@
-FROM denoland/deno:2.9.5 AS deno
+FROM denoland/deno:bin-2.9.5 AS deno
 FROM node:24.19.0-bookworm-slim
 
-COPY --from=deno /usr/bin/deno /usr/local/bin/deno
+COPY --from=deno /deno /usr/local/bin/deno
 WORKDIR /workspace
 
 COPY package.json package-lock.json ./
