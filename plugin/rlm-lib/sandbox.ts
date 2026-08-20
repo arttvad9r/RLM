@@ -29,6 +29,7 @@ import {
 import { callChildLlm } from "./child.ts"
 import { executeContextOperation } from "./context.ts"
 import { RlmError, toErrorInfo } from "./errors.ts"
+import { logBestEffort } from "./logging.ts"
 import { encodeMessage, parseSandboxFrame } from "./protocol.ts"
 import { ProtocolRequestGate } from "./protocol-request-gate.ts"
 import { turnGovernor } from "./turn.ts"
@@ -209,7 +210,7 @@ export async function executeRlmExec(
   const { code, parentSessionID, directory: dir, log } = opts
   const ws = await resolveWorkspaceRoot(dir, opts.worktree ?? "")
 
-  await log("debug", "rlm_exec workspace root", {
+  logBestEffort(log, "debug", "rlm_exec workspace root", {
     workspaceRoot: ws.root,
     broadWorkspaceRoot: ws.broad,
     directory: dir,
@@ -310,7 +311,7 @@ export async function executeRlmExec(
   }
 
   try {
-    await log("debug", "rlm_exec started", {
+    logBestEffort(log, "debug", "rlm_exec started", {
       parentSessionID,
       turnId: execTurnId,
       directory: dir,
@@ -587,13 +588,13 @@ export async function executeRlmExec(
       metadata.turnContextCharsRemaining = turnSnap.contextCharsRemaining
       metadata.turnWallMsRemaining = turnSnap.wallMsRemaining
     }
-    await log("info", "rlm_exec completed", metadata)
+    logBestEffort(log, "info", "rlm_exec completed", metadata)
     return { output: finalOutput, metadata }
   } catch (error) {
     const info = toErrorInfo(error)
     finishTurn()
     turnSuperseded ||= !turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
-    await log("error", "rlm_exec failed", {
+    logBestEffort(log, "error", "rlm_exec failed", {
       parentSessionID,
       turnId: execTurnId,
       turnSuperseded,

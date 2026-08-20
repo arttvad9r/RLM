@@ -14,10 +14,20 @@ function baseClient(overrides = {}) {
   let prompts = 0
   const client = {
     session: {
-      messages: async () => ({ data: [{ info: { id: "user-1", role: "user", model: { providerID: "p", modelID: "m" } } }] }),
-      create: async () => { creates++; return { data: { id: "child-1" } } },
-      abort: async ({ path }) => { aborts.push(path.id) },
-      prompt: async () => { prompts++; return { data: { info: { finish: "stop" }, parts: [{ type: "text", text: "ok" }] } } },
+      messages: async () => ({
+        data: [{ info: { id: "user-1", role: "user", model: { providerID: "p", modelID: "m" } } }],
+      }),
+      create: async () => {
+        creates++
+        return { data: { id: "child-1" } }
+      },
+      abort: async ({ path }) => {
+        aborts.push(path.id)
+      },
+      prompt: async () => {
+        prompts++
+        return { data: { info: { finish: "stop" }, parts: [{ type: "text", text: "ok" }] } }
+      },
       ...overrides.session,
     },
     tool: {
@@ -106,10 +116,13 @@ test("child rejects malformed tool inventory before child creation", async () =>
         parentUserMessageID: "user-1",
         directory: "/workspace",
       }, log),
-      (error) => error instanceof RlmError && error.code === "CHILD_FAILED" && /tool\.ids\(\) returned an invalid/.test(error.message),
+      (error) => error instanceof RlmError
+        && error.code === "CHILD_FAILED"
+        && /tool\.ids\(\) returned an invalid/.test(error.message),
     )
     assert.deepEqual(fixture.counts(), { creates: 0, prompts: 0 })
   }
+
   const sparse = new Array(2)
   sparse[0] = "read"
   const fixture = baseClient({ tool: { ids: async () => ({ data: sparse }) } })
@@ -125,20 +138,145 @@ test("child rejects malformed tool inventory before child creation", async () =>
   assert.deepEqual(fixture.counts(), { creates: 0, prompts: 0 })
 })
 
-test("pre-aborted parent preserves provider-side child abort cleanup", async () => {
-  const fixture = baseClient()
+test("pre-aborted parent fails immediately without starting SDK preflight", async () => {
+  let messageCalls = 0
+  const fixture = baseClient({
+    session: {
+      messages: () => {
+        messageCalls++
+        return NEVER()
+      },
+    },
+  })
   const controller = new AbortController()
   controller.abort()
-  await assert.rejects(
-    () => callChildLlm(fixture.client, {
+
+  const outcome = await Promise.race([
+    callChildLlm(fixture.client, {
       prompt: "x",
       parentSessionID: "root",
       parentUserMessageID: "user-1",
       directory: "/workspace",
       signal: controller.signal,
+    }, log).then(() => "resolved", (error) => error),
+    new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
+  ])
+
+  assert.notEqual(outcome, "timeout")
+  assert.ok(outcome instanceof RlmError)
+  assert.equal(outcome.code, "CHILD_FAILED")
+  assert.match(outcome.message, /parent aborted before child setup/)
+  assert.equal(messageCalls, 0)
+  assert.deepEqual(fixture.counts(), { creates: 0, prompts: 0 })
+  assert.deepEqual(fixture.aborts, [])
+  assert.equal(activeRlmChildCount(), 0)
+})
+
+test("preflight SDK throws and promise rejections normalize to CHILD_FAILED", async () => {
+  const fixtures = [
+    baseClient({ session: { messages: () => { throw new Error("sync messages") } } }),
+    baseClient({ session: { messages: async () => { throw new Error("async messages") } } }),
+    baseClient({ tool: { ids: () => { throw new Error("sync ids") } } }),
+    baseClient({ tool: { ids: async () => { throw new Error("async ids") } } }),
+    baseClient({ session: { create: () => { throw new Error("sync create") } } }),
+    baseClient({ session: { create: async () => { throw new Error("async create") } } }),
+  ]
+
+  for (const fixture of fixtures) {
+    await assert.rejects(
+      () => callChildLlm(fixture.client, {
+        prompt: "x",
+        parentSessionID: "root",
+        parentUserMessageID: "user-1",
+        directory: "/workspace",
+      }, log),
+      (error) => error instanceof RlmError && error.code === "CHILD_FAILED",
+    )
+  }
+})
+
+test("synchronous provider abort failure cannot prevent local cancellation", async () => {
+  const controller = new AbortController()
+  const fixture = baseClient({
+    session: {
+      abort: () => { throw new Error("sync provider abort failure") },
+      prompt: NEVER,
+    },
+  })
+  const call = callChildLlm(fixture.client, {
+    prompt: "x",
+    parentSessionID: "root",
+    parentUserMessageID: "user-1",
+    directory: "/workspace",
+    signal: controller.signal,
+  }, log)
+  await new Promise((resolve) => setImmediate(resolve))
+  controller.abort()
+
+  const outcome = await Promise.race([
+    call.then(() => "resolved", (error) => error),
+    new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
+  ])
+  assert.notEqual(outcome, "timeout")
+  assert.ok(outcome instanceof RlmError)
+  assert.equal(outcome.code, "CHILD_FAILED")
+  assert.equal(activeRlmChildCount(), 0)
+})
+
+test("child lifecycle does not depend on logger settlement", async () => {
+  const fixture = baseClient()
+  const neverLog = async () => await NEVER()
+  const outcome = await Promise.race([
+    callChildLlm(fixture.client, {
+      prompt: "x",
+      parentSessionID: "root",
+      parentUserMessageID: "user-1",
+      directory: "/workspace",
+    }, neverLog).then((result) => result.text),
+    new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
+  ])
+  assert.equal(outcome, "ok")
+})
+
+test("child rejects malformed SDK response shapes without raw TypeError", async () => {
+  for (const data of ["not-an-array", [null], [undefined], [{}], [{ info: null }], ["bad"]]) {
+    const fixture = baseClient({ session: { messages: async () => ({ data }) } })
+    await assert.rejects(
+      () => callChildLlm(fixture.client, {
+        prompt: "x",
+        parentSessionID: "root",
+        parentUserMessageID: "user-1",
+        directory: "/workspace",
+      }, log),
+      (error) => error instanceof RlmError && error.code === "CHILD_FAILED",
+    )
+  }
+
+  for (const data of [{ id: "" }, { id: 7 }, {}, null]) {
+    const fixture = baseClient({ session: { create: async () => ({ data }) } })
+    await assert.rejects(
+      () => callChildLlm(fixture.client, {
+        prompt: "x",
+        parentSessionID: "root",
+        parentUserMessageID: "user-1",
+        directory: "/workspace",
+      }, log),
+      (error) => error instanceof RlmError
+        && error.code === "CHILD_FAILED"
+        && /failed to create child session/.test(error.message),
+    )
+    assert.equal(activeRlmChildCount(), 0)
+  }
+
+  const malformedPrompt = baseClient({ session: { prompt: async () => null } })
+  await assert.rejects(
+    () => callChildLlm(malformedPrompt.client, {
+      prompt: "x",
+      parentSessionID: "root",
+      parentUserMessageID: "user-1",
+      directory: "/workspace",
     }, log),
-    /parent aborted before child prompt/,
+    (error) => error instanceof RlmError && error.code === "CHILD_FAILED" && /invalid response object/.test(error.message),
   )
-  assert.deepEqual(fixture.aborts, ["child-1"])
   assert.equal(activeRlmChildCount(), 0)
 })

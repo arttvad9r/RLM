@@ -90,3 +90,36 @@ test('zero-wall unit-test seams do not create production lifecycle locks', async
   messages = secondTurn()
   assert.equal((await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2')).snapshot.turnId, 'user-2')
 })
+
+test('turn governor releases arbitrary batches of concurrent production reservations', async () => {
+  for (let count = 1; count <= 8; count++) {
+    const governor = new TurnGovernor()
+    let messages = firstTurn()
+    const sdk = sdkFor(() => messages)
+    const execs = await Promise.all(
+      Array.from({ length: count }, () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-1', 17)),
+    )
+    assert.equal(execs.filter((exec) => exec.allowed).length, count)
+    messages = secondTurn()
+
+    for (let index = 0; index < count - 1; index++) {
+      assert.equal(
+        governor.finishExecForTurn('session', 'user-1', 1, execs[index].reservedWallMs),
+        true,
+      )
+      await assert.rejects(
+        () => governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 1),
+        /prior-turn exec/,
+      )
+    }
+
+    assert.equal(
+      governor.finishExecForTurn('session', 'user-1', 1, execs[count - 1].reservedWallMs),
+      true,
+    )
+    assert.equal(
+      (await governor.beginExec(sdk, 'session', '/workspace', 'assistant-2', 1)).snapshot.turnId,
+      'user-2',
+    )
+  }
+})
