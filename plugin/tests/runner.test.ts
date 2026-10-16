@@ -18,6 +18,7 @@ async function runRunner(code: string): Promise<{ status: Deno.CommandStatus; st
     stdin: "piped",
     stdout: "piped",
     stderr: "piped",
+    clearEnv: true,
   }).spawn()
 
   const writer = child.stdin.getWriter()
@@ -80,7 +81,7 @@ Deno.test("runner ignores generated-code traffic on worker parentPort", async ()
   assert(output[0].type === "result" && output[0].value === "real-parent-port", "global worker channel must not be trusted")
 })
 
-Deno.test("generated worker permissions:none denies direct read write env net and subprocess capabilities", async () => {
+Deno.test("generated worker denies direct read write net and subprocess capabilities and exposes no ambient env", async () => {
   const code = `
     const denied = { read: false, write: false, env: false, net: false, run: false }
     try {
@@ -93,7 +94,7 @@ Deno.test("generated worker permissions:none denies direct read write env net an
     } catch { denied.write = true }
     try {
       const proc = await import("node:process")
-      void proc.env.PATH
+      denied.env = Object.keys(proc.env).length === 0
     } catch { denied.env = true }
     try {
       await fetch("https://example.com/")

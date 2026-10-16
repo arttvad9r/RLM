@@ -6,6 +6,8 @@
  * permissions.
  */
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process"
+import { accessSync, constants as fsConstants } from "node:fs"
+import path from "node:path"
 import { randomBytes } from "node:crypto"
 import { fileURLToPath } from "node:url"
 import {
@@ -44,6 +46,21 @@ import { resolveWorkspaceRoot } from "./workspace.ts"
 const TEST_EXEC_TIMEOUT_MS = Number(process.env.RLM_TEST_EXEC_TIMEOUT_MS) || 0
 const RUNNER_PATH = fileURLToPath(new URL("../rlm-runner/runner.ts", import.meta.url))
 const GENERATED_WORKER_PATH = fileURLToPath(new URL("../rlm-runner/generated-worker.ts", import.meta.url))
+
+function resolveDenoExecutable(): string {
+  const executable = process.platform === "win32" ? "deno.exe" : "deno"
+  for (const directory of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (!directory) continue
+    const candidate = path.join(directory, executable)
+    try {
+      accessSync(candidate, fsConstants.X_OK)
+      return candidate
+    } catch {
+      // Keep searching the trusted host PATH.
+    }
+  }
+  throw new RlmError("RUNTIME_ERROR", "rlm_exec: deno executable not found in host PATH")
+}
 
 export function sandboxDenoArgs(
   runnerPath = RUNNER_PATH,
@@ -322,9 +339,10 @@ export async function executeRlmExec(
       denoOldSpaceLimitMb: MAX_DENO_OLD_SPACE_MB,
     })
 
-    child = spawn("deno", sandboxDenoArgs(), {
+    child = spawn(resolveDenoExecutable(), sandboxDenoArgs(), {
       cwd: dir,
       stdio: ["pipe", "pipe", "pipe"],
+      env: {},
     })
     childSettled = new Promise<void>((resolve) => {
       child!.once("exit", () => resolve())

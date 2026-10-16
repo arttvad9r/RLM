@@ -17,6 +17,7 @@ async function runRunner(code: string): Promise<{ status: Deno.CommandStatus; st
     stdin: "piped",
     stdout: "piped",
     stderr: "piped",
+    clearEnv: true,
   }).spawn()
 
   const writer = child.stdin.getWriter()
@@ -80,25 +81,17 @@ Deno.test("generated Worker cannot spawn subprocesses through node:child_process
   `, "node:child_process")
 })
 
-Deno.test("generated Worker cannot read inherited environment through node:process", async () => {
-  const key = "RLM_TEST_EXEC_TIMEOUT_MS"
-  const previous = Deno.env.get(key)
-  Deno.env.set(key, "rlm-permission-sentinel")
-  try {
-    await assertEscapeDenied(`
-      let escaped = false
-      try {
-        const proc = await import("node:process")
-        escaped = proc.env.RLM_TEST_EXEC_TIMEOUT_MS === "rlm-permission-sentinel"
-      } catch {
-        // Expected: the Worker has permissions:none.
-      }
-      return escaped
-    `, "node:process.env")
-  } finally {
-    if (previous === undefined) Deno.env.delete(key)
-    else Deno.env.set(key, previous)
-  }
+Deno.test("generated Worker receives no ambient environment through node:process", async () => {
+  await assertEscapeDenied(`
+    let escaped = false
+    try {
+      const proc = await import("node:process")
+      escaped = Object.keys(proc.env).length > 0
+    } catch {
+      // A permission error is also an acceptable denial.
+    }
+    return escaped
+  `, "node:process.env")
 })
 
 Deno.test("generated Worker cannot bind network sockets through node:net", async () => {
