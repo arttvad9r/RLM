@@ -35,7 +35,7 @@ test("external sandbox process termination fails closed and releases turn wall r
   try {
     await writeFile(
       fakeDeno,
-      '#!/usr/bin/env node\nprocess.stdin.resume(); setTimeout(() => process.exit(137), 25)\n',
+      `#!${process.execPath}\nprocess.stdin.resume(); setTimeout(() => process.exit(137), 25)\n`,
     )
     await chmod(fakeDeno, 0o755)
     process.env.PATH = `${bin}${path.delimiter}${previousPath ?? ""}`
@@ -78,7 +78,7 @@ test("sandbox protocol preserves UTF-8 when a code point is split across stdout 
   try {
     await writeFile(
       fakeDeno,
-      `#!/usr/bin/env node
+      `#!${process.execPath}
 let input = ""
 let sent = false
 process.stdin.setEncoding("utf8")
@@ -132,7 +132,7 @@ test("sandbox stdin EPIPE fails the exec without crashing the host process", asy
   try {
     await writeFile(
       fakeDeno,
-      `#!/usr/bin/env bash
+      `#!/bin/bash
 IFS= read -r line
 if [[ "$line" =~ \\"channel\\":\\"([a-f0-9]{48})\\" ]]; then
   channel="\${BASH_REMATCH[1]}"
