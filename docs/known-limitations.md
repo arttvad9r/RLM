@@ -8,6 +8,12 @@ The trusted Deno transport is started with a host-owned V8 old-space ceiling and
 
 `docs/resource-envelope.md` defines the supported OS-level deployment contract, a reference cgroup/container profile, and the fail-closed semantics for external transport termination. Repository CI verifies the production failure/cleanup behavior, but it cannot prove that a target deployment actually applies the required cgroup/container controls. Do not claim a hard OS resource guarantee until the target deployment has validated the full OpenCode/RLM process tree inside that envelope.
 
+## Host filesystem mutation race
+
+The host context layer canonicalizes and confines paths before bounded reads, but it does not provide an OS-level atomic `openat2`-style path-resolution boundary across every supported platform. The current threat model therefore assumes that the approved workspace is not being adversarially renamed or symlink-swapped by another local process during an RLM context operation.
+
+Do not treat the generic host context layer as a security boundary against a hostile process that can concurrently mutate the workspace. Stronger guarantees require a platform-specific directory-handle/open-relative design or an external filesystem/container boundary.
+
 ## Deno runtime compatibility gate
 
 The trusted runner command explicitly disables project config, lockfile discovery, npm resolution and remote module resolution with `--no-config`, `--no-lock`, `--no-npm` and `--no-remote`. Its only Deno permission grant is scoped read access to the fixed generated Worker entry module; generated model code runs in a Worker with `permissions: "none"`.

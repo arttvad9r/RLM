@@ -6,6 +6,7 @@
 [![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Deno 2.x](https://img.shields.io/badge/Deno-2.x-000000?logo=deno&logoColor=white)](https://deno.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-runtime-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 RLM lets a root model delegate semantic work to isolated child sessions and run generated orchestration code without giving that generated code ordinary filesystem, network, environment, subprocess or FFI authority. Host-mediated context APIs, per-turn budgets and an authenticated sandbox protocol keep the execution boundary explicit.
 
@@ -27,6 +28,24 @@ flowchart LR
 - Provide frozen benchmark corpora and provider-neutral comparison tooling.
 - Fail closed when session identity, context scope or sandbox assumptions cannot be proven.
 
+## Install
+
+RLM can be installed directly from GitHub; an npm release is not required:
+
+```bash
+opencode plugin add github:arttvad9r/RLM
+```
+
+OpenCode accepts Git package specifiers for plugins. The package ships the TypeScript plugin and Deno runner sources directly, so installation does not depend on package lifecycle/build scripts. Deno 2.x must be available on the host `PATH`.
+
+Then start OpenCode in a project and ask the model to use `rlm_exec`. A minimal smoke prompt is:
+
+```text
+Use rlm_exec exactly once. Execute: return { ok: true, value: 42 }. Return only the tool result.
+```
+
+The optional RLM-aware agent prompt lives at `agent/rlm.md`. It adds routing guidance for large semantic repository tasks; the plugin itself does not require that agent.
+
 ## Development quick start
 
 ```bash
@@ -34,9 +53,9 @@ npm ci --ignore-scripts
 npm test
 ```
 
-`npm test` is the complete standalone gate: coupling check, Node host/runtime regressions, type checks, Deno plugin/security tests and deterministic benchmark verification. See `docs/known-limitations.md` before treating the sandbox as an OS-level resource boundary.
+`npm test` is the complete standalone gate: coupling check, Node host/runtime regressions, type checks, Deno plugin/security tests, deterministic benchmark verification and a packed-artifact installation check. See `docs/known-limitations.md` before treating the sandbox as an OS-level resource boundary.
 
-> **Status:** active experimental runtime. The security model is intentionally strict, and known hardening limitations are documented rather than hidden.
+> **Status:** active experimental runtime. The security model is intentionally strict, and known hardening limitations are documented rather than hidden. The benchmark harness is ready, but the repository does not claim a quality/cost advantage until real model run records are committed.
 
 [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Known limitations](docs/known-limitations.md)
 
@@ -56,7 +75,7 @@ npm test
 
 - Node.js 24 or newer.
 - Deno 2.x.
-- OpenCode plugin/SDK `1.1.26` (pinned in `package.json` and `package-lock.json`).
+- OpenCode plugin/SDK `1.19.3` (pinned in `package.json` and `package-lock.json`).
 
 Install dependencies with:
 
@@ -101,11 +120,14 @@ npm run typecheck
 npm run test:plugin
 npm run test:benchmarks
 npm run verify:benchmarks
+npm run check:package
 ```
 
 `test:host-runtime` is the fast Node-native layer for host policy, protocol, turn budgets, child lifecycle and filesystem context boundaries. It imports the production TypeScript modules directly and does not require Deno or a live model provider.
 
 `test:plugin` is the Deno-specific layer. It validates the trusted runner, generated-code Worker, sandbox command and Deno permission/transport behavior.
+
+`check:package` verifies that the installable artifact contains every runtime file, excludes benchmark/CI development data, and can be installed into an empty project without lifecycle scripts.
 
 `npm test` runs the complete sequence. These commands are repository interfaces; a passing result must only be claimed after the relevant commands have actually been executed in the target environment. A passing Node-native layer alone is not evidence that the Deno-specific layer passed.
 

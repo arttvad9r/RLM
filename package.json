@@ -1,7 +1,6 @@
 {
   "name": "opencode-rlm",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "scripts": {
     "check:standalone": "node scripts/check-standalone.mjs",
@@ -13,11 +12,12 @@
     "test:benchmarks": "node --test benchmarks/harness/*.test.mjs",
     "verify:benchmarks": "node benchmarks/generator/verify.mjs && node benchmarks/generator/verify-v2.mjs && node benchmarks/generator/verify-v3.mjs",
     "verify:resource-envelope": "node scripts/verify-resource-envelope.mjs",
-    "test": "npm run check:standalone && npm run test:host-runtime && npm run typecheck && npm run test:plugin && npm run test:benchmarks && npm run verify:benchmarks"
+    "test": "npm run check:standalone && npm run test:host-runtime && npm run typecheck && npm run test:plugin && npm run test:benchmarks && npm run verify:benchmarks && npm run check:package",
+    "check:package": "node scripts/check-package.mjs"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "1.1.26",
-    "@opencode-ai/sdk": "1.1.26"
+    "@opencode-ai/plugin": "1.19.3",
+    "@opencode-ai/sdk": "1.19.3"
   },
   "devDependencies": {
     "@types/node": "24.7.2",
@@ -25,5 +25,38 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "description": "Sandboxed Recursive Language Model runtime for OpenCode with bounded context and isolated child agents.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arttvad9r/RLM.git"
+  },
+  "homepage": "https://github.com/arttvad9r/RLM#readme",
+  "bugs": {
+    "url": "https://github.com/arttvad9r/RLM/issues"
+  },
+  "keywords": [
+    "opencode",
+    "rlm",
+    "recursive-language-model",
+    "ai-agents",
+    "sandbox",
+    "typescript",
+    "deno"
+  ],
+  "exports": "./plugin/rlm.ts",
+  "files": [
+    "plugin/rlm.ts",
+    "plugin/rlm-lib/",
+    "plugin/rlm-runner/",
+    "agent/",
+    "docs/known-limitations.md",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }
