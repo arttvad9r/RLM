@@ -1,8 +1,44 @@
 # OpenCode RLM
 
-Standalone Recursive Language Model runtime/plugin for OpenCode.
+**A sandboxed Recursive Language Model runtime for OpenCode with bounded context, child-agent delegation and deterministic benchmarks.**
 
-This repository contains only the RLM agent, plugin runtime and deterministic benchmark assets. It does not contain or depend on the Autopilot scheduler, Planner/Worker contracts, verifier, acceptance state or Git control plane.
+[![CI](https://github.com/arttvad9r/RLM/actions/workflows/standalone-ci.yml/badge.svg)](https://github.com/arttvad9r/RLM/actions/workflows/standalone-ci.yml)
+[![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Deno 2.x](https://img.shields.io/badge/Deno-2.x-000000?logo=deno&logoColor=white)](https://deno.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-runtime-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+RLM lets a root model delegate semantic work to isolated child sessions and run generated orchestration code without giving that generated code ordinary filesystem, network, environment, subprocess or FFI authority. Host-mediated context APIs, per-turn budgets and an authenticated sandbox protocol keep the execution boundary explicit.
+
+```mermaid
+flowchart LR
+    O[OpenCode root session] --> H[rlm_exec host]
+    H --> D[Deno transport]
+    D --> W[permissions: none Worker]
+    W -->|RPC| H
+    H --> C[bounded context APIs]
+    H --> A[isolated child agents]
+```
+
+## Why this repository exists
+
+- Keep the RLM runtime independent from a larger scheduler/control-plane project.
+- Make context authority and per-turn resource budgets explicit and testable.
+- Separate trusted host/transport code from generated orchestration code.
+- Provide frozen benchmark corpora and provider-neutral comparison tooling.
+- Fail closed when session identity, context scope or sandbox assumptions cannot be proven.
+
+## Development quick start
+
+```bash
+npm ci --ignore-scripts
+npm test
+```
+
+`npm test` is the complete standalone gate: coupling check, Node host/runtime regressions, type checks, Deno plugin/security tests and deterministic benchmark verification. See `docs/known-limitations.md` before treating the sandbox as an OS-level resource boundary.
+
+> **Status:** active experimental runtime. The security model is intentionally strict, and known hardening limitations are documented rather than hidden.
+
+[Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Known limitations](docs/known-limitations.md)
 
 ## Layout
 
