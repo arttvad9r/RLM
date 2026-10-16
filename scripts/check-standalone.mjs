@@ -12,6 +12,7 @@ const ALLOWED_ROOT_ENTRIES = new Set([
   ".gitignore",
   ".npmrc",
   "LICENSE",
+  "CONTRIBUTING.md",
   "README.md",
   "SECURITY.md",
   "agent",

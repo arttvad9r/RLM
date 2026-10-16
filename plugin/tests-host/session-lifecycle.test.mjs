@@ -5,9 +5,13 @@ import plugin from "../rlm.ts"
 import { TurnGovernor, turnGovernor } from "../rlm-lib/turn.ts"
 
 function messagesClient(userMessageID = "user-1") {
+  const assistantMessageID = `assistant-${userMessageID.replace(/^user-/, "")}`
   return {
     session: {
-      messages: async () => ({ data: [{ info: { id: userMessageID, role: "user" } }] }),
+      messages: async () => ({ data: [
+        { info: { id: userMessageID, role: "user" } },
+        { info: { id: assistantMessageID, role: "assistant" } },
+      ] }),
     },
   }
 }

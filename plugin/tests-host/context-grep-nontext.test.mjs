@@ -6,6 +6,7 @@ import path from "node:path"
 
 import { executeContextOperation } from "../rlm-lib/context.ts"
 import { RlmError } from "../rlm-lib/errors.ts"
+import { RlmRunState } from "../rlm-lib/types.ts"
 
 async function withoutContextAuthorityEnv(run) {
   const keys = ["XDG_CONFIG_HOME", "OPENCODE_RLM_CONTEXT_ROOT", "OPENCODE_RLM_CONTEXT_POLICY"]
@@ -30,7 +31,7 @@ test("context grep skips approved non-text files and still returns text matches"
     await writeFile(path.join(root, "mystery.raw"), Buffer.from([0xff, 0xfe, 0xfd]))
 
     await withoutContextAuthorityEnv(async () => {
-      const state = { workspaceRoot: root }
+      const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1000 })
       const result = await executeContextOperation({ file: {} }, state, root, {
         v: 1,
         type: "context",
@@ -65,7 +66,7 @@ test("context grep still fails closed when an unclassified text file exceeds the
     await writeFile(path.join(root, "huge.txt"), "x".repeat(128 * 1024 + 1))
 
     await withoutContextAuthorityEnv(async () => {
-      const state = { workspaceRoot: root }
+      const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1000 })
       await assert.rejects(
         () => executeContextOperation({ file: {} }, state, root, {
           v: 1,

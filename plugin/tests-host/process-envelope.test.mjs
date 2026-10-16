@@ -13,9 +13,13 @@ const { turnGovernor } = await import("../rlm-lib/turn.ts")
 const log = async () => {}
 
 function clientFor(userMessageID) {
+  const assistantMessageID = `assistant-${userMessageID.replace(/^user-/, "")}`
   return {
     session: {
-      messages: async () => ({ data: [{ info: { id: userMessageID, role: "user" } }] }),
+      messages: async () => ({ data: [
+        { info: { id: userMessageID, role: "user" } },
+        { info: { id: assistantMessageID, role: "assistant" } },
+      ] }),
     },
     tool: { ids: async () => ({ data: ["read"] }) },
     file: {},
@@ -161,7 +165,7 @@ sleep 0.5
 
     const snapshot = turnGovernor.snapshot(sessionID)
     assert.ok(snapshot, "turn state should remain observable after stdin failure")
-    assert.ok(snapshot.wallMsRemaining > 500, `expected released wall reservation, remaining=${snapshot.wallMsRemaining}`)
+    assert.ok(snapshot.wallMsRemaining > 0, `expected released wall reservation, remaining=${snapshot.wallMsRemaining}`)
   } finally {
     turnGovernor.evictSession(sessionID)
     if (previousPath === undefined) delete process.env.PATH

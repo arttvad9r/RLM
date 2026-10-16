@@ -126,8 +126,7 @@ function makeLineReader(stream: NodeJS.ReadableStream): LineReader {
     }
   }
 
-  stream.on("data", (chunk: Buffer) => push(decoder.decode(chunk, { stream: true })))
-  stream.on("end", () => {
+  const finish = (): void => {
     if (done) return
     const tail = decoder.decode()
     if (tail) push(tail)
@@ -142,7 +141,11 @@ function makeLineReader(stream: NodeJS.ReadableStream): LineReader {
     if (done) return
     done = true
     while (waiting.length > 0) waiting.shift()!.resolve(lines.shift())
-  })
+  }
+
+  stream.on("data", (chunk: Buffer) => push(decoder.decode(chunk, { stream: true })))
+  stream.on("end", finish)
+  stream.on("close", finish)
   stream.on("error", (error: Error) => {
     if (done) return
     fatal = new RlmError("PROTOCOL_ERROR", `sandbox stdout stream failed: ${error.message}`)
@@ -238,6 +241,7 @@ export async function executeRlmExec(
   const state = new RlmRunState({ workspaceRoot: ws.root, broadWorkspaceRoot: ws.broad, timeoutMs: execTimeoutMs })
 
   let child: ChildProcessWithoutNullStreams | undefined
+  let childSettled: Promise<void> | undefined
   let finished = false
   let stderrText = ""
   let stderrTruncated = false
@@ -321,6 +325,10 @@ export async function executeRlmExec(
     child = spawn("deno", sandboxDenoArgs(), {
       cwd: dir,
       stdio: ["pipe", "pipe", "pipe"],
+    })
+    childSettled = new Promise<void>((resolve) => {
+      child!.once("exit", () => resolve())
+      child!.once("error", () => resolve())
     })
 
     child.stderr.on("data", (d: Buffer) => appendStderr(d.toString()))
@@ -522,11 +530,8 @@ export async function executeRlmExec(
       break
     }
 
-    if (child.exitCode === null) {
-      await new Promise<void>((resolve) => {
-        child!.once("exit", () => resolve())
-        child!.once("error", () => resolve())
-      })
+    if (child.exitCode === null && childSettled) {
+      await childSettled
     }
     state.exitCode = child.exitCode
 
