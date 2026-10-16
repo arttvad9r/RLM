@@ -32,7 +32,7 @@ test("completed semantic child remains linked to the root session for host casca
 
   assert.equal(result.childSessionID, "child-retained")
   assert.deepEqual(createArgs, {
-    body: { parentID: "root-session", title: "rlm child" },
+    body: { parentID: "root-session", title: "rlm child", model: { providerID: "provider", modelID: "model" } },
     query: { directory: "/workspace" },
   })
 })

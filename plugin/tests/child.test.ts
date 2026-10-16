@@ -41,7 +41,7 @@ Deno.test("child fails closed when tool inventory is empty", async () => {
   assert(!createCalled, "child session must not be created without a complete deny map")
 })
 
-Deno.test("child prompt uses only the provider/model fields supported by pinned SDK", async () => {
+Deno.test("child prompt uses only the provider/model fields supported by runtime contract", async () => {
   let body: Record<string, unknown> | undefined
   const client = {
     session: {
@@ -69,7 +69,7 @@ Deno.test("child prompt uses only the provider/model fields supported by pinned 
     async () => {},
   )
   assert(JSON.stringify(body?.model) === JSON.stringify({ providerID: "provider", modelID: "model" }), "unexpected child model body")
-  assert(body !== undefined && !("variant" in body), "pinned SDK prompt body must not receive variant")
+  assert(body !== undefined && !("variant" in body), "runtime contract prompt body must not receive variant")
   assert(result.model === "provider/model", "expected inherited provider/model")
   assert(!("variant" in result), "child result must not claim unsupported variant inheritance")
 })

@@ -75,7 +75,7 @@ npm test
 
 - Node.js 24 or newer.
 - Deno 2.x.
-- OpenCode plugin/SDK `1.19.3` (pinned in `package.json` and `package-lock.json`).
+- OpenCode `2.0.29` or newer V2-compatible host. The plugin API is pinned to `@opencode/plugin` `2.0.29` in the lockfile.
 
 Install dependencies with:
 
@@ -139,9 +139,9 @@ The host launches a trusted Deno transport runner with narrowly scoped read acce
 
 Context access is host-mediated through the read-only `context.files`, `context.read`, `context.readMany` and `context.grep` APIs. The host resolves and confines the approved workspace before context access, then performs directly bounded host filesystem reads/listing under the host-owned context policy; model-generated code never receives filesystem handles. Reads are capped before materialization and preserve exact UTF-8 file text, while known binary, NUL and invalid UTF-8 content fail closed. Directory traversal is streamed and bounded by depth, directory, result and scanned-entry limits. Model-supplied regular expressions for `context.grep` are evaluated in a trusted worker thread with a host-owned hard timeout so pathological backtracking cannot block the plugin event loop indefinitely.
 
-RLM child sessions are semantic workers. They do not inherit ordinary OpenCode tools, repository context, AGENTS/skills/MCP instructions or prior conversation history. Child creation fails closed if the host cannot enumerate the available tool inventory needed to construct the full deny map.
+RLM child sessions are semantic workers. They inherit the exact parent provider/model, but do not inherit ordinary OpenCode tools, repository context, AGENTS/skills/MCP instructions or prior conversation history. OpenCode V2 child sessions are created with a deny-all permission rule and the child context hook strips the tool inventory; the runtime also builds a full explicit deny map and fails closed if the host cannot enumerate tools.
 
-Turn budgets are keyed to an authoritative user-message ID. If the host cannot resolve that ID, execution fails closed rather than substituting a fallback identity that could reset the budget. The per-session TurnGovernor cache is evicted only when the pinned OpenCode SDK publishes the authoritative `session.deleted` lifecycle event; no TTL/LRU eviction can reset an active session budget.
+Turn budgets are keyed to an authoritative user-message ID. If the host cannot resolve that ID, execution fails closed rather than substituting a fallback identity that could reset the budget. The per-session TurnGovernor cache is evicted only when OpenCode V2 publishes the authoritative `session.deleted` lifecycle event; no TTL/LRU eviction can reset an active session budget.
 
 The remaining resource/lifecycle caveats are documented in `docs/known-limitations.md`; in particular, the V8 heap ceiling is not an OS-level RSS/cgroup boundary.
 

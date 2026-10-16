@@ -82,7 +82,7 @@ Deno.test("generated Worker cannot spawn subprocesses through node:child_process
 })
 
 Deno.test("generated Worker receives no ambient environment through node:process", async () => {
-  await assertEscapeDenied(`
+  const result = await runRunner(`
     let escaped = false
     try {
       const proc = await import("node:process")
@@ -91,7 +91,20 @@ Deno.test("generated Worker receives no ambient environment through node:process
       // A permission error is also an acceptable denial.
     }
     return escaped
-  `, "node:process.env")
+  `)
+
+  if (!result.status.success) {
+    // Deno 2.9.x can fail closed while initializing node:process inside a
+    // permissions:none Worker. Accept only that known node-compat failure;
+    // unrelated runner failures still fail this security test.
+    assert(
+      result.stderr.includes("node:process") && result.stderr.includes("internal/options.ts"),
+      `node:process.env: unexpected runner failure: ${result.stderr}`,
+    )
+    return
+  }
+
+  assert(resultValue(result.stdout) === false, "node:process.env: generated Worker unexpectedly obtained authority")
 })
 
 Deno.test("generated Worker cannot bind network sockets through node:net", async () => {

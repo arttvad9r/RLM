@@ -45,7 +45,7 @@ test("child refuses to start when tool inventory is empty", async () => {
   assert.equal(activeRlmChildCount(), 0)
 })
 
-test("child prompt receives pinned-SDK model shape and a full deny map", async () => {
+test("child prompt receives provider/model shape and a full deny map", async () => {
   let tools
   let model
   let bodyKeys
@@ -159,4 +159,69 @@ test("a pre-aborted parent aborts the child and still cleans registry state", as
   assert.equal(abortCalls, 1)
   assert.equal(promptCalls, 0)
   assert.equal(activeRlmChildCount(), 0)
+})
+
+test("child inherits the exact captured parent assistant model", async () => {
+  let createModel
+  let promptModel
+  const client = baseClient({
+    session: {
+      messages: async () => ({
+        data: [
+          { info: { id: "user-1", role: "user" } },
+          { info: { id: "assistant-1", role: "assistant", model: { providerID: "provider-a", modelID: "model-a" } } },
+          { info: { id: "user-2", role: "user" } },
+          { info: { id: "assistant-2", role: "assistant", model: { providerID: "provider-b", modelID: "model-b" } } },
+        ],
+      }),
+      create: async ({ body }) => {
+        createModel = body.model
+        return { data: { id: "child-pinned-model" } }
+      },
+      prompt: async ({ body }) => {
+        promptModel = body.model
+        return { data: { info: { finish: "stop" }, parts: [{ type: "text", text: "answer" }] } }
+      },
+    },
+  })
+
+  const result = await callChildLlm(
+    client,
+    {
+      prompt: "x",
+      parentSessionID: "root",
+      parentUserMessageID: "user-1",
+      parentAssistantMessageID: "assistant-1",
+      directory: "/workspace",
+    },
+    log,
+  )
+
+  assert.deepEqual(createModel, { providerID: "provider-a", modelID: "model-a" })
+  assert.deepEqual(promptModel, { providerID: "provider-a", modelID: "model-a" })
+  assert.equal(result.model, "provider-a/model-a")
+})
+
+test("child fails closed when the captured parent assistant message is missing", async () => {
+  const client = baseClient({
+    session: {
+      messages: async () => ({
+        data: [{ info: { id: "assistant-other", role: "assistant", model: { providerID: "provider", modelID: "model" } } }],
+      }),
+    },
+  })
+
+  await assert.rejects(
+    () => callChildLlm(
+      client,
+      {
+        prompt: "x",
+        parentSessionID: "root",
+        parentAssistantMessageID: "assistant-missing",
+        directory: "/workspace",
+      },
+      log,
+    ),
+    (error) => error instanceof RlmError && error.code === "CHILD_FAILED" && /captured parent assistant/.test(error.message),
+  )
 })

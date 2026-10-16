@@ -419,6 +419,7 @@ export async function executeRlmExec(
             prompt: promptValue,
             parentSessionID,
             parentUserMessageID: execTurnId,
+            parentAssistantMessageID: opts.messageID,
             directory: dir,
             title: "rlm_exec child",
             signal: abortController.signal,

@@ -4,7 +4,7 @@
  *
  * Behavior:
  *   - child session with parentID = root sessionID, same directory;
- *   - inherits the root provider/model from the execution's user message;
+ *   - inherits the root provider/model from the exact parent assistant message;
  *   - zero tools: every available tool ID mapped to false;
  *   - blocking session.prompt, text-only extraction, explicit error throw;
  *   - abort linked to the provided AbortSignal;
@@ -21,7 +21,7 @@ type Client = {
       query: { directory: string }
     }) => Promise<{ error?: unknown; data?: Array<{ info: { id?: string; role: string; model?: unknown } }> }>
     create: (args: {
-      body: { parentID: string; title: string }
+      body: { parentID: string; title: string; model?: { providerID: string; modelID: string } }
       query: { directory: string }
     }) => Promise<{ error?: unknown; data?: { id: string } | null }>
     abort: (args: { path: { id: string }; query: { directory: string } }) => Promise<unknown>
@@ -56,6 +56,8 @@ export interface ChildLlmInput {
   parentSessionID: string
   /** User-message identity captured when the parent rlm_exec began. */
   parentUserMessageID?: string
+  /** Exact assistant message whose tool call started the parent rlm_exec. */
+  parentAssistantMessageID?: string
   directory: string
   title?: string
   signal?: AbortSignal
@@ -79,10 +81,10 @@ export async function callChildLlm(
   const { prompt, parentSessionID, directory: dir, signal } = input
   let childSessionID: string | undefined
 
-  // 1. Resolve the provider/model from the user message captured by the parent
-  // execution. Falling back to the latest user is retained only for direct
-  // callers/tests that do not supply parentUserMessageID; production rlm_exec
-  // always supplies it so a later user turn cannot switch an in-flight child.
+  // 1. Resolve the provider/model from the exact assistant message whose tool
+  // call started this rlm_exec. OpenCode V2 stores the selected model on the
+  // assistant message, not the user message. The legacy latest-model fallback
+  // remains only for direct callers/tests that do not supply that identity.
   const modelRes = await client.session.messages({
     path: { id: parentSessionID },
     query: { directory: dir },
@@ -91,16 +93,16 @@ export async function callChildLlm(
     throw new RlmError("CHILD_FAILED", `failed to read parent messages: ${JSON.stringify(modelRes.error)}`)
   }
   const messages = modelRes.data ?? []
-  const modelUser = input.parentUserMessageID
-    ? messages.find((m) => m.info.role === "user" && m.info.id === input.parentUserMessageID)
-    : [...messages].reverse().find((m) => m.info.role === "user")
-  if (input.parentUserMessageID && !modelUser) {
-    throw new RlmError("CHILD_FAILED", `could not resolve captured parent user message: ${input.parentUserMessageID}`)
+  const modelMessage = input.parentAssistantMessageID
+    ? messages.find((m) => m.info.role === "assistant" && m.info.id === input.parentAssistantMessageID)
+    : [...messages].reverse().find((m) => m.info.model !== undefined)
+  if (input.parentAssistantMessageID && !modelMessage) {
+    throw new RlmError("CHILD_FAILED", `could not resolve captured parent assistant message: ${input.parentAssistantMessageID}`)
   }
-  const rawModel = modelUser?.info.model as { providerID?: unknown; modelID?: unknown } | undefined
+  const rawModel = modelMessage?.info.model as { providerID?: unknown; modelID?: unknown } | undefined
   if (typeof rawModel?.providerID !== "string" || rawModel.providerID.length === 0
     || typeof rawModel?.modelID !== "string" || rawModel.modelID.length === 0) {
-    throw new RlmError("CHILD_FAILED", "could not resolve root model from the selected parent user message")
+    throw new RlmError("CHILD_FAILED", "could not resolve root model from the selected parent assistant message")
   }
   const rootModel = { providerID: rawModel.providerID, modelID: rawModel.modelID }
 
@@ -122,7 +124,7 @@ export async function callChildLlm(
 
   // 3. Create child session linked to parent, same directory.
   const childRes = await client.session.create({
-    body: { parentID: parentSessionID, title: input.title ?? "rlm child" },
+    body: { parentID: parentSessionID, title: input.title ?? "rlm child", model: rootModel },
     query: { directory: dir },
   })
   if (childRes.error || !childRes.data) {

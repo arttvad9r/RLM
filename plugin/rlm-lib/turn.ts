@@ -2,7 +2,7 @@
  * Turn-level RLM governor (host side).
  *
  * One in-memory budget per root user turn. ToolContext.messageID is the pinned
- * OpenCode SDK's assistant-message ID, so turn identity is resolved as the
+ * OpenCode V2's assistant-message ID, so turn identity is resolved as the
  * nearest preceding user message for that exact assistant message rather than
  * from whichever user message happens to be latest when an async lookup ends.
  * Session cache entries are evicted only from the authoritative OpenCode

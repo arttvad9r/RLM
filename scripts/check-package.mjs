@@ -35,6 +35,7 @@ const required = [
   "plugin/rlm.ts",
   "plugin/rlm-lib/constants.ts",
   "plugin/rlm-lib/context.ts",
+  "plugin/rlm-lib/opencode-v2.ts",
   "plugin/rlm-lib/sandbox.ts",
   "plugin/rlm-runner/runner.ts",
   "plugin/rlm-runner/generated-worker.ts",

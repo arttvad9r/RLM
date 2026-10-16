@@ -32,22 +32,33 @@ test("TurnGovernor evicts one deleted session and leaves later accounting fail-c
   assert.equal(governor.evictSession("unknown-session"), false)
 })
 
-test("plugin session.deleted hook evicts the matching root turn cache", async () => {
+test("plugin session.deleted subscription evicts the matching root turn cache", async () => {
   const sessionID = `session-delete-${Date.now()}-${Math.random()}`
   const started = await turnGovernor.beginExec(messagesClient("user-hook"), sessionID, "/repo", "assistant-hook", 100)
   assert.equal(started.allowed, true)
   assert.ok(turnGovernor.snapshot(sessionID))
 
-  const hooks = await plugin({
-    client: { app: { log: async () => ({}) } },
-    directory: "/repo",
-    worktree: "/repo",
-  })
-  await hooks.event?.({
-    event: {
-      type: "session.deleted",
-      properties: { info: { id: sessionID } },
+  const registration = { dispose: async () => {} }
+  const ctx = {
+    location: { directory: "/repo", project: { canonical: "/repo" } },
+    session: { hook: async () => registration },
+    tool: {
+      transform: async (apply) => {
+        apply({ add: () => {} })
+        return registration
+      },
     },
-  })
+    event: {
+      subscribe: async function* () {
+        yield { type: "session.deleted", data: { sessionID } }
+      },
+    },
+  }
+
+  const cleanup = await plugin.setup(ctx)
+  for (let i = 0; i < 10 && turnGovernor.snapshot(sessionID); i++) {
+    await new Promise((resolve) => setImmediate(resolve))
+  }
   assert.equal(turnGovernor.snapshot(sessionID), null)
+  await cleanup?.()
 })
