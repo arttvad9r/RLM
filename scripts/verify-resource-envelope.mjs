@@ -184,6 +184,9 @@ export async function inspectResourceEnvelope({
   const processCgroups = []
   for (const pid of tree) {
     const cgroup = await readProcessCgroup(procRoot, pid)
+    if (pid === rootPid && cgroup === null) {
+      throw new Error(`root process ${rootPid} disappeared during process-tree snapshot`)
+    }
     if (cgroup !== null) processCgroups.push({ pid, cgroup, covered: cgroupContains(rootCgroup, cgroup) })
   }
   const uncovered = processCgroups.filter((entry) => !entry.covered)
