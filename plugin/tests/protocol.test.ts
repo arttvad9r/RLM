@@ -72,3 +72,28 @@ Deno.test("sandbox framing rejects malformed channel tokens", () => {
     "PROTOCOL_ERROR",
   )
 })
+
+
+Deno.test("protocol validates working-memory request and response envelopes", () => {
+  const set = parseSandboxMessage('{"v":1,"type":"memory","id":"m1","operation":"set","key":"audit","value":{"count":2}}')
+  assert(set.type === "memory" && set.operation === "set" && set.key === "audit", "expected valid memory set")
+  const get = parseSandboxMessage('{"v":1,"type":"memory","id":"m2","operation":"get","key":"audit"}')
+  assert(get.type === "memory" && get.operation === "get", "expected valid memory get")
+  const keys = parseSandboxMessage('{"v":1,"type":"memory","id":"m3","operation":"keys"}')
+  assert(keys.type === "memory" && keys.operation === "keys", "expected valid memory keys")
+  const response = parseHostMessage('{"v":1,"type":"memory_result","id":"m2","ok":true,"value":{"found":false}}')
+  assert(response.type === "memory_result" && response.ok === true, "expected valid memory result")
+
+  assertRlmError(
+    () => parseSandboxMessage('{"v":1,"type":"memory","id":"m1","operation":"set","key":"audit"}'),
+    "PROTOCOL_ERROR",
+  )
+  assertRlmError(
+    () => parseSandboxMessage('{"v":1,"type":"memory","id":"m1","operation":"keys","key":"unexpected"}'),
+    "PROTOCOL_ERROR",
+  )
+  assertRlmError(
+    () => parseHostMessage('{"v":1,"type":"memory_result","id":"m1","ok":true}'),
+    "PROTOCOL_ERROR",
+  )
+})

@@ -25,8 +25,6 @@ import { createSafeRegexEvaluator } from "./safe-regex.ts"
 import type { ContextRequestMessage, GrepMatch, ReadManyItem, RlmRunState } from "./types.ts"
 import { confinePath } from "./workspace.ts"
 
-type Client = { file: unknown }
-
 const BINARY_EXTENSIONS = new Set([
   ".7z", ".a", ".aac", ".avi", ".avif", ".bin", ".bmp", ".bz2", ".class", ".dat", ".db",
   ".dll", ".dmg", ".doc", ".docx", ".eot", ".exe", ".flac", ".gif", ".gz", ".heic", ".heif",
@@ -54,13 +52,11 @@ function assertContextActive(state: RlmRunState): void {
 }
 
 export async function executeContextOperation(
-  _client: Client,
   state: RlmRunState,
-  _directory: string,
   msg: ContextRequestMessage,
 ): Promise<{ value: unknown }> {
   assertContextActive(state)
-  const policy = await resolveActiveRlmContextPolicy()
+  const policy = await resolveActiveRlmContextPolicy(process.env, state.hostConfigFallbackFile)
   assertContextActive(state)
   switch (msg.operation) {
     case "read":

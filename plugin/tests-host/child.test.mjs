@@ -57,7 +57,7 @@ test("child prompt receives provider/model shape and a full deny map", async () 
         bodyKeys = Object.keys(body).sort()
         return {
           data: {
-            info: { finish: "stop", cost: 0.25, tokens: { input: 10, output: 4 } },
+            info: { finish: "stop", cost: 0.25, tokens: { input: 10, output: 4, cache: { read: 7, write: 2 } } },
             parts: [{ type: "text", text: "answer" }],
           },
         }
@@ -73,14 +73,16 @@ test("child prompt receives provider/model shape and a full deny map", async () 
   )
   assert.deepEqual(model, { providerID: "provider", modelID: "model" })
   assert.deepEqual(bodyKeys, ["model", "parts", "tools"])
-  assert.deepEqual(tools, { read: false, bash: false, edit: false, rlm_exec: false })
+  assert.deepEqual(tools, { read: false, bash: false, edit: false, rlm_exec: false, rlm_map: false })
   assert.equal(result.model, "provider/model")
   assert.equal("variant" in result, false)
-  assert.equal(result.deniedToolCount, 4)
+  assert.equal(result.deniedToolCount, 5)
   assert.equal(result.text, "answer")
   assert.equal(result.cost, 0.25)
   assert.equal(result.tokensInput, 10)
   assert.equal(result.tokensOutput, 4)
+  assert.equal(result.tokensCacheRead, 7)
+  assert.equal(result.tokensCacheWrite, 2)
   assert.equal(activeRlmChildCount(), 0)
 })
 
@@ -107,7 +109,8 @@ test("child deny map preserves __proto__ as an own false-valued tool entry", asy
   assert.equal(Object.getPrototypeOf(tools), Object.prototype)
   assert.equal(tools.read, false)
   assert.equal(tools.rlm_exec, false)
-  assert.equal(result.deniedToolCount, 3)
+  assert.equal(tools.rlm_map, false)
+  assert.equal(result.deniedToolCount, 4)
   assert.equal(activeRlmChildCount(), 0)
 })
 
@@ -169,7 +172,7 @@ test("child inherits the exact captured parent assistant model", async () => {
       messages: async () => ({
         data: [
           { info: { id: "user-1", role: "user" } },
-          { info: { id: "assistant-1", role: "assistant", model: { providerID: "provider-a", modelID: "model-a" } } },
+          { info: { id: "assistant-1", role: "assistant", model: { providerID: "provider-a", modelID: "model-a", variant: "low" } } },
           { info: { id: "user-2", role: "user" } },
           { info: { id: "assistant-2", role: "assistant", model: { providerID: "provider-b", modelID: "model-b" } } },
         ],
@@ -197,9 +200,31 @@ test("child inherits the exact captured parent assistant model", async () => {
     log,
   )
 
-  assert.deepEqual(createModel, { providerID: "provider-a", modelID: "model-a" })
-  assert.deepEqual(promptModel, { providerID: "provider-a", modelID: "model-a" })
-  assert.equal(result.model, "provider-a/model-a")
+  assert.deepEqual(createModel, { providerID: "provider-a", modelID: "model-a", variant: "low" })
+  assert.deepEqual(promptModel, { providerID: "provider-a", modelID: "model-a", variant: "low" })
+  assert.equal(result.model, "provider-a/model-a#low")
+})
+
+test("fixed child model overrides the captured OpenCode parent model", async () => {
+  let createModel
+  let promptModel
+  const client = baseClient({ session: {
+    messages: async () => ({ data: [{ info: { id: "assistant-1", role: "assistant", model: { providerID: "openai", modelID: "gpt-6-sol", variant: "medium" } } }] }),
+    create: async ({ body }) => { createModel = body.model; return { data: { id: "child-fixed" } } },
+    prompt: async ({ body }) => { promptModel = body.model; return { data: { info: { finish: "stop" }, parts: [{ type: "text", text: "answer" }] } } },
+  } })
+  const result = await callChildLlm(client, {
+    prompt: "x", parentSessionID: "root", parentAssistantMessageID: "assistant-1", directory: "/workspace",
+    modelOverride: { provider: "openai", model: "gpt-6-luna", variant: "low" },
+  }, log)
+  assert.deepEqual(createModel, { providerID: "openai", modelID: "gpt-6-luna", variant: "low" })
+  assert.deepEqual(promptModel, createModel)
+  assert.equal(result.model, "openai/gpt-6-luna#low")
+})
+
+test("fixed OpenCode child model fails closed without provider", async () => {
+  const client = baseClient({ session: { messages: async () => ({ data: [{ info: { id: "assistant-1", role: "assistant", model: { providerID: "openai", modelID: "root" } } }] }) } })
+  await assert.rejects(() => callChildLlm(client, { prompt: "x", parentSessionID: "root", parentAssistantMessageID: "assistant-1", directory: "/workspace", modelOverride: { model: "child" } }, log), (error) => error instanceof RlmError && /requires provider/.test(error.message))
 })
 
 test("child fails closed when the captured parent assistant message is missing", async () => {

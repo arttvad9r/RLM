@@ -12,6 +12,7 @@
  */
 import { RlmError, toErrorInfo } from "./errors.ts"
 import { registerRlmChild, unregisterRlmChild } from "./child-system.ts"
+import type { ChildLlmInput, ChildLlmResult } from "./host.ts"
 import type { Logger } from "./types.ts"
 
 type Client = {
@@ -21,7 +22,7 @@ type Client = {
       query: { directory: string }
     }) => Promise<{ error?: unknown; data?: Array<{ info: { id?: string; role: string; model?: unknown } }> }>
     create: (args: {
-      body: { parentID: string; title: string; model?: { providerID: string; modelID: string } }
+      body: { parentID: string; title: string; model?: { providerID: string; modelID: string; variant?: string } }
       query: { directory: string }
     }) => Promise<{ error?: unknown; data?: { id: string } | null }>
     abort: (args: { path: { id: string }; query: { directory: string } }) => Promise<unknown>
@@ -29,7 +30,7 @@ type Client = {
       path: { id: string }
       body: {
         parts: Array<{ type: "text"; text: string }>
-        model: { providerID: string; modelID: string }
+        model: { providerID: string; modelID: string; variant?: string }
         tools: Record<string, boolean>
       }
       query: { directory: string }
@@ -49,28 +50,6 @@ type Client = {
   tool: {
     ids: (args: { query: { directory: string } }) => Promise<{ error?: unknown; data?: string[] }>
   }
-}
-
-export interface ChildLlmInput {
-  prompt: string
-  parentSessionID: string
-  /** User-message identity captured when the parent rlm_exec began. */
-  parentUserMessageID?: string
-  /** Exact assistant message whose tool call started the parent rlm_exec. */
-  parentAssistantMessageID?: string
-  directory: string
-  title?: string
-  signal?: AbortSignal
-}
-
-export interface ChildLlmResult {
-  text: string
-  childSessionID: string
-  model: string
-  deniedToolCount: number
-  cost?: number
-  tokensInput?: number
-  tokensOutput?: number
 }
 
 export async function callChildLlm(
@@ -99,12 +78,28 @@ export async function callChildLlm(
   if (input.parentAssistantMessageID && !modelMessage) {
     throw new RlmError("CHILD_FAILED", `could not resolve captured parent assistant message: ${input.parentAssistantMessageID}`)
   }
-  const rawModel = modelMessage?.info.model as { providerID?: unknown; modelID?: unknown } | undefined
+  const rawModel = modelMessage?.info.model as { providerID?: unknown; modelID?: unknown; variant?: unknown } | undefined
   if (typeof rawModel?.providerID !== "string" || rawModel.providerID.length === 0
     || typeof rawModel?.modelID !== "string" || rawModel.modelID.length === 0) {
     throw new RlmError("CHILD_FAILED", "could not resolve root model from the selected parent assistant message")
   }
-  const rootModel = { providerID: rawModel.providerID, modelID: rawModel.modelID }
+  const rootModel = {
+    providerID: rawModel.providerID,
+    modelID: rawModel.modelID,
+    ...(typeof rawModel.variant === "string" && rawModel.variant.length > 0 ? { variant: rawModel.variant } : {}),
+  }
+  const selectedModel = input.modelOverride
+    ? (() => {
+        if (!input.modelOverride.provider) {
+          throw new RlmError("CHILD_FAILED", "fixed child model requires provider for OpenCode")
+        }
+        return {
+          providerID: input.modelOverride.provider,
+          modelID: input.modelOverride.model,
+          ...(input.modelOverride.variant ? { variant: input.modelOverride.variant } : {}),
+        }
+      })()
+    : rootModel
 
   // 2. Full deny tool map: every available tool ID => false. Fail closed when
   //    the server cannot enumerate any tools; adding the explicit rlm_exec deny
@@ -121,10 +116,11 @@ export async function callChildLlm(
   }
   const denyTools = Object.fromEntries(toolIDs.map((id) => [id, false])) as Record<string, boolean>
   denyTools.rlm_exec = false
+  denyTools.rlm_map = false
 
   // 3. Create child session linked to parent, same directory.
   const childRes = await client.session.create({
-    body: { parentID: parentSessionID, title: input.title ?? "rlm child", model: rootModel },
+    body: { parentID: parentSessionID, title: input.title ?? "rlm child", model: selectedModel },
     query: { directory: dir },
   })
   if (childRes.error || !childRes.data) {
@@ -137,7 +133,7 @@ export async function callChildLlm(
       childSessionID,
       parentSessionID,
       parentUserMessageID: input.parentUserMessageID,
-      model: `${rootModel.providerID}/${rootModel.modelID}`,
+      model: `${selectedModel.providerID}/${selectedModel.modelID}${selectedModel.variant ? `#${selectedModel.variant}` : ""}`,
       deniedToolCount: Object.keys(denyTools).length,
     })
 
@@ -155,7 +151,7 @@ export async function callChildLlm(
         path: { id: childSessionID },
         body: {
           parts: [{ type: "text", text: prompt }],
-          model: rootModel,
+          model: selectedModel,
           tools: denyTools,
         },
         query: { directory: dir },
@@ -191,11 +187,13 @@ export async function callChildLlm(
       return {
         text,
         childSessionID,
-        model: `${rootModel.providerID}/${rootModel.modelID}`,
+        model: `${selectedModel.providerID}/${selectedModel.modelID}${selectedModel.variant ? `#${selectedModel.variant}` : ""}`,
         deniedToolCount: Object.keys(denyTools).length,
         cost: typeof info?.cost === "number" ? info.cost : undefined,
         tokensInput: info?.tokens?.input,
         tokensOutput: info?.tokens?.output,
+        tokensCacheRead: info?.tokens?.cache?.read,
+        tokensCacheWrite: info?.tokens?.cache?.write,
       }
     } catch (err) {
       throw err instanceof RlmError ? err : new RlmError("CHILD_FAILED", toErrorInfo(err).message)

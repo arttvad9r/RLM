@@ -7,7 +7,8 @@ import {
 import { RlmError } from "./errors.ts"
 import { readRlmHostConfig } from "./host-config.ts"
 
-export const RLM_CONTEXT_POLICY_ENV = "OPENCODE_RLM_CONTEXT_POLICY"
+export const RLM_CONTEXT_POLICY_ENV = "RLM_CONTEXT_POLICY"
+export const LEGACY_RLM_CONTEXT_POLICY_ENV = "OPENCODE_RLM_CONTEXT_POLICY"
 
 export interface RlmContextPolicy {
   allowedPaths: string[]
@@ -80,15 +81,18 @@ export function parseRlmContextPolicy(value: unknown, source = RLM_CONTEXT_POLIC
 
 /** Standalone/test seam. Environment authority can only narrow hard limits. */
 export function resolveRlmContextPolicy(env: NodeJS.ProcessEnv = process.env): RlmContextPolicy {
-  const raw = env[RLM_CONTEXT_POLICY_ENV]?.trim()
+  const primary = env[RLM_CONTEXT_POLICY_ENV]?.trim()
+  const legacy = env[LEGACY_RLM_CONTEXT_POLICY_ENV]?.trim()
+  const raw = primary || legacy
   if (!raw) return defaultPolicy()
+  const source = primary ? RLM_CONTEXT_POLICY_ENV : LEGACY_RLM_CONTEXT_POLICY_ENV
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
   } catch {
-    policyError(RLM_CONTEXT_POLICY_ENV, "value must be valid JSON")
+    policyError(source, "value must be valid JSON")
   }
-  return parseRlmContextPolicy(parsed, RLM_CONTEXT_POLICY_ENV)
+  return parseRlmContextPolicy(parsed, source)
 }
 
 /**
@@ -96,8 +100,11 @@ export function resolveRlmContextPolicy(env: NodeJS.ProcessEnv = process.env): R
  * ambient process environment. Environment authority is used only when no host
  * config exists.
  */
-export async function resolveActiveRlmContextPolicy(env: NodeJS.ProcessEnv = process.env): Promise<RlmContextPolicy> {
-  const host = await readRlmHostConfig(env)
+export async function resolveActiveRlmContextPolicy(
+  env: NodeJS.ProcessEnv = process.env,
+  hostConfigFallbackFile?: string,
+): Promise<RlmContextPolicy> {
+  const host = await readRlmHostConfig(env, hostConfigFallbackFile)
   if (host) return parseRlmContextPolicy(host.context_policy, "RLM host config context_policy")
   return resolveRlmContextPolicy(env)
 }

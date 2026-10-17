@@ -12,17 +12,16 @@ const { turnGovernor } = await import("../rlm-lib/turn.ts")
 
 const log = async () => {}
 
-function clientFor(userMessageID) {
+function hostFor(userMessageID) {
   const assistantMessageID = `assistant-${userMessageID.replace(/^user-/, "")}`
   return {
-    session: {
-      messages: async () => ({ data: [
-        { info: { id: userMessageID, role: "user" } },
-        { info: { id: assistantMessageID, role: "assistant" } },
-      ] }),
+    resolveTurn: async ({ boundaryID }) => {
+      assert.equal(boundaryID, assistantMessageID)
+      return { turnId: userMessageID, boundaryId: assistantMessageID, order: 1 }
     },
-    tool: { ids: async () => ({ data: ["read"] }) },
-    file: {},
+    callChild: async () => {
+      throw new Error("process envelope tests must not invoke child models")
+    },
   }
 }
 
@@ -42,7 +41,7 @@ test("external sandbox process termination fails closed and releases turn wall r
 
     const controller = new AbortController()
     await assert.rejects(
-      () => executeRlmExec(clientFor("user-kill"), {
+      () => executeRlmExec(hostFor("user-kill"), {
         code: 'return "must-not-succeed"',
         parentSessionID: sessionID,
         directory: root,
@@ -102,7 +101,7 @@ process.stdin.on("data", (chunk) => {
     await chmod(fakeDeno, 0o755)
     process.env.PATH = `${bin}${path.delimiter}${previousPath ?? ""}`
 
-    const outcome = await executeRlmExec(clientFor("user-utf8"), {
+    const outcome = await executeRlmExec(hostFor("user-utf8"), {
       code: 'return "ignored-by-fake-transport"',
       parentSessionID: sessionID,
       directory: root,
@@ -148,7 +147,7 @@ sleep 0.5
     process.env.PATH = `${bin}${path.delimiter}${previousPath ?? ""}`
 
     await assert.rejects(
-      () => executeRlmExec(clientFor("user-epipe"), {
+      () => executeRlmExec(hostFor("user-epipe"), {
         code: 'return "must-not-succeed"',
         parentSessionID: sessionID,
         directory: root,
@@ -166,6 +165,87 @@ sleep 0.5
     const snapshot = turnGovernor.snapshot(sessionID)
     assert.ok(snapshot, "turn state should remain observable after stdin failure")
     assert.ok(snapshot.wallMsRemaining > 0, `expected released wall reservation, remaining=${snapshot.wallMsRemaining}`)
+  } finally {
+    turnGovernor.evictSession(sessionID)
+    if (previousPath === undefined) delete process.env.PATH
+    else process.env.PATH = previousPath
+    await rm(root, { recursive: true, force: true })
+    await rm(bin, { recursive: true, force: true })
+  }
+})
+
+
+test("working memory persists across sandbox processes within one authoritative turn", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "rlm-memory-root-"))
+  const bin = await mkdtemp(path.join(tmpdir(), "rlm-memory-bin-"))
+  const previousPath = process.env.PATH
+  const fakeDeno = path.join(bin, "deno")
+  const sessionID = `root-memory-${Date.now()}-${Math.random()}`
+  try {
+    await writeFile(
+      fakeDeno,
+      `#!${process.execPath}
+let input = ""
+let channel = ""
+let mode = ""
+const send = (message) => process.stdout.write(\`RLM1:\${channel}:\${JSON.stringify(message)}\\n\`)
+process.stdin.setEncoding("utf8")
+process.stdin.on("data", (chunk) => {
+  input += chunk
+  for (;;) {
+    const nl = input.indexOf("\\n")
+    if (nl < 0) break
+    const line = input.slice(0, nl).trim()
+    input = input.slice(nl + 1)
+    if (!line) continue
+    const message = JSON.parse(line)
+    if (!channel) {
+      channel = message.channel
+      mode = message.code
+      if (mode === "set") {
+        send({ v: 1, type: "memory", id: "memory-set", operation: "set", key: "audit:candidates", value: { paths: ["src/a.ts"] } })
+      } else {
+        send({ v: 1, type: "memory", id: "memory-get", operation: "get", key: "audit:candidates" })
+      }
+      continue
+    }
+    if (message.type !== "memory_result" || !message.ok) process.exit(3)
+    if (mode === "set") send({ v: 1, type: "result", value: "stored" })
+    else send({ v: 1, type: "result", value: message.value })
+    setImmediate(() => process.exit(0))
+  }
+})
+`,
+    )
+    await chmod(fakeDeno, 0o755)
+    process.env.PATH = `${bin}${path.delimiter}${previousPath ?? ""}`
+
+    const host = hostFor("user-memory")
+    const first = await executeRlmExec(host, {
+      code: "set",
+      parentSessionID: sessionID,
+      directory: root,
+      worktree: root,
+      messageID: "assistant-memory",
+      abort: new AbortController().signal,
+      log,
+    })
+    assert.equal(first.output, "stored")
+    assert.equal(first.metadata.memoryCallCount, 1)
+    assert.equal(first.metadata.turnMemoryEntries, 1)
+
+    const second = await executeRlmExec(host, {
+      code: "get",
+      parentSessionID: sessionID,
+      directory: root,
+      worktree: root,
+      messageID: "assistant-memory",
+      abort: new AbortController().signal,
+      log,
+    })
+    assert.deepEqual(JSON.parse(second.output), { found: true, value: { paths: ["src/a.ts"] } })
+    assert.equal(second.metadata.memoryCallCount, 1)
+    assert.equal(second.metadata.turnMemoryEntries, 1)
   } finally {
     turnGovernor.evictSession(sessionID)
     if (previousPath === undefined) delete process.env.PATH

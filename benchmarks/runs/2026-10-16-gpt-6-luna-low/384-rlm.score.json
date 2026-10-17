@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "kind": "rlm_benchmark_score",
+  "benchmark_id": "semantic-state-audit-v3-384",
+  "run": {
+    "run_id": "luna-low-publish-384-rlm-ses_eb9805307ffeMnZ2eqHqU3iFyO",
+    "mode": "rlm",
+    "source_commit": "658b72260d75958f46ea263d87b80ccd2dd787a4",
+    "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+    "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+    "model": {
+      "provider_id": "openai",
+      "model_id": "gpt-6-luna",
+      "variant": "low"
+    },
+    "started_at": "2026-10-16T20:55:34.896Z",
+    "finished_at": "2026-10-16T20:56:05.872Z",
+    "usage": {
+      "wall_ms": 30976,
+      "root_input_tokens": 12665,
+      "root_output_tokens": 1054,
+      "child_input_tokens": 30645,
+      "child_output_tokens": 356,
+      "cost_usd": 0,
+      "rlm_exec_count": 1,
+      "rlm_child_calls": 4,
+      "rlm_context_calls": 0,
+      "rlm_context_chars": 0,
+      "total_tokens": 44720
+    }
+  },
+  "integrity": {
+    "manifest_ground_truth_sha256": "5cf7792b3fc39920a54d9e73df7da3368aedab8d328688b175653158003c827d",
+    "actual_ground_truth_sha256": "5cf7792b3fc39920a54d9e73df7da3368aedab8d328688b175653158003c827d",
+    "manifest_corpus_aggregate_sha256": "9c4a9b142be6a28c221d6f4c19db19cd941d8130e869138fb46d353bb27483c6",
+    "actual_corpus_aggregate_sha256": "9c4a9b142be6a28c221d6f4c19db19cd941d8130e869138fb46d353bb27483c6",
+    "canonical_task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+    "canonical_experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+    "run_sha256": "6d6b95dae1d0e5b329f544ae0237e19374d92ea2ff383fed724335c55b2af223"
+  },
+  "counts": {
+    "total": 384,
+    "expected_violations": 48,
+    "predicted_violations": 42,
+    "tp": 42,
+    "fp": 0,
+    "fn": 6,
+    "tn": 336
+  },
+  "metrics": {
+    "violation_precision": 1,
+    "violation_recall": 0.875,
+    "violation_f1": 0.933333,
+    "specificity": 1,
+    "accuracy": 0.984375,
+    "balanced_accuracy": 0.9375
+  }
+}

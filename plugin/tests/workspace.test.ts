@@ -1,7 +1,7 @@
 import { RlmError } from "../rlm-lib/errors.ts"
 import { confinePath, resolveWorkspaceRoot } from "../rlm-lib/workspace.ts"
 
-const ROOT_ENV = "OPENCODE_RLM_CONTEXT_ROOT"
+const ROOT_ENV = "RLM_CONTEXT_ROOT"
 const CONFIG_ENV = "XDG_CONFIG_HOME"
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -54,9 +54,9 @@ Deno.test("workspace root distinguishes trusted host authority from fallback Ope
     // Host-config authority has the same root semantics as explicit environment
     // authority: the approved context root may differ from the session root.
     Deno.env.delete(ROOT_ENV)
-    const agents = `${config}/opencode/agents`
+    const agents = `${config}/rlm`
     await Deno.mkdir(agents, { recursive: true })
-    await Deno.writeTextFile(`${agents}/.rlm-host.json`, JSON.stringify({
+    await Deno.writeTextFile(`${agents}/host.json`, JSON.stringify({
       version: 1,
       context_root: root,
       context_policy: { allowed_paths: ["child"] },

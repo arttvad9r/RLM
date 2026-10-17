@@ -10,11 +10,14 @@
  * stdout through Node compatibility APIs.
  */
 import {
+  MAX_MEMORY_KEY_CHARS,
+  MAX_MEMORY_VALUE_CHARS,
   MAX_PROTOCOL_LINE_CHARS,
   MAX_PROTOCOL_QUEUE_LINES,
   MAX_PROTOCOL_REQUESTS_TOTAL,
   MAX_READ_MANY_FILES,
   MAX_RESULT_CHARS,
+  MAX_SUBCALLS_TOTAL,
   PROTOCOL_VERSION,
 } from "../rlm-lib/constants.ts"
 import { RlmError } from "../rlm-lib/errors.ts"
@@ -225,7 +228,7 @@ async function main(): Promise<void> {
       fail(info)
     }
 
-    if (message.type === "llm" || message.type === "context") {
+    if (message.type === "llm" || message.type === "context" || message.type === "memory") {
       if (outstanding.has(message.id)) fail({ code: "PROTOCOL_ERROR", message: `duplicate worker request id: ${message.id}` })
       outstanding.add(message.id)
       writeMessage(message)
@@ -233,7 +236,7 @@ async function main(): Promise<void> {
     }
     if (message.type === "result") {
       if (outstanding.size > 0) {
-        fail({ code: "PROTOCOL_ERROR", message: `generated code returned with ${outstanding.size} RPC request(s) still pending; await all llm/context calls` })
+        fail({ code: "PROTOCOL_ERROR", message: `generated code returned with ${outstanding.size} RPC request(s) still pending; await all llm/context/memory calls` })
       }
       writeMessage(message)
       completed = true
@@ -255,7 +258,7 @@ async function main(): Promise<void> {
         const info = error instanceof RlmError ? error.toInfo() : { code: "PROTOCOL_ERROR" as const, message: String(error) }
         fail(info)
       }
-      if (message.type !== "llm_result" && message.type !== "context_result") {
+      if (message.type !== "llm_result" && message.type !== "context_result" && message.type !== "memory_result") {
         fail({ code: "PROTOCOL_ERROR", message: `unexpected host message type: ${message.type}` })
       }
       if (!outstanding.has(message.id)) {
@@ -282,6 +285,9 @@ async function main(): Promise<void> {
       maxReadManyFiles: MAX_READ_MANY_FILES,
       maxResultChars: MAX_RESULT_CHARS,
       maxProtocolRequestsTotal: MAX_PROTOCOL_REQUESTS_TOTAL,
+      maxSubcallsTotal: MAX_SUBCALLS_TOTAL,
+      maxMemoryKeyChars: MAX_MEMORY_KEY_CHARS,
+      maxMemoryValueChars: MAX_MEMORY_VALUE_CHARS,
     },
   }, [channel.port2])
   await completion

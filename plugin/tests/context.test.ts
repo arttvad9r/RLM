@@ -16,16 +16,16 @@ function forbiddenFileClient() {
 }
 
 Deno.test("context.files is rooted at approved host workspace, not session directory", async () => {
-  const previousPolicy = Deno.env.get("OPENCODE_RLM_CONTEXT_POLICY")
+  const previousPolicy = Deno.env.get("RLM_CONTEXT_POLICY")
   const previousConfig = Deno.env.get("XDG_CONFIG_HOME")
   const root = await Deno.makeTempDir({ prefix: "rlm-approved-" })
   const config = await Deno.makeTempDir({ prefix: "rlm-approved-config-" })
   await Deno.writeTextFile(`${root}/ok.ts`, "ok\n")
   try {
     Deno.env.set("XDG_CONFIG_HOME", config)
-    Deno.env.delete("OPENCODE_RLM_CONTEXT_POLICY")
+    Deno.env.delete("RLM_CONTEXT_POLICY")
     const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
-    const result = await executeContextOperation(forbiddenFileClient(), state, "/tmp/private-session-root", {
+    const result = await executeContextOperation(state, {
       v: 1,
       type: "context",
       id: "rooted",
@@ -34,8 +34,8 @@ Deno.test("context.files is rooted at approved host workspace, not session direc
     })
     assert(JSON.stringify(result.value) === JSON.stringify(["ok.ts"]), "expected approved workspace file")
   } finally {
-    if (previousPolicy === undefined) Deno.env.delete("OPENCODE_RLM_CONTEXT_POLICY")
-    else Deno.env.set("OPENCODE_RLM_CONTEXT_POLICY", previousPolicy)
+    if (previousPolicy === undefined) Deno.env.delete("RLM_CONTEXT_POLICY")
+    else Deno.env.set("RLM_CONTEXT_POLICY", previousPolicy)
     if (previousConfig === undefined) Deno.env.delete("XDG_CONFIG_HOME")
     else Deno.env.set("XDG_CONFIG_HOME", previousConfig)
     await Deno.remove(root, { recursive: true })
@@ -44,7 +44,7 @@ Deno.test("context.files is rooted at approved host workspace, not session direc
 })
 
 Deno.test("context.grep scans only host-approved files through bounded host I/O", async () => {
-  const previousPolicy = Deno.env.get("OPENCODE_RLM_CONTEXT_POLICY")
+  const previousPolicy = Deno.env.get("RLM_CONTEXT_POLICY")
   const previousConfig = Deno.env.get("XDG_CONFIG_HOME")
   const root = await Deno.makeTempDir({ prefix: "rlm-grep-root-" })
   const config = await Deno.makeTempDir({ prefix: "rlm-grep-config-" })
@@ -55,9 +55,9 @@ Deno.test("context.grep scans only host-approved files through bounded host I/O"
 
   try {
     Deno.env.set("XDG_CONFIG_HOME", config)
-    Deno.env.set("OPENCODE_RLM_CONTEXT_POLICY", JSON.stringify({ allowed_paths: ["allowed"] }))
+    Deno.env.set("RLM_CONTEXT_POLICY", JSON.stringify({ allowed_paths: ["allowed"] }))
     const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
-    const result = await executeContextOperation(forbiddenFileClient(), state, "/tmp/private-session-root", {
+    const result = await executeContextOperation(state, {
       v: 1,
       type: "context",
       id: "grep-scope",
@@ -66,8 +66,8 @@ Deno.test("context.grep scans only host-approved files through bounded host I/O"
     })
     assert(JSON.stringify(result.value) === JSON.stringify([{ path: "allowed/a.ts", line: 1, text: "const needle = true" }]), "expected only approved match")
   } finally {
-    if (previousPolicy === undefined) Deno.env.delete("OPENCODE_RLM_CONTEXT_POLICY")
-    else Deno.env.set("OPENCODE_RLM_CONTEXT_POLICY", previousPolicy)
+    if (previousPolicy === undefined) Deno.env.delete("RLM_CONTEXT_POLICY")
+    else Deno.env.set("RLM_CONTEXT_POLICY", previousPolicy)
     if (previousConfig === undefined) Deno.env.delete("XDG_CONFIG_HOME")
     else Deno.env.set("XDG_CONFIG_HOME", previousConfig)
     await Deno.remove(root, { recursive: true })
@@ -84,7 +84,7 @@ Deno.test("context.read rejects known binary files before decoding", async () =>
     Deno.env.set("XDG_CONFIG_HOME", config)
     const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
     try {
-      await executeContextOperation(forbiddenFileClient(), state, "/tmp/private-session-root", {
+      await executeContextOperation(state, {
         v: 1,
         type: "context",
         id: "binary",
@@ -107,7 +107,7 @@ Deno.test("context.read rejects known binary files before decoding", async () =>
 })
 
 Deno.test("context.files fails closed when host traversal depth is incomplete", async () => {
-  const previousPolicy = Deno.env.get("OPENCODE_RLM_CONTEXT_POLICY")
+  const previousPolicy = Deno.env.get("RLM_CONTEXT_POLICY")
   const previousConfig = Deno.env.get("XDG_CONFIG_HOME")
   const root = await Deno.makeTempDir({ prefix: "rlm-depth-root-" })
   const config = await Deno.makeTempDir({ prefix: "rlm-depth-config-" })
@@ -119,10 +119,10 @@ Deno.test("context.files fails closed when host traversal depth is incomplete", 
   await Deno.writeTextFile(`${current}/deep.txt`, "deep")
   try {
     Deno.env.set("XDG_CONFIG_HOME", config)
-    Deno.env.delete("OPENCODE_RLM_CONTEXT_POLICY")
+    Deno.env.delete("RLM_CONTEXT_POLICY")
     const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
     try {
-      await executeContextOperation(forbiddenFileClient(), state, "/tmp/private-session-root", {
+      await executeContextOperation(state, {
         v: 1,
         type: "context",
         id: "depth",
@@ -137,8 +137,8 @@ Deno.test("context.files fails closed when host traversal depth is incomplete", 
     }
     throw new Error("expected context.files to fail on incomplete traversal")
   } finally {
-    if (previousPolicy === undefined) Deno.env.delete("OPENCODE_RLM_CONTEXT_POLICY")
-    else Deno.env.set("OPENCODE_RLM_CONTEXT_POLICY", previousPolicy)
+    if (previousPolicy === undefined) Deno.env.delete("RLM_CONTEXT_POLICY")
+    else Deno.env.set("RLM_CONTEXT_POLICY", previousPolicy)
     if (previousConfig === undefined) Deno.env.delete("XDG_CONFIG_HOME")
     else Deno.env.set("XDG_CONFIG_HOME", previousConfig)
     await Deno.remove(root, { recursive: true })

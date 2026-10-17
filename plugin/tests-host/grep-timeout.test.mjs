@@ -31,15 +31,15 @@ test("context grep preempts catastrophic regular-expression backtracking", async
   const root = await mkdtemp(path.join(tmpdir(), "rlm-grep-timeout-"))
   const config = await mkdtemp(path.join(tmpdir(), "rlm-grep-timeout-config-"))
   const previousConfig = process.env.XDG_CONFIG_HOME
-  const previousPolicy = process.env.OPENCODE_RLM_CONTEXT_POLICY
+  const previousPolicy = process.env.RLM_CONTEXT_POLICY
   try {
     process.env.XDG_CONFIG_HOME = config
-    delete process.env.OPENCODE_RLM_CONTEXT_POLICY
+    delete process.env.RLM_CONTEXT_POLICY
     await writeFile(path.join(root, "bad.txt"), `${"a".repeat(100_000)}!`)
     const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 5_000 })
     const started = Date.now()
     await assert.rejects(
-      () => executeContextOperation(clientFor(root), state, "/private/session", {
+      () => executeContextOperation(state, {
         v: 1,
         type: "context",
         id: "catastrophic-regex",
@@ -52,8 +52,8 @@ test("context grep preempts catastrophic regular-expression backtracking", async
   } finally {
     if (previousConfig === undefined) delete process.env.XDG_CONFIG_HOME
     else process.env.XDG_CONFIG_HOME = previousConfig
-    if (previousPolicy === undefined) delete process.env.OPENCODE_RLM_CONTEXT_POLICY
-    else process.env.OPENCODE_RLM_CONTEXT_POLICY = previousPolicy
+    if (previousPolicy === undefined) delete process.env.RLM_CONTEXT_POLICY
+    else process.env.RLM_CONTEXT_POLICY = previousPolicy
     await rm(root, { recursive: true, force: true })
     await rm(config, { recursive: true, force: true })
   }

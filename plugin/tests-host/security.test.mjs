@@ -38,7 +38,7 @@ test("secret and VCS namespaces are hidden at every path depth", () => {
 
 test("context policy cannot widen hard limits and rejects traversal", () => {
   const policy = resolveRlmContextPolicy({
-    OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({
+    RLM_CONTEXT_POLICY: JSON.stringify({
       allowed_paths: ["src/core"],
       max_read_bytes: 999_999_999,
       max_grep_matches: 7,
@@ -51,7 +51,7 @@ test("context policy cannot widen hard limits and rejects traversal", () => {
   assert.equal(isRlmContextPathAllowed("src/core/a.ts", policy), true)
   assert.equal(isRlmContextPathAllowed("src/other.ts", policy), false)
   assert.throws(
-    () => resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["../escape"] }) }),
+    () => resolveRlmContextPolicy({ RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["../escape"] }) }),
     /parent traversal is not allowed/,
   )
 })
@@ -59,13 +59,13 @@ test("context policy cannot widen hard limits and rejects traversal", () => {
 test("context policy rejects empty scopes that would silently widen to the workspace root", () => {
   for (const entry of ["", ".", "./", "src/../"]) {
     assert.throws(
-      () => resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["src", entry] }) }),
+      () => resolveRlmContextPolicy({ RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["src", entry] }) }),
       entry.includes("..") ? /parent traversal is not allowed/ : /allowed_paths entries must name a non-empty repository-relative subtree/,
       entry,
     )
   }
 
-  const unrestricted = resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: [] }) })
+  const unrestricted = resolveRlmContextPolicy({ RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: [] }) })
   assert.deepEqual(unrestricted.allowedPaths, [])
   assert.equal(isRlmContextPathAllowed("src/a.ts", unrestricted), true)
   assert.equal(isRlmContextPathAllowed("docs/readme.md", unrestricted), true)

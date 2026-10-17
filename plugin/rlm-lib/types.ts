@@ -26,6 +26,7 @@ export interface RlmErrorInfo {
 // Protocol v1 messages (JSONL over stdin/stdout between host and runner)
 // ---------------------------------------------------------------------------
 export type ContextOperation = "read" | "readMany" | "grep" | "files" | "glob"
+export type MemoryOperation = "get" | "set" | "delete" | "keys"
 
 // host -> sandbox
 export interface CodeMessage {
@@ -49,6 +50,14 @@ export interface ContextResultMessage {
   value?: unknown
   error?: RlmErrorInfo
 }
+export interface MemoryResultMessage {
+  v: typeof PROTOCOL_VERSION
+  type: "memory_result"
+  id: string
+  ok: boolean
+  value?: unknown
+  error?: RlmErrorInfo
+}
 
 // sandbox -> host
 export interface LlmRequestMessage {
@@ -67,6 +76,14 @@ export interface ContextRequestMessage {
   pattern?: string
   query?: string
 }
+export interface MemoryRequestMessage {
+  v: typeof PROTOCOL_VERSION
+  type: "memory"
+  id: string
+  operation: MemoryOperation
+  key?: string
+  value?: unknown
+}
 export interface ResultMessage {
   v: typeof PROTOCOL_VERSION
   type: "result"
@@ -78,8 +95,8 @@ export interface ErrorMessage {
   error: RlmErrorInfo
 }
 
-export type HostToSandboxMessage = CodeMessage | LlmResultMessage | ContextResultMessage
-export type SandboxToHostMessage = LlmRequestMessage | ContextRequestMessage | ResultMessage | ErrorMessage
+export type HostToSandboxMessage = CodeMessage | LlmResultMessage | ContextResultMessage | MemoryResultMessage
+export type SandboxToHostMessage = LlmRequestMessage | ContextRequestMessage | MemoryRequestMessage | ResultMessage | ErrorMessage
 
 // ---------------------------------------------------------------------------
 // Model-facing (simplified) result shapes carried in context_result `value`
@@ -113,6 +130,20 @@ export interface ActiveChild {
   abort: () => void
 }
 
+export interface ChildInvocationUsage {
+  index: number
+  status: "ok" | "error"
+  model?: string
+  durationMs: number
+  responseChars: number
+  cost: number
+  tokensInput: number
+  tokensOutput: number
+  tokensCacheRead: number
+  tokensCacheWrite: number
+  errorCode?: string
+}
+
 function genRunId(): string {
   const c = (globalThis as Record<string, unknown>).crypto as { randomUUID?: () => string } | undefined
   const uuid = c?.randomUUID?.()
@@ -125,31 +156,40 @@ export class RlmRunState {
   readonly protocolVersion: typeof PROTOCOL_VERSION = PROTOCOL_VERSION
   readonly workspaceRoot: string
   readonly broadWorkspaceRoot: boolean
+  readonly hostConfigFallbackFile?: string
   readonly startedAt: number
   readonly deadlineAt: number
   readonly abort = new AbortController()
   readonly activeChildSessions = new Map<string, ActiveChild>()
   readonly childSessionIDs: string[] = []
+  readonly childModels: string[] = []
+  readonly childInvocations: ChildInvocationUsage[] = []
 
   /** Internal host cache: canonical parent dir -> listing promise (names). */
   readonly dirListings = new Map<string, Promise<Set<string>>>()
 
   childCallCount = 0
+  childSuccessCount = 0
+  childFailureCount = 0
   contextCallCount = 0
   contextCharsSent = 0
+  memoryCallCount = 0
 
   // child token/cost aggregation (from prompt info when available)
   childCostSum = 0
   childTokensInputSum = 0
   childTokensOutputSum = 0
+  childTokensCacheReadSum = 0
+  childTokensCacheWriteSum = 0
 
   timedOut = false
   exitCode: number | null = null
 
-  constructor(opts: { workspaceRoot: string; broadWorkspaceRoot: boolean; timeoutMs: number }) {
+  constructor(opts: { workspaceRoot: string; broadWorkspaceRoot: boolean; timeoutMs: number; hostConfigFallbackFile?: string }) {
     this.runId = genRunId()
     this.workspaceRoot = opts.workspaceRoot
     this.broadWorkspaceRoot = opts.broadWorkspaceRoot
+    this.hostConfigFallbackFile = opts.hostConfigFallbackFile
     this.startedAt = Date.now()
     this.deadlineAt = this.startedAt + opts.timeoutMs
   }

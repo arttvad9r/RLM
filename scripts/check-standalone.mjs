@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url))
 const TEXT_EXTENSIONS = new Set([".json", ".md", ".mjs", ".ts", ".yml", ".yaml"])
-const SKIP_DIRS = new Set([".git", "node_modules", "corpora", "ground-truth"])
+const SKIP_DIRS = new Set([".git", "node_modules", "dist", "corpora", "ground-truth"])
 const ALLOWED_ROOT_ENTRIES = new Set([
   ".git",
   ".github",
@@ -15,14 +15,17 @@ const ALLOWED_ROOT_ENTRIES = new Set([
   "CONTRIBUTING.md",
   "README.md",
   "SECURITY.md",
+  "adapters",
   "agent",
   "benchmarks",
+  "dist",
   "docs",
   "node_modules",
   "package-lock.json",
   "package.json",
   "plugin",
   "scripts",
+  "tsconfig.codex.json",
   "tsconfig.json",
 ])
 const FORBIDDEN = [
@@ -35,7 +38,9 @@ const FORBIDDEN = [
   "contracts/v1/",
   "runtime/agents/autopilot",
   ".autopilot/",
-  "/home/artt/Projects/opencode-autopilot",
+]
+const FORBIDDEN_PATTERNS = [
+  /\/home\/[^/]+\/Projects\/opencode-autopilot/,
 ]
 
 const violations = []
@@ -61,6 +66,9 @@ async function visit(directory) {
     const text = await readFile(absolute, "utf8")
     for (const token of FORBIDDEN) {
       if (text.includes(token)) violations.push(`${path}: forbidden standalone coupling ${JSON.stringify(token)}`)
+    }
+    for (const pattern of FORBIDDEN_PATTERNS) {
+      if (pattern.test(text)) violations.push(`${path}: forbidden standalone coupling ${pattern}`)
     }
   }
 }

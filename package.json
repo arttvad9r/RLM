@@ -1,5 +1,5 @@
 {
-  "name": "opencode-rlm",
+  "name": "rlm-runtime",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
@@ -8,12 +8,16 @@
     "typecheck:runner": "deno check --unstable-worker-options plugin/rlm-runner/runner.ts plugin/rlm-runner/generated-worker.ts",
     "typecheck": "npm run typecheck:host && npm run typecheck:runner",
     "test:host-runtime": "node --test plugin/tests-host/*.test.mjs",
-    "test:plugin": "deno test --unstable-worker-options --allow-run --allow-read --allow-write --allow-sys=homedir --allow-env=HOME,XDG_CONFIG_HOME,OPENCODE_RLM_CONTEXT_ROOT,OPENCODE_RLM_CONTEXT_POLICY,RLM_TEST_TURN_WALL_MS,RLM_TEST_TURN_EXECS,RLM_TEST_TURN_CTX_CALLS,RLM_TEST_TURN_CTX_CHARS,RLM_TEST_EXEC_TIMEOUT_MS plugin/tests/*.test.ts",
+    "test:plugin": "deno test --unstable-worker-options --allow-run --allow-read --allow-write --allow-sys=homedir --allow-env=HOME,XDG_CONFIG_HOME,RLM_CONTEXT_ROOT,RLM_CONTEXT_POLICY,OPENCODE_RLM_CONTEXT_ROOT,OPENCODE_RLM_CONTEXT_POLICY,RLM_TEST_TURN_WALL_MS,RLM_TEST_TURN_EXECS,RLM_TEST_TURN_CTX_CALLS,RLM_TEST_TURN_CTX_CHARS,RLM_TEST_EXEC_TIMEOUT_MS plugin/tests/*.test.ts",
     "test:benchmarks": "node --test benchmarks/harness/*.test.mjs",
     "verify:benchmarks": "node benchmarks/generator/verify.mjs && node benchmarks/generator/verify-v2.mjs && node benchmarks/generator/verify-v3.mjs",
     "verify:resource-envelope": "node scripts/verify-resource-envelope.mjs",
-    "test": "npm run check:standalone && npm run test:host-runtime && npm run typecheck && npm run test:plugin && npm run test:benchmarks && npm run verify:benchmarks && npm run check:package",
-    "check:package": "node scripts/check-package.mjs"
+    "test": "npm run check:standalone && npm run test:host-runtime && npm run typecheck && npm run test:plugin && npm run test:benchmarks && npm run verify:benchmarks && npm run check:codex-dist && npm run check:package",
+    "check:package": "node scripts/check-package.mjs",
+    "build:codex": "node scripts/build-codex.mjs",
+    "check:codex-dist": "node scripts/check-codex-dist.mjs",
+    "test:opencode-live": "node scripts/live-opencode-smoke.mjs",
+    "test:opencode-structured-live": "node scripts/live-structured-smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "24.7.2",
@@ -22,7 +26,7 @@
   "engines": {
     "node": ">=24"
   },
-  "description": "Sandboxed Recursive Language Model runtime for OpenCode with bounded context and isolated child agents.",
+  "description": "Sandboxed Recursive Language Model runtime with OpenCode and Codex adapters, bounded context, and isolated child models.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -34,6 +38,7 @@
   },
   "keywords": [
     "opencode",
+    "codex",
     "rlm",
     "recursive-language-model",
     "ai-agents",
@@ -46,6 +51,7 @@
     "plugin/rlm.ts",
     "plugin/rlm-lib/",
     "plugin/rlm-runner/",
+    "dist/",
     "agent/",
     "docs/known-limitations.md",
     "README.md",
@@ -56,6 +62,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@opencode/plugin": "2.0.29"
+    "@opencode/plugin": "2.0.29",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.6.7"
+  },
+  "bin": {
+    "rlm-codex": "./dist/adapters/codex/mcp.js"
   }
 }

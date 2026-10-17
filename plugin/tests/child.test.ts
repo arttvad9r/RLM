@@ -41,12 +41,12 @@ Deno.test("child fails closed when tool inventory is empty", async () => {
   assert(!createCalled, "child session must not be created without a complete deny map")
 })
 
-Deno.test("child prompt uses only the provider/model fields supported by runtime contract", async () => {
+Deno.test("child prompt preserves the captured model variant", async () => {
   let body: Record<string, unknown> | undefined
   const client = {
     session: {
       messages: async () => ({
-        data: [{ info: { role: "user", model: { providerID: "provider", modelID: "model" } } }],
+        data: [{ info: { role: "user", model: { providerID: "provider", modelID: "model", variant: "low" } } }],
       }),
       create: async () => ({ data: { id: "child" } }),
       abort: async () => ({}),
@@ -68,8 +68,6 @@ Deno.test("child prompt uses only the provider/model fields supported by runtime
     { prompt: "classify", parentSessionID: "parent", directory: "/project" },
     async () => {},
   )
-  assert(JSON.stringify(body?.model) === JSON.stringify({ providerID: "provider", modelID: "model" }), "unexpected child model body")
-  assert(body !== undefined && !("variant" in body), "runtime contract prompt body must not receive variant")
-  assert(result.model === "provider/model", "expected inherited provider/model")
-  assert(!("variant" in result), "child result must not claim unsupported variant inheritance")
+  assert(JSON.stringify(body?.model) === JSON.stringify({ providerID: "provider", modelID: "model", variant: "low" }), "unexpected child model body")
+  assert(result.model === "provider/model#low", "expected inherited provider/model variant")
 })

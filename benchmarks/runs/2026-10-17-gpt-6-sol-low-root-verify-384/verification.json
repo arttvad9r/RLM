@@ -1,0 +1,767 @@
+{
+  "benchmark_id": "semantic-state-audit-v3-384-root-verification",
+  "root_model": "openai/gpt-6-sol#low",
+  "child_model": "openai/gpt-6-sol#low",
+  "fanout": 16,
+  "concurrency_ceiling": 4,
+  "snapshot_commit": "7cd722ef75763c37c2f3171270e2946c8518c959",
+  "orders": [
+    [
+      "scan",
+      "verify"
+    ],
+    [
+      "verify",
+      "scan"
+    ],
+    [
+      "scan",
+      "verify"
+    ]
+  ],
+  "runs": [
+    {
+      "arm": "scan",
+      "session_id": "ses_eb7abde24ffe51QqF7NblMuRzf",
+      "wall_ms": 27259,
+      "predicted_violations": [
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 5813,
+        "output": 479,
+        "reasoning": 0,
+        "cache_read": 9088,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 32853,
+        "output": 427,
+        "reasoning": 59,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 0,
+      "candidate_source_chars": 0,
+      "token_accounting": {
+        "root_logical_tokens": 15380,
+        "child_logical_tokens": 33280,
+        "total_logical_tokens": 48660
+      },
+      "round": 1,
+      "position": 1,
+      "quality": {
+        "tp": 47,
+        "fp": 0,
+        "fn": 1,
+        "precision": 1,
+        "recall": 0.9791666666666666,
+        "f1": 0.9894736842105264
+      }
+    },
+    {
+      "arm": "verify",
+      "session_id": "ses_eb7ab735affe0pAb0mpfzAg0Qy",
+      "wall_ms": 25915,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/hinge408216.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 6090,
+        "output": 332,
+        "reasoning": 30,
+        "cache_read": 14208,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 3029,
+        "output": 439,
+        "reasoning": 189,
+        "cache_read": 29824,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 48,
+      "candidate_source_chars": 14042,
+      "token_accounting": {
+        "root_logical_tokens": 20630,
+        "child_logical_tokens": 33292,
+        "total_logical_tokens": 53922
+      },
+      "round": 1,
+      "position": 2,
+      "quality": {
+        "tp": 40,
+        "fp": 0,
+        "fn": 8,
+        "precision": 1,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091
+      }
+    },
+    {
+      "arm": "verify",
+      "session_id": "ses_eb7ab0df6ffeyuWsaga0XiV9TC",
+      "wall_ms": 24412,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/hinge408216.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 13245,
+        "output": 332,
+        "reasoning": 99,
+        "cache_read": 7168,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 12373,
+        "output": 438,
+        "reasoning": 15,
+        "cache_read": 20480,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 49,
+      "candidate_source_chars": 14315,
+      "token_accounting": {
+        "root_logical_tokens": 20745,
+        "child_logical_tokens": 33291,
+        "total_logical_tokens": 54036
+      },
+      "round": 2,
+      "position": 1,
+      "quality": {
+        "tp": 40,
+        "fp": 0,
+        "fn": 8,
+        "precision": 1,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091
+      }
+    },
+    {
+      "arm": "scan",
+      "session_id": "ses_eb7aaae74ffeTMqqRHgxippg8X",
+      "wall_ms": 28268,
+      "predicted_violations": [
+        "src/anchor840049.ts",
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 5832,
+        "output": 498,
+        "reasoning": 0,
+        "cache_read": 9088,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 19029,
+        "output": 440,
+        "reasoning": 92,
+        "cache_read": 13824,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 0,
+      "candidate_source_chars": 0,
+      "token_accounting": {
+        "root_logical_tokens": 15418,
+        "child_logical_tokens": 33293,
+        "total_logical_tokens": 48711
+      },
+      "round": 2,
+      "position": 2,
+      "quality": {
+        "tp": 48,
+        "fp": 1,
+        "fn": 0,
+        "precision": 0.9795918367346939,
+        "recall": 1,
+        "f1": 0.9896907216494846
+      }
+    },
+    {
+      "arm": "scan",
+      "session_id": "ses_eb7aa3fdcffeS1jp66WmuMgNyE",
+      "wall_ms": 28067,
+      "predicted_violations": [
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 831,
+        "output": 489,
+        "reasoning": 0,
+        "cache_read": 14080,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 8405,
+        "output": 441,
+        "reasoning": 309,
+        "cache_read": 24448,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 0,
+      "candidate_source_chars": 0,
+      "token_accounting": {
+        "root_logical_tokens": 15400,
+        "child_logical_tokens": 33294,
+        "total_logical_tokens": 48694
+      },
+      "round": 3,
+      "position": 1,
+      "quality": {
+        "tp": 48,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      }
+    },
+    {
+      "arm": "verify",
+      "session_id": "ses_eb7a9d20fffeT1S02d29WhyE8G",
+      "wall_ms": 24017,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/hinge408216.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 317,
+        "output": 332,
+        "reasoning": 46,
+        "cache_read": 20096,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 3029,
+        "output": 444,
+        "reasoning": 133,
+        "cache_read": 29824,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 49,
+      "candidate_source_chars": 14315,
+      "token_accounting": {
+        "root_logical_tokens": 20745,
+        "child_logical_tokens": 33297,
+        "total_logical_tokens": 54042
+      },
+      "round": 3,
+      "position": 2,
+      "quality": {
+        "tp": 40,
+        "fp": 0,
+        "fn": 8,
+        "precision": 1,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091
+      }
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "scan": {
+      "count": 3,
+      "f1": {
+        "median": 0.9896907216494846,
+        "min": 0.9894736842105264,
+        "max": 1,
+        "values": [
+          0.9894736842105264,
+          0.9896907216494846,
+          1
+        ]
+      },
+      "precision": {
+        "median": 1,
+        "min": 0.9795918367346939,
+        "max": 1,
+        "values": [
+          1,
+          0.9795918367346939,
+          1
+        ]
+      },
+      "recall": {
+        "median": 1,
+        "min": 0.9791666666666666,
+        "max": 1,
+        "values": [
+          0.9791666666666666,
+          1,
+          1
+        ]
+      },
+      "tp": {
+        "median": 48,
+        "min": 47,
+        "max": 48,
+        "values": [
+          47,
+          48,
+          48
+        ]
+      },
+      "fp": {
+        "median": 0,
+        "min": 0,
+        "max": 1,
+        "values": [
+          0,
+          1,
+          0
+        ]
+      },
+      "fn": {
+        "median": 0,
+        "min": 0,
+        "max": 1,
+        "values": [
+          1,
+          0,
+          0
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 15400,
+        "min": 15380,
+        "max": 15418,
+        "values": [
+          15380,
+          15418,
+          15400
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 33293,
+        "min": 33280,
+        "max": 33294,
+        "values": [
+          33280,
+          33293,
+          33294
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 48694,
+        "min": 48660,
+        "max": 48711,
+        "values": [
+          48660,
+          48711,
+          48694
+        ]
+      },
+      "wall_ms": {
+        "median": 28067,
+        "min": 27259,
+        "max": 28268,
+        "values": [
+          27259,
+          28268,
+          28067
+        ]
+      }
+    },
+    "verify": {
+      "count": 3,
+      "f1": {
+        "median": 0.9090909090909091,
+        "min": 0.9090909090909091,
+        "max": 0.9090909090909091,
+        "values": [
+          0.9090909090909091,
+          0.9090909090909091,
+          0.9090909090909091
+        ]
+      },
+      "precision": {
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "values": [
+          1,
+          1,
+          1
+        ]
+      },
+      "recall": {
+        "median": 0.8333333333333334,
+        "min": 0.8333333333333334,
+        "max": 0.8333333333333334,
+        "values": [
+          0.8333333333333334,
+          0.8333333333333334,
+          0.8333333333333334
+        ]
+      },
+      "tp": {
+        "median": 40,
+        "min": 40,
+        "max": 40,
+        "values": [
+          40,
+          40,
+          40
+        ]
+      },
+      "fp": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "fn": {
+        "median": 8,
+        "min": 8,
+        "max": 8,
+        "values": [
+          8,
+          8,
+          8
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 20745,
+        "min": 20630,
+        "max": 20745,
+        "values": [
+          20630,
+          20745,
+          20745
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 33292,
+        "min": 33291,
+        "max": 33297,
+        "values": [
+          33292,
+          33291,
+          33297
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 54036,
+        "min": 53922,
+        "max": 54042,
+        "values": [
+          53922,
+          54036,
+          54042
+        ]
+      },
+      "wall_ms": {
+        "median": 24412,
+        "min": 24017,
+        "max": 25915,
+        "values": [
+          25915,
+          24412,
+          24017
+        ]
+      }
+    }
+  },
+  "caveats": [
+    "Verification can remove false positives but cannot recover candidates missed by the first-stage scan.",
+    "The verify arm receives full source only for first-stage candidates and is forbidden from using additional root tools.",
+    "Logical token counts include cache-read tokens.",
+    "Three runs per arm reduce but do not eliminate model variance."
+  ]
+}

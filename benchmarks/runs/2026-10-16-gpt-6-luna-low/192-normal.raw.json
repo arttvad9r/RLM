@@ -1,0 +1,69 @@
+{
+  "benchmark_id": "semantic-state-audit-v2-192",
+  "size": 192,
+  "mode": "normal",
+  "session_id": "ses_eb981eb88ffee8MtvVSXD2hC08",
+  "workspace": "/tmp/rlm-benchmark-192-normal-1792184030257",
+  "started_at": "2026-10-16T20:53:50.318Z",
+  "finished_at": "2026-10-16T20:54:24.697Z",
+  "wall_ms": 34379,
+  "final_text": "{\"violations\":[\"src/beacon21461.ts\",\"src/beacon30321.ts\",\"src/chamber82056.ts\",\"src/dial73328.ts\",\"src/dial91364.ts\",\"src/flap18972.ts\",\"src/funnel16139.ts\",\"src/gauge52077.ts\",\"src/hatch96569.ts\",\"src/hub81367.ts\",\"src/joint73982.ts\",\"src/lobby70115.ts\",\"src/motor28365.ts\",\"src/motor57042.ts\",\"src/motor58249.ts\",\"src/notch67619.ts\",\"src/notch85348.ts\",\"src/paddle83124.ts\",\"src/quill10473.ts\",\"src/quill77582.ts\",\"src/racket46222.ts\",\"src/tuner32108.ts\",\"src/whip11569.ts\",\"src/whip29542.ts\"]}",
+  "parse_error": null,
+  "predicted_violations": [
+    "src/beacon21461.ts",
+    "src/beacon30321.ts",
+    "src/chamber82056.ts",
+    "src/dial73328.ts",
+    "src/dial91364.ts",
+    "src/flap18972.ts",
+    "src/funnel16139.ts",
+    "src/gauge52077.ts",
+    "src/hatch96569.ts",
+    "src/hub81367.ts",
+    "src/joint73982.ts",
+    "src/lobby70115.ts",
+    "src/motor28365.ts",
+    "src/motor57042.ts",
+    "src/motor58249.ts",
+    "src/notch67619.ts",
+    "src/notch85348.ts",
+    "src/paddle83124.ts",
+    "src/quill10473.ts",
+    "src/quill77582.ts",
+    "src/racket46222.ts",
+    "src/tuner32108.ts",
+    "src/whip11569.ts",
+    "src/whip29542.ts"
+  ],
+  "root": {
+    "cost_usd": 0,
+    "tokens": {
+      "input": 28739,
+      "output": 716,
+      "reasoning": 0,
+      "cache": {
+        "read": 24832,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded"
+  },
+  "children": [],
+  "telemetry": {
+    "rlm_exec_count": 0,
+    "rlm_exec_completed": 0,
+    "rlm_exec_errors": 0,
+    "rlm_child_calls": 0,
+    "rlm_context_calls": null,
+    "rlm_context_chars": null,
+    "root_shell_calls": 2,
+    "rlm_inputs": []
+  },
+  "totals": {
+    "root_input_tokens": 28739,
+    "root_output_tokens": 716,
+    "child_input_tokens": 0,
+    "child_output_tokens": 0,
+    "cost_usd": 0
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "kind": "rlm_ab_comparison",
+  "benchmark_id": "semantic-state-audit-v2-192",
+  "source_commit": "658b72260d75958f46ea263d87b80ccd2dd787a4",
+  "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+  "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+  "model": {
+    "provider_id": "openai",
+    "model_id": "gpt-6-luna",
+    "variant": "low"
+  },
+  "integrity": {
+    "ground_truth_sha256": "11e232b179af287b8b20e8c039697dd02e61e91753166a4335a98e683deaadcf",
+    "corpus_aggregate_sha256": "452407259a4c12b73f0f5e6dc38405462afc441822730f7011f2d93e705cd8de",
+    "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+    "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e"
+  },
+  "runs": {
+    "normal": "luna-low-publish-192-normal-ses_eb981eb88ffee8MtvVSXD2hC08",
+    "rlm": "luna-low-publish-192-rlm-ses_eb9815500ffeD5cn9rl7v4vPXl"
+  },
+  "quality": {
+    "normal": {
+      "violation_precision": 0.958333,
+      "violation_recall": 0.958333,
+      "violation_f1": 0.958333,
+      "specificity": 0.994048,
+      "accuracy": 0.989583,
+      "balanced_accuracy": 0.97619
+    },
+    "rlm": {
+      "violation_precision": 1,
+      "violation_recall": 0.875,
+      "violation_f1": 0.933333,
+      "specificity": 1,
+      "accuracy": 0.984375,
+      "balanced_accuracy": 0.9375
+    },
+    "rlm_minus_normal": {
+      "violation_precision": 0.041667,
+      "violation_recall": -0.083333,
+      "violation_f1": -0.025,
+      "specificity": 0.005952,
+      "accuracy": -0.005208,
+      "balanced_accuracy": -0.03869
+    }
+  },
+  "efficiency": {
+    "normal": {
+      "wall_ms": 34379,
+      "total_tokens": 29455,
+      "cost_usd": 0
+    },
+    "rlm": {
+      "wall_ms": 36133,
+      "total_tokens": 27627,
+      "cost_usd": 0
+    },
+    "rlm_minus_normal": {
+      "wall_ms": 1754,
+      "total_tokens": -1828,
+      "cost_usd": 0
+    }
+  }
+}

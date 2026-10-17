@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "provider_id": "openai",
+  "model_id": "gpt-6-luna",
+  "variant": "low",
+  "agent": "build",
+  "runs_per_arm": 1,
+  "workspace_instruction_sha256": "75bb0a85765649fb0e70f645054cbc3a6f871c2478be0d7fa5291aaa8f4fe346",
+  "permissions": {
+    "subagent": "deny",
+    "task": "deny",
+    "browser": "deny",
+    "websearch": "deny",
+    "webfetch": "deny"
+  },
+  "root_shell": "allowed",
+  "mode_difference": "RLM package/tool availability only; task prompt and workspace instructions are byte-identical",
+  "ordering": "normal then rlm within each corpus size",
+  "cost_semantics": "OpenCode ChatGPT provider reported cost field",
+  "rlm_strategy": "fixed safe orchestration template: one rlm_exec, four low-variant children, targeted root candidate verification",
+  "response_scoring_normalization": "parse final JSON violations array, retain strings, deduplicate and lexicographically sort for classification scoring; raw response and format issue are retained as evidence"
+}

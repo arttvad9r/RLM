@@ -1,0 +1,1213 @@
+{
+  "benchmark_id": "semantic-state-audit-v3-384-fanout-scaling",
+  "model": "openai/gpt-6-luna#low",
+  "snapshot_commit": "95c9fcff2ca175f17aec9d9642a68cc50cf1a908",
+  "design": {
+    "fanouts": [
+      4,
+      8,
+      16
+    ],
+    "concurrency_ceiling": 4,
+    "orders": [
+      [
+        4,
+        8,
+        16
+      ],
+      [
+        8,
+        16,
+        4
+      ],
+      [
+        16,
+        4,
+        8
+      ]
+    ],
+    "runs_per_fanout": 3,
+    "one_rlm_exec_per_run": true
+  },
+  "runs": [
+    {
+      "fanout": 4,
+      "session_id": "ses_eb8f76658ffePz7Gmy9P92rOWW",
+      "wall_ms": 16897,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam849479.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder763463.ts",
+        "src/helix177855.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle527561.ts",
+        "src/nozzle895013.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle756109.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/upright798255.ts",
+        "src/vane886237.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7915,
+        "output": 463,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 30645,
+        "output": 349,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 4,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15418,
+        "child_logical_tokens": 30994,
+        "total_logical_tokens": 46412,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 1,
+      "position": 1,
+      "quality": {
+        "tp": 38,
+        "fp": 7,
+        "fn": 10,
+        "precision": 0.8444444444444444,
+        "recall": 0.7916666666666666,
+        "f1": 0.8172043010752689
+      }
+    },
+    {
+      "fanout": 8,
+      "session_id": "ses_eb8f7242effeFdSSB5NteZwO2H",
+      "wall_ms": 21358,
+      "predicted_violations": [
+        "src/anchor664693.ts",
+        "src/anchor840049.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector810121.ts",
+        "src/ejector985760.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/helix177855.ts",
+        "src/helix661489.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge468262.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle384089.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay643839.ts",
+        "src/rudder260002.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle828881.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/yoke141970.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 5941,
+        "output": 537,
+        "reasoning": 0,
+        "cache_read": 9088,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 31381,
+        "output": 427,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 8,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15566,
+        "child_logical_tokens": 31808,
+        "total_logical_tokens": 47374,
+        "root_cache_read_tokens": 9088,
+        "child_cache_read_tokens": 0
+      },
+      "round": 1,
+      "position": 2,
+      "quality": {
+        "tp": 41,
+        "fp": 12,
+        "fn": 7,
+        "precision": 0.7735849056603774,
+        "recall": 0.8541666666666666,
+        "f1": 0.811881188118812
+      }
+    },
+    {
+      "fanout": 16,
+      "session_id": "ses_eb8f6d095ffeQx7TQBVIuxwMOZ",
+      "wall_ms": 23887,
+      "predicted_violations": [
+        "src/anchor664693.ts",
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector810121.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge468262.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/keel936910.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder260002.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle828881.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch350742.ts",
+        "src/winch735295.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts",
+        "src/zinc743765.ts"
+      ],
+      "root_usage": {
+        "input": 7987,
+        "output": 535,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 32853,
+        "output": 465,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15562,
+        "child_logical_tokens": 33318,
+        "total_logical_tokens": 48880,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 1,
+      "position": 3,
+      "quality": {
+        "tp": 44,
+        "fp": 9,
+        "fn": 4,
+        "precision": 0.8301886792452831,
+        "recall": 0.9166666666666666,
+        "f1": 0.8712871287128713
+      }
+    },
+    {
+      "fanout": 8,
+      "session_id": "ses_eb8f6730effeU28xwGNpgcXTkd",
+      "wall_ms": 20837,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix661489.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge468262.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/quay643839.ts",
+        "src/rudder260002.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle828881.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7951,
+        "output": 499,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 31381,
+        "output": 399,
+        "reasoning": 144,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 8,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15490,
+        "child_logical_tokens": 31780,
+        "total_logical_tokens": 47270,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 2,
+      "position": 1,
+      "quality": {
+        "tp": 41,
+        "fp": 8,
+        "fn": 7,
+        "precision": 0.8367346938775511,
+        "recall": 0.8541666666666666,
+        "f1": 0.845360824742268
+      }
+    },
+    {
+      "fanout": 16,
+      "session_id": "ses_eb8f62184ffeimOPUNNgzWaJUG",
+      "wall_ms": 26129,
+      "predicted_violations": [
+        "src/anchor664693.ts",
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam849479.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector810121.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/girder763463.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge468262.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/keel936910.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/nozzle895013.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/quay643839.ts",
+        "src/rudder260002.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle828881.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch350742.ts",
+        "src/winch735295.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 8024,
+        "output": 572,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 32853,
+        "output": 494,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15636,
+        "child_logical_tokens": 33347,
+        "total_logical_tokens": 48983,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 2,
+      "position": 2,
+      "quality": {
+        "tp": 43,
+        "fp": 14,
+        "fn": 5,
+        "precision": 0.7543859649122807,
+        "recall": 0.8958333333333334,
+        "f1": 0.819047619047619
+      }
+    },
+    {
+      "fanout": 4,
+      "session_id": "ses_eb8f5bb40ffe8vFff03qnNWksf",
+      "wall_ms": 21030,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/helix177855.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle756109.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/vane886237.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7895,
+        "output": 443,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 30645,
+        "output": 335,
+        "reasoning": 266,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 4,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15378,
+        "child_logical_tokens": 30980,
+        "total_logical_tokens": 46358,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 2,
+      "position": 3,
+      "quality": {
+        "tp": 40,
+        "fp": 3,
+        "fn": 8,
+        "precision": 0.9302325581395349,
+        "recall": 0.8333333333333334,
+        "f1": 0.8791208791208791
+      }
+    },
+    {
+      "fanout": 16,
+      "session_id": "ses_eb8f56901ffeceLo36zTu2X0sq",
+      "wall_ms": 26978,
+      "predicted_violations": [
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/gasket691004.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix177855.ts",
+        "src/helix661489.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/quay643839.ts",
+        "src/rudder260002.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle828881.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc200626.ts",
+        "src/zinc743765.ts"
+      ],
+      "root_usage": {
+        "input": 7978,
+        "output": 526,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 32853,
+        "output": 458,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15544,
+        "child_logical_tokens": 33311,
+        "total_logical_tokens": 48855,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 3,
+      "position": 1,
+      "quality": {
+        "tp": 42,
+        "fp": 10,
+        "fn": 6,
+        "precision": 0.8076923076923077,
+        "recall": 0.875,
+        "f1": 0.8400000000000001
+      }
+    },
+    {
+      "fanout": 4,
+      "session_id": "ses_eb8f4ff6dffe9kOXadFK5lGDSF",
+      "wall_ms": 22405,
+      "predicted_violations": [
+        "src/anchor840049.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam849479.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/girder763463.ts",
+        "src/helix661489.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel792075.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle527561.ts",
+        "src/nozzle895013.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle756109.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/vane886237.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts"
+      ],
+      "root_usage": {
+        "input": 7942,
+        "output": 490,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 30645,
+        "output": 372,
+        "reasoning": 301,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 4,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15472,
+        "child_logical_tokens": 31017,
+        "total_logical_tokens": 46489,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 3,
+      "position": 2,
+      "quality": {
+        "tp": 38,
+        "fp": 10,
+        "fn": 10,
+        "precision": 0.7916666666666666,
+        "recall": 0.7916666666666666,
+        "f1": 0.7916666666666666
+      }
+    },
+    {
+      "fanout": 8,
+      "session_id": "ses_eb8f4a7d1ffenCTCXFzvz136wM",
+      "wall_ms": 19274,
+      "predicted_violations": [
+        "src/anchor664693.ts",
+        "src/anchor840049.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector810121.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder566879.ts",
+        "src/helix177855.ts",
+        "src/helix661489.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge468262.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle384089.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay643839.ts",
+        "src/rudder260002.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle828881.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7989,
+        "output": 537,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 31381,
+        "output": 427,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 8,
+      "runtime_metadata": {},
+      "token_accounting": {
+        "root_logical_tokens": 15566,
+        "child_logical_tokens": 31808,
+        "total_logical_tokens": 47374,
+        "root_cache_read_tokens": 7040,
+        "child_cache_read_tokens": 0
+      },
+      "round": 3,
+      "position": 3,
+      "quality": {
+        "tp": 40,
+        "fp": 13,
+        "fn": 8,
+        "precision": 0.7547169811320755,
+        "recall": 0.8333333333333334,
+        "f1": 0.7920792079207922
+      }
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "4": {
+      "count": 3,
+      "f1": {
+        "median": 0.8172043010752689,
+        "min": 0.7916666666666666,
+        "max": 0.8791208791208791,
+        "values": [
+          0.8172043010752689,
+          0.8791208791208791,
+          0.7916666666666666
+        ]
+      },
+      "precision": {
+        "median": 0.8444444444444444,
+        "min": 0.7916666666666666,
+        "max": 0.9302325581395349,
+        "values": [
+          0.8444444444444444,
+          0.9302325581395349,
+          0.7916666666666666
+        ]
+      },
+      "recall": {
+        "median": 0.7916666666666666,
+        "min": 0.7916666666666666,
+        "max": 0.8333333333333334,
+        "values": [
+          0.7916666666666666,
+          0.8333333333333334,
+          0.7916666666666666
+        ]
+      },
+      "tp": {
+        "median": 38,
+        "min": 38,
+        "max": 40,
+        "values": [
+          38,
+          40,
+          38
+        ]
+      },
+      "fp": {
+        "median": 7,
+        "min": 3,
+        "max": 10,
+        "values": [
+          7,
+          3,
+          10
+        ]
+      },
+      "fn": {
+        "median": 10,
+        "min": 8,
+        "max": 10,
+        "values": [
+          10,
+          8,
+          10
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 15418,
+        "min": 15378,
+        "max": 15472,
+        "values": [
+          15418,
+          15378,
+          15472
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 30994,
+        "min": 30980,
+        "max": 31017,
+        "values": [
+          30994,
+          30980,
+          31017
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 46412,
+        "min": 46358,
+        "max": 46489,
+        "values": [
+          46412,
+          46358,
+          46489
+        ]
+      },
+      "wall_ms": {
+        "median": 21030,
+        "min": 16897,
+        "max": 22405,
+        "values": [
+          16897,
+          21030,
+          22405
+        ]
+      },
+      "child_session_count": {
+        "median": 4,
+        "min": 4,
+        "max": 4,
+        "values": [
+          4,
+          4,
+          4
+        ]
+      }
+    },
+    "8": {
+      "count": 3,
+      "f1": {
+        "median": 0.811881188118812,
+        "min": 0.7920792079207922,
+        "max": 0.845360824742268,
+        "values": [
+          0.811881188118812,
+          0.845360824742268,
+          0.7920792079207922
+        ]
+      },
+      "precision": {
+        "median": 0.7735849056603774,
+        "min": 0.7547169811320755,
+        "max": 0.8367346938775511,
+        "values": [
+          0.7735849056603774,
+          0.8367346938775511,
+          0.7547169811320755
+        ]
+      },
+      "recall": {
+        "median": 0.8541666666666666,
+        "min": 0.8333333333333334,
+        "max": 0.8541666666666666,
+        "values": [
+          0.8541666666666666,
+          0.8541666666666666,
+          0.8333333333333334
+        ]
+      },
+      "tp": {
+        "median": 41,
+        "min": 40,
+        "max": 41,
+        "values": [
+          41,
+          41,
+          40
+        ]
+      },
+      "fp": {
+        "median": 12,
+        "min": 8,
+        "max": 13,
+        "values": [
+          12,
+          8,
+          13
+        ]
+      },
+      "fn": {
+        "median": 7,
+        "min": 7,
+        "max": 8,
+        "values": [
+          7,
+          7,
+          8
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 15566,
+        "min": 15490,
+        "max": 15566,
+        "values": [
+          15566,
+          15490,
+          15566
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 31808,
+        "min": 31780,
+        "max": 31808,
+        "values": [
+          31808,
+          31780,
+          31808
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 47374,
+        "min": 47270,
+        "max": 47374,
+        "values": [
+          47374,
+          47270,
+          47374
+        ]
+      },
+      "wall_ms": {
+        "median": 20837,
+        "min": 19274,
+        "max": 21358,
+        "values": [
+          21358,
+          20837,
+          19274
+        ]
+      },
+      "child_session_count": {
+        "median": 8,
+        "min": 8,
+        "max": 8,
+        "values": [
+          8,
+          8,
+          8
+        ]
+      }
+    },
+    "16": {
+      "count": 3,
+      "f1": {
+        "median": 0.8400000000000001,
+        "min": 0.819047619047619,
+        "max": 0.8712871287128713,
+        "values": [
+          0.8712871287128713,
+          0.819047619047619,
+          0.8400000000000001
+        ]
+      },
+      "precision": {
+        "median": 0.8076923076923077,
+        "min": 0.7543859649122807,
+        "max": 0.8301886792452831,
+        "values": [
+          0.8301886792452831,
+          0.7543859649122807,
+          0.8076923076923077
+        ]
+      },
+      "recall": {
+        "median": 0.8958333333333334,
+        "min": 0.875,
+        "max": 0.9166666666666666,
+        "values": [
+          0.9166666666666666,
+          0.8958333333333334,
+          0.875
+        ]
+      },
+      "tp": {
+        "median": 43,
+        "min": 42,
+        "max": 44,
+        "values": [
+          44,
+          43,
+          42
+        ]
+      },
+      "fp": {
+        "median": 10,
+        "min": 9,
+        "max": 14,
+        "values": [
+          9,
+          14,
+          10
+        ]
+      },
+      "fn": {
+        "median": 5,
+        "min": 4,
+        "max": 6,
+        "values": [
+          4,
+          5,
+          6
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 15562,
+        "min": 15544,
+        "max": 15636,
+        "values": [
+          15562,
+          15636,
+          15544
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 33318,
+        "min": 33311,
+        "max": 33347,
+        "values": [
+          33318,
+          33347,
+          33311
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 48880,
+        "min": 48855,
+        "max": 48983,
+        "values": [
+          48880,
+          48983,
+          48855
+        ]
+      },
+      "wall_ms": {
+        "median": 26129,
+        "min": 23887,
+        "max": 26978,
+        "values": [
+          23887,
+          26129,
+          26978
+        ]
+      },
+      "child_session_count": {
+        "median": 16,
+        "min": 16,
+        "max": 16,
+        "values": [
+          16,
+          16,
+          16
+        ]
+      }
+    }
+  },
+  "caveats": [
+    "Fixed benchmark-only orchestration isolates fan-out from generated-JavaScript reliability.",
+    "Logical token accounting includes cache-read tokens for both root and child sessions.",
+    "Three runs per fan-out reduce but do not eliminate stochastic model variance.",
+    "The corpus is about 75 KiB of TypeScript and should not be generalized to huge-context workloads."
+  ]
+}

@@ -24,7 +24,7 @@ function expectContextDenied(fn: () => unknown): void {
 
 Deno.test("context policy can only narrow hard limits", () => {
   const policy = resolveRlmContextPolicy({
-    OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({
+    RLM_CONTEXT_POLICY: JSON.stringify({
       allowed_paths: ["src/core", "docs"],
       max_read_bytes: 999_999_999,
       max_grep_matches: 7,
@@ -39,7 +39,7 @@ Deno.test("context policy can only narrow hard limits", () => {
 
 Deno.test("context policy supports bounded tree scopes", () => {
   const policy = resolveRlmContextPolicy({
-    OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["src/core/deep"] }),
+    RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["src/core/deep"] }),
   })
   assert(mayTraverseRlmContextPath("src", policy), "ancestor must be traversable")
   assert(mayTraverseRlmContextPath("src/core", policy), "nested ancestor must be traversable")
@@ -49,7 +49,7 @@ Deno.test("context policy supports bounded tree scopes", () => {
 })
 
 Deno.test("context policy always hides generic VCS and secret paths", () => {
-  const policy = resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: [] }) })
+  const policy = resolveRlmContextPolicy({ RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: [] }) })
   for (const candidate of [
     ".git/config",
     "src/.git/objects/x",
@@ -73,16 +73,16 @@ Deno.test("context policy rejects malformed authority input", () => {
     JSON.stringify({ max_read_bytes: 0 }),
     JSON.stringify({ extra_authority: true }),
   ]) {
-    expectContextDenied(() => resolveRlmContextPolicy({ OPENCODE_RLM_CONTEXT_POLICY: raw }))
+    expectContextDenied(() => resolveRlmContextPolicy({ RLM_CONTEXT_POLICY: raw }))
   }
 })
 
 Deno.test("active context policy loads host config", async () => {
   const root = await Deno.makeTempDir({ prefix: "rlm-host-policy-" })
   try {
-    const agents = `${root}/opencode/agents`
+    const agents = `${root}/rlm`
     await Deno.mkdir(agents, { recursive: true })
-    await Deno.writeTextFile(`${agents}/.rlm-host.json`, JSON.stringify({
+    await Deno.writeTextFile(`${agents}/host.json`, JSON.stringify({
       version: 1,
       context_root: "/tmp/approved-repository",
       context_policy: {
@@ -105,16 +105,16 @@ Deno.test("active context policy loads host config", async () => {
 Deno.test("host policy cannot be overridden by ambient policy env", async () => {
   const root = await Deno.makeTempDir({ prefix: "rlm-host-policy-env-" })
   try {
-    const agents = `${root}/opencode/agents`
+    const agents = `${root}/rlm`
     await Deno.mkdir(agents, { recursive: true })
-    await Deno.writeTextFile(`${agents}/.rlm-host.json`, JSON.stringify({
+    await Deno.writeTextFile(`${agents}/host.json`, JSON.stringify({
       version: 1,
       context_root: "/tmp/approved-repository",
       context_policy: { allowed_paths: ["host-approved"] },
     }))
     const policy = await resolveActiveRlmContextPolicy({
       XDG_CONFIG_HOME: root,
-      OPENCODE_RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["ambient-wider-scope"] }),
+      RLM_CONTEXT_POLICY: JSON.stringify({ allowed_paths: ["ambient-wider-scope"] }),
     })
     assert(policy.allowedPaths.join(",") === "host-approved", "host authority must win")
   } finally {

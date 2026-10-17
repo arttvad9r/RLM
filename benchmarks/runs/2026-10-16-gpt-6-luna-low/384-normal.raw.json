@@ -1,0 +1,44 @@
+{
+  "benchmark_id": "semantic-state-audit-v3-384",
+  "size": 384,
+  "mode": "normal",
+  "session_id": "ses_eb980bb98ffe6stJBKdyxg5TFP",
+  "workspace": "/tmp/rlm-benchmark-384-normal-1792184108057",
+  "started_at": "2026-10-16T20:55:08.126Z",
+  "finished_at": "2026-10-16T20:55:30.740Z",
+  "wall_ms": 22614,
+  "final_text": "{\"violations\":[]}",
+  "parse_error": null,
+  "predicted_violations": [],
+  "root": {
+    "cost_usd": 0,
+    "tokens": {
+      "input": 37353,
+      "output": 540,
+      "reasoning": 0,
+      "cache": {
+        "read": 41472,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded"
+  },
+  "children": [],
+  "telemetry": {
+    "rlm_exec_count": 0,
+    "rlm_exec_completed": 0,
+    "rlm_exec_errors": 0,
+    "rlm_child_calls": 0,
+    "rlm_context_calls": null,
+    "rlm_context_chars": null,
+    "root_shell_calls": 2,
+    "rlm_inputs": []
+  },
+  "totals": {
+    "root_input_tokens": 37353,
+    "root_output_tokens": 540,
+    "child_input_tokens": 0,
+    "child_output_tokens": 0,
+    "cost_usd": 0
+  }
+}

@@ -34,7 +34,7 @@ for (const [name, bytes, diagnostic] of [
       await writeFile(path.join(root, "payload.txt"), bytes)
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
       await assert.rejects(
-        () => executeContextOperation(client, state, "/private/session", {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "binary-bytes",

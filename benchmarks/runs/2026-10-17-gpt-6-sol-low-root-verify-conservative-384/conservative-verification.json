@@ -1,0 +1,409 @@
+{
+  "benchmark_id": "semantic-state-audit-v3-384-root-verification-conservative",
+  "root_model": "openai/gpt-6-sol#low",
+  "child_model": "openai/gpt-6-sol#low",
+  "fanout": 16,
+  "concurrency_ceiling": 4,
+  "snapshot_commit": "42df5e285845f5d8e74d3c1cc2daa0529d1edc0a",
+  "orders": [
+    [
+      "verify"
+    ],
+    [
+      "verify"
+    ],
+    [
+      "verify"
+    ]
+  ],
+  "runs": [
+    {
+      "arm": "verify",
+      "session_id": "ses_eb7a6fe51ffedTEtt1KEXi98o0",
+      "wall_ms": 25961,
+      "predicted_violations": [
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 11251,
+        "output": 390,
+        "reasoning": 13,
+        "cache_read": 9344,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 3029,
+        "output": 440,
+        "reasoning": 65,
+        "cache_read": 29824,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 49,
+      "candidate_source_chars": 14315,
+      "token_accounting": {
+        "root_logical_tokens": 20985,
+        "child_logical_tokens": 33293,
+        "total_logical_tokens": 54278
+      },
+      "round": 1,
+      "position": 1,
+      "quality": {
+        "tp": 48,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      }
+    },
+    {
+      "arm": "verify",
+      "session_id": "ses_eb7a698a2ffeShzMEhMOydZKDq",
+      "wall_ms": 51768,
+      "predicted_violations": [
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 11251,
+        "output": 390,
+        "reasoning": 14,
+        "cache_read": 9344,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 6613,
+        "output": 440,
+        "reasoning": 73,
+        "cache_read": 26240,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 49,
+      "candidate_source_chars": 14315,
+      "token_accounting": {
+        "root_logical_tokens": 20985,
+        "child_logical_tokens": 33293,
+        "total_logical_tokens": 54278
+      },
+      "round": 2,
+      "position": 1,
+      "quality": {
+        "tp": 48,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      }
+    },
+    {
+      "arm": "verify",
+      "session_id": "ses_eb7a5ce34ffertvKgAEvDT7qJ6",
+      "wall_ms": 27383,
+      "predicted_violations": [
+        "src/anchor959080.ts",
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket762030.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket331116.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle384089.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 11136,
+        "output": 388,
+        "reasoning": 0,
+        "cache_read": 9344,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 32853,
+        "output": 435,
+        "reasoning": 68,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_session_count": 16,
+      "child_models": [
+        "openai/gpt-6-sol#low"
+      ],
+      "candidate_count": 48,
+      "candidate_source_chars": 14042,
+      "token_accounting": {
+        "root_logical_tokens": 20868,
+        "child_logical_tokens": 33288,
+        "total_logical_tokens": 54156
+      },
+      "round": 3,
+      "position": 1,
+      "quality": {
+        "tp": 48,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      }
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "verify": {
+      "count": 3,
+      "f1": {
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "values": [
+          1,
+          1,
+          1
+        ]
+      },
+      "precision": {
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "values": [
+          1,
+          1,
+          1
+        ]
+      },
+      "recall": {
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "values": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tp": {
+        "median": 48,
+        "min": 48,
+        "max": 48,
+        "values": [
+          48,
+          48,
+          48
+        ]
+      },
+      "fp": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "fn": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 20985,
+        "min": 20868,
+        "max": 20985,
+        "values": [
+          20985,
+          20985,
+          20868
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 33293,
+        "min": 33288,
+        "max": 33293,
+        "values": [
+          33293,
+          33293,
+          33288
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 54278,
+        "min": 54156,
+        "max": 54278,
+        "values": [
+          54278,
+          54278,
+          54156
+        ]
+      },
+      "wall_ms": {
+        "median": 27383,
+        "min": 25961,
+        "max": 51768,
+        "values": [
+          25961,
+          51768,
+          27383
+        ]
+      }
+    }
+  },
+  "caveats": [
+    "Verification can remove false positives but cannot recover candidates missed by the first-stage scan.",
+    "The verify arm receives full source only for first-stage candidates and is forbidden from using additional root tools.",
+    "Logical token counts include cache-read tokens.",
+    "Three runs per arm reduce but do not eliminate model variance."
+  ]
+}

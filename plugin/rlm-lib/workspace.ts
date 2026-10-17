@@ -33,23 +33,24 @@ async function canonicalize(pathValue: string, requireExisting: boolean): Promis
  * Determine the workspace root for all context operations.
  *
  * Authority order:
- *   - host-materialized `.rlm-host.json` authority;
- *   - OPENCODE_RLM_CONTEXT_ROOT when no host config exists;
- *   - OpenCode worktree for ordinary git sessions;
- *   - session directory for ordinary non-git sessions.
+ *   - host-neutral `$XDG_CONFIG_HOME/rlm/host.json` authority;
+ *   - RLM_CONTEXT_ROOT (or the deprecated OPENCODE_RLM_CONTEXT_ROOT alias);
+ *   - the worktree supplied by the active host;
+ *   - the active host session/workspace directory.
  *
  * Host config authority cannot be overridden by ambient environment. Explicit
- * host roots may intentionally differ from the OpenCode session directory but
- * must be absolute so authority never depends on the host process cwd.
- * Fallback OpenCode roots must contain the session directory. Filesystem root
+ * host roots may intentionally differ from the host session directory but must
+ * be absolute so authority never depends on the host process cwd.
+ * Fallback host roots must contain the session directory. Filesystem root
  * and the user's HOME are always rejected.
  */
 export async function resolveWorkspaceRoot(
   directory: string,
   worktree: string,
+  hostConfigFallbackFile?: string,
 ): Promise<WorkspaceRootInfo> {
-  const hostConfig = await readRlmHostConfig()
-  const envRoot = process.env.OPENCODE_RLM_CONTEXT_ROOT?.trim()
+  const hostConfig = await readRlmHostConfig(process.env, hostConfigFallbackFile)
+  const envRoot = process.env.RLM_CONTEXT_ROOT?.trim() || process.env.OPENCODE_RLM_CONTEXT_ROOT?.trim()
   const explicitRoot = hostConfig?.context_root?.trim() || envRoot
   if (explicitRoot && !path.isAbsolute(explicitRoot)) {
     throw new RlmError("CONTEXT_DENIED", "rlm_exec: explicit context root must be an absolute path")
@@ -70,7 +71,7 @@ export async function resolveWorkspaceRoot(
   if (!explicitRoot) {
     const canonicalDirectory = await canonicalize(directory, false)
     if (escapesRoot(canonical, canonicalDirectory)) {
-      const source = hasWorktree ? "OpenCode worktree" : "session directory"
+      const source = hasWorktree ? "host worktree" : "session directory"
       throw new RlmError("CONTEXT_DENIED", `rlm_exec: session directory is outside ${source}: ${directory}`)
     }
   }

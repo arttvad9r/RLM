@@ -10,16 +10,16 @@ import { RlmRunState } from "../rlm-lib/types.ts"
 
 async function withStandalonePolicy(run) {
   const previousConfig = process.env.XDG_CONFIG_HOME
-  const previousPolicy = process.env.OPENCODE_RLM_CONTEXT_POLICY
+  const previousPolicy = process.env.RLM_CONTEXT_POLICY
   try {
     delete process.env.XDG_CONFIG_HOME
-    delete process.env.OPENCODE_RLM_CONTEXT_POLICY
+    delete process.env.RLM_CONTEXT_POLICY
     return await run()
   } finally {
     if (previousConfig === undefined) delete process.env.XDG_CONFIG_HOME
     else process.env.XDG_CONFIG_HOME = previousConfig
-    if (previousPolicy === undefined) delete process.env.OPENCODE_RLM_CONTEXT_POLICY
-    else process.env.OPENCODE_RLM_CONTEXT_POLICY = previousPolicy
+    if (previousPolicy === undefined) delete process.env.RLM_CONTEXT_POLICY
+    else process.env.RLM_CONTEXT_POLICY = previousPolicy
   }
 }
 
@@ -30,7 +30,7 @@ test("pre-aborted rlm_exec rejects host context work before filesystem traversal
     state.abort.abort()
     await withStandalonePolicy(async () => {
       await assert.rejects(
-        () => executeContextOperation({ file: {} }, state, "/private/session", {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "aborted-files",
@@ -55,7 +55,7 @@ test("expired rlm_exec deadline rejects host reads with TIMEOUT", async () => {
     await new Promise((resolve) => setTimeout(resolve, 10))
     await withStandalonePolicy(async () => {
       await assert.rejects(
-        () => executeContextOperation({ file: {} }, state, "/private/session", {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "expired-read",

@@ -5,6 +5,11 @@ import {
   MAX_CHILD_CALLS_PER_TURN,
   MAX_CONTEXT_CALLS_PER_TURN,
   MAX_CONTEXT_CHARS_PER_TURN,
+  MAX_MEMORY_CALLS_PER_TURN,
+  MAX_MEMORY_ENTRIES_PER_TURN,
+  MAX_MEMORY_KEY_CHARS,
+  MAX_MEMORY_TOTAL_CHARS_PER_TURN,
+  MAX_MEMORY_VALUE_CHARS,
   MAX_RLM_EXECS_PER_TURN,
   MAX_RLM_WALL_MS_PER_TURN,
 } from "../rlm-lib/constants.ts"
@@ -226,4 +231,97 @@ test("turn resolution locks are isolated per root session", async () => {
   assert.equal(b.snapshot.turnId, "user-b")
   releaseA()
   assert.equal((await a).snapshot.turnId, "user-a")
+})
+
+
+test("turn-scoped working memory persists across execs and resets on the next user turn", async () => {
+  const governor = new TurnGovernor()
+  let history = turnMessages("user-1", "assistant-1")
+  const sdk = client(() => history)
+
+  const first = await governor.beginExec(sdk, "session-memory", "/workspace", "assistant-1")
+  assert.equal(first.allowed, true)
+  assert.equal(governor.beginMemoryCallForTurn("session-memory", "user-1"), true)
+  governor.memorySetForTurn("session-memory", "user-1", "audit:candidates", { paths: ["src/a.ts", "src/b.ts"] })
+  assert.deepEqual(
+    governor.memoryGetForTurn("session-memory", "user-1", "audit:candidates"),
+    { found: true, value: { paths: ["src/a.ts", "src/b.ts"] } },
+  )
+  assert.deepEqual(governor.memoryKeysForTurn("session-memory", "user-1"), ["audit:candidates"])
+
+  const second = await governor.beginExec(sdk, "session-memory", "/workspace", "assistant-1")
+  assert.equal(second.allowed, true)
+  assert.deepEqual(
+    governor.memoryGetForTurn("session-memory", "user-1", "audit:candidates"),
+    { found: true, value: { paths: ["src/a.ts", "src/b.ts"] } },
+  )
+  assert.equal(governor.snapshot("session-memory")?.memoryEntries, 1)
+
+  history = { data: [
+    { info: { id: "user-1", role: "user" } },
+    { info: { id: "assistant-1", role: "assistant" } },
+    { info: { id: "user-2", role: "user" } },
+    { info: { id: "assistant-2", role: "assistant" } },
+  ] }
+  await governor.beginExec(sdk, "session-memory", "/workspace", "assistant-2")
+  assert.deepEqual(governor.memoryGetForTurn("session-memory", "user-2", "audit:candidates"), { found: false })
+  assert.equal(governor.snapshot("session-memory")?.memoryEntries, 0)
+  assert.equal(governor.snapshot("session-memory")?.memoryCharsStored, 0)
+})
+
+test("turn-scoped working memory enforces call, key, entry, value and total-size bounds", async () => {
+  const governor = new TurnGovernor()
+  const sdk = client(() => turnMessages("user-memory-limits", "assistant-memory-limits"))
+  await governor.beginExec(sdk, "session-memory-limits", "/workspace", "assistant-memory-limits")
+
+  for (let index = 0; index < MAX_MEMORY_CALLS_PER_TURN; index++) {
+    assert.equal(governor.beginMemoryCallForTurn("session-memory-limits", "user-memory-limits"), true)
+  }
+  assert.equal(governor.beginMemoryCallForTurn("session-memory-limits", "user-memory-limits"), false)
+
+  assert.throws(
+    () => governor.memorySetForTurn("session-memory-limits", "user-memory-limits", "k".repeat(MAX_MEMORY_KEY_CHARS + 1), 1),
+    (error) => error instanceof RlmError && error.code === "BUDGET_EXCEEDED",
+  )
+  assert.throws(
+    () => governor.memorySetForTurn("session-memory-limits", "user-memory-limits", "oversized", "x".repeat(MAX_MEMORY_VALUE_CHARS + 1)),
+    (error) => error instanceof RlmError && error.code === "BUDGET_EXCEEDED",
+  )
+
+  for (let index = 0; index < MAX_MEMORY_ENTRIES_PER_TURN; index++) {
+    governor.memorySetForTurn("session-memory-limits", "user-memory-limits", `entry:${index}`, index)
+  }
+  assert.throws(
+    () => governor.memorySetForTurn("session-memory-limits", "user-memory-limits", "one-too-many", true),
+    (error) => error instanceof RlmError && error.code === "BUDGET_EXCEEDED",
+  )
+
+  const totalGovernor = new TurnGovernor()
+  await totalGovernor.beginExec(sdk, "session-memory-total", "/workspace", "assistant-memory-limits")
+  const chunk = "x".repeat(Math.floor(MAX_MEMORY_TOTAL_CHARS_PER_TURN / 5))
+  for (let index = 0; index < 4; index++) {
+    totalGovernor.memorySetForTurn("session-memory-total", "user-memory-limits", `chunk:${index}`, chunk)
+  }
+  assert.throws(
+    () => totalGovernor.memorySetForTurn("session-memory-total", "user-memory-limits", "overflow", "x".repeat(MAX_MEMORY_VALUE_CHARS)),
+    (error) => error instanceof RlmError && error.code === "BUDGET_EXCEEDED",
+  )
+})
+
+test("working memory delete reclaims capacity and session eviction destroys stored values", async () => {
+  const governor = new TurnGovernor()
+  const sdk = client(() => turnMessages("user-delete", "assistant-delete"))
+  await governor.beginExec(sdk, "session-delete", "/workspace", "assistant-delete")
+  governor.memorySetForTurn("session-delete", "user-delete", "temp", { large: "x".repeat(1000) })
+  const before = governor.snapshot("session-delete")
+  assert.equal(governor.memoryDeleteForTurn("session-delete", "user-delete", "temp"), true)
+  assert.equal(governor.memoryDeleteForTurn("session-delete", "user-delete", "temp"), false)
+  assert.ok((governor.snapshot("session-delete")?.memoryCharsStored ?? Infinity) < (before?.memoryCharsStored ?? 0))
+  governor.memorySetForTurn("session-delete", "user-delete", "secret-work", [1, 2, 3])
+  assert.equal(governor.evictSession("session-delete"), true)
+  assert.equal(governor.snapshot("session-delete"), null)
+  assert.throws(
+    () => governor.memoryGetForTurn("session-delete", "user-delete", "secret-work"),
+    (error) => error instanceof RlmError && error.code === "RUNTIME_ERROR",
+  )
 })

@@ -1,0 +1,49 @@
+{
+  "schema_version": 2,
+  "benchmark_id": "semantic-state-audit-v1",
+  "run_id": "luna-low-publish-96-normal-ses_eb9833094ffezJ1wAZgVMeoUUr",
+  "mode": "normal",
+  "source_commit": "658b72260d75958f46ea263d87b80ccd2dd787a4",
+  "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+  "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+  "model": {
+    "provider_id": "openai",
+    "model_id": "gpt-6-luna",
+    "variant": "low"
+  },
+  "started_at": "2026-10-16T20:52:27.107Z",
+  "finished_at": "2026-10-16T20:52:48.080Z",
+  "predicted_violations": [
+    "src/feed4707.ts",
+    "src/grid8588.ts",
+    "src/rollup3577.ts",
+    "src/stage2031.ts",
+    "src/ticker3007.ts",
+    "src/tray9259.ts",
+    "src/view7089.ts",
+    "src/zone3284.ts"
+  ],
+  "usage": {
+    "wall_ms": 20973,
+    "root_input_tokens": 15019,
+    "root_output_tokens": 519,
+    "child_input_tokens": 0,
+    "child_output_tokens": 0,
+    "cost_usd": 0,
+    "rlm_exec_count": 0,
+    "rlm_child_calls": 0,
+    "rlm_context_calls": 0,
+    "rlm_context_chars": 0
+  },
+  "evidence": {
+    "session_id": "ses_eb9833094ffezJ1wAZgVMeoUUr",
+    "raw_final_text": "{\"violations\":[\"src/feed4707.ts\",\"src/grid8588.ts\",\"src/rollup3577.ts\",\"src/stage2031.ts\",\"src/ticker3007.ts\",\"src/tray9259.ts\",\"src/view7089.ts\",\"src/zone3284.ts\"]}",
+    "response_format_issue": null,
+    "response_scoring_normalization": "string paths deduplicated and lexicographically sorted before classification scoring",
+    "rlm_exec_completed": 0,
+    "rlm_exec_errors": 0,
+    "root_shell_calls": 1,
+    "child_models": [],
+    "context_telemetry": "unavailable through OpenCode Code Mode nested-tool metadata; usage zeros are placeholders and excluded from conclusions"
+  }
+}

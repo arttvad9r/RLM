@@ -10,6 +10,7 @@ const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url),
 if (pkg.private === true) throw new Error("package must not be private")
 if (pkg.license !== "MIT") throw new Error("package license must be MIT")
 if (pkg.exports !== "./plugin/rlm.ts") throw new Error("package root export must point to plugin/rlm.ts")
+if (pkg.bin?.["rlm-codex"] !== "./dist/adapters/codex/mcp.js") throw new Error("package must expose the rlm-codex binary")
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { cwd: repoRoot, encoding: "utf8", ...options })
@@ -37,9 +38,16 @@ const required = [
   "plugin/rlm-lib/context.ts",
   "plugin/rlm-lib/opencode-v2.ts",
   "plugin/rlm-lib/sandbox.ts",
+  "plugin/rlm-lib/structured-map.ts",
+  "plugin/rlm-lib/telemetry.ts",
   "plugin/rlm-runner/runner.ts",
   "plugin/rlm-runner/generated-worker.ts",
   "plugin/rlm-runner/write-all.ts",
+  "dist/adapters/codex/mcp.js",
+  "dist/adapters/codex/codex-host.js",
+  "dist/plugin/rlm-lib/sandbox.js",
+  "dist/plugin/rlm-lib/structured-map.js",
+  "dist/plugin/rlm-lib/telemetry.js",
 ]
 for (const file of required) {
   if (!paths.has(file)) throw new Error(`published package is missing ${file}`)
@@ -65,7 +73,7 @@ try {
     process.stderr.write(install.stderr ?? "")
     throw new Error("packed artifact failed to install in an empty project")
   }
-  const installedRoot = path.join(appDir, "node_modules", "opencode-rlm")
+  const installedRoot = path.join(appDir, "node_modules", pkg.name)
   for (const file of required) {
     if (!existsSync(path.join(installedRoot, file))) throw new Error(`installed artifact is missing ${file}`)
   }

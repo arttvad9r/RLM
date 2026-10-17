@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { createOpenCodeV2RlmClient } from "../rlm-lib/opencode-v2.ts"
+import { createOpenCodeV2RlmClient, createOpenCodeV2RlmHost } from "../rlm-lib/opencode-v2.ts"
 import plugin from "../rlm.ts"
 
 function baseContext(overrides = {}) {
@@ -41,7 +41,7 @@ test("OpenCode V2 adapter maps assistant model identity and child creation", asy
         {
           type: "assistant",
           id: "assistant-1",
-          model: { providerID: "openai", id: "gpt-test" },
+          model: { providerID: "openai", id: "gpt-test", variant: "low" },
           content: [],
         },
       ],
@@ -64,7 +64,7 @@ test("OpenCode V2 adapter maps assistant model identity and child creation", asy
         info: {
           id: "assistant-1",
           role: "assistant",
-          model: { providerID: "openai", modelID: "gpt-test" },
+          model: { providerID: "openai", modelID: "gpt-test", variant: "low" },
         },
       },
     ],
@@ -74,15 +74,19 @@ test("OpenCode V2 adapter maps assistant model identity and child creation", asy
     body: {
       parentID: "root",
       title: "rlm child",
-      model: { providerID: "openai", modelID: "gpt-test" },
+      model: { providerID: "openai", modelID: "gpt-test", variant: "low" },
     },
     query: { directory: "/repo" },
   })
   assert.deepEqual(created, { data: { id: "child-1" } })
+  const host = createOpenCodeV2RlmHost(ctx)
+  assert.deepEqual(await host.resolveTurn({ sessionID: "root", directory: "/repo", boundaryID: "assistant-1" }), {
+    turnId: "user-1", boundaryId: "assistant-1", order: 1, rootModel: "openai/gpt-test#low",
+  })
   assert.deepEqual(createInput, {
     parentID: "root",
     title: "rlm child",
-    model: { providerID: "openai", id: "gpt-test" },
+    model: { providerID: "openai", id: "gpt-test", variant: "low" },
     location: { directory: "/repo" },
     permissions: [{ action: "*", resource: "*", effect: "deny" }],
   })
@@ -161,8 +165,8 @@ test("OpenCode V2 adapter waits for the child response, extracts text, aborts, a
   assert.deepEqual(calls.at(-1), ["interrupt", { sessionID: "child-1" }])
 })
 
-test("OpenCode V2 plugin registers rlm_exec and disposes registrations", async () => {
-  let toolInfo
+test("OpenCode V2 plugin registers raw and structured tools and disposes registrations", async () => {
+  const tools = new Map()
   let contextHook
   let toolDisposed = 0
   let contextDisposed = 0
@@ -176,7 +180,7 @@ test("OpenCode V2 plugin registers rlm_exec and disposes registrations", async (
     },
     tool: {
       transform: async (apply) => {
-        apply({ add: (info) => { toolInfo = info } })
+        apply({ add: (info) => { tools.set(info.name, info) } })
         return { dispose: async () => { toolDisposed++ } }
       },
     },
@@ -184,10 +188,21 @@ test("OpenCode V2 plugin registers rlm_exec and disposes registrations", async (
 
   const cleanup = await plugin.setup(ctx)
   assert.equal(typeof contextHook, "function")
-  assert.equal(toolInfo?.name, "rlm_exec")
-  assert.equal(toolInfo?.input?.type, "object")
-  assert.deepEqual(toolInfo?.input?.required, ["code"])
-  assert.equal(typeof toolInfo?.execute, "function")
+  assert.deepEqual([...tools.keys()].sort(), ["rlm_exec", "rlm_map"])
+
+  const exec = tools.get("rlm_exec")
+  assert.equal(exec?.input?.type, "object")
+  assert.deepEqual(exec?.input?.required, ["code"])
+  assert.equal(typeof exec?.execute, "function")
+
+  const map = tools.get("rlm_map")
+  assert.equal(map?.input?.type, "object")
+  assert.deepEqual(map?.input?.required, ["query", "instruction"])
+  assert.deepEqual(map?.input?.properties?.output?.enum, ["text", "path_list", "candidate_bundle"])
+  assert.equal(map?.input?.properties?.fanout?.maximum, 16)
+  assert.deepEqual(map?.input?.properties?.partition?.enum, ["round_robin", "balanced_chars"])
+  assert.deepEqual(map?.input?.properties?.failureMode?.enum, ["strict", "settled"])
+  assert.equal(typeof map?.execute, "function")
 
   await cleanup?.()
   assert.equal(toolDisposed, 1)

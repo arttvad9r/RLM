@@ -10,13 +10,16 @@ import type {
   ContextRequestMessage,
   ErrorCode,
   HostToSandboxMessage,
+  MemoryOperation,
+  MemoryRequestMessage,
   RlmErrorInfo,
   SandboxToHostMessage,
 } from "./types.ts"
 
-const HOST_TYPES = new Set(["code", "llm_result", "context_result"])
-const SANDBOX_TYPES = new Set(["llm", "context", "result", "error"])
+const HOST_TYPES = new Set(["code", "llm_result", "context_result", "memory_result"])
+const SANDBOX_TYPES = new Set(["llm", "context", "memory", "result", "error"])
 const CONTEXT_OPS = new Set<ContextOperation>(["read", "readMany", "grep", "files", "glob"])
+const MEMORY_OPS = new Set<MemoryOperation>(["get", "set", "delete", "keys"])
 const ERROR_CODES = new Set<ErrorCode>([
   "BUDGET_EXCEEDED",
   "TIMEOUT",
@@ -89,28 +92,29 @@ export function parseHostMessage(line: string): HostToSandboxMessage {
       error,
     }
   }
-  if (typeof m.id !== "string" || typeof m.ok !== "boolean") throw protoError("context_result message missing id/ok")
+  const resultKind = type === "memory_result" ? "memory_result" : "context_result"
+  if (typeof m.id !== "string" || typeof m.ok !== "boolean") throw protoError(`${resultKind} message missing id/ok`)
   if (m.ok) {
-    if (!Object.prototype.hasOwnProperty.call(m, "value")) throw protoError("successful context_result missing value")
-    if (m.error !== undefined) throw protoError("successful context_result must not include error")
+    if (!Object.prototype.hasOwnProperty.call(m, "value")) throw protoError(`successful ${resultKind} missing value`)
+    if (m.error !== undefined) throw protoError(`successful ${resultKind} must not include error`)
     return {
       v: PROTOCOL_VERSION,
-      type: "context_result",
+      type: resultKind,
       id: m.id,
       ok: true,
       value: m.value,
-    }
+    } as HostToSandboxMessage
   }
   const error = validateErrorInfo(m.error)
-  if (!error) throw protoError("failed context_result missing error envelope")
-  if (Object.prototype.hasOwnProperty.call(m, "value")) throw protoError("failed context_result must not include value")
+  if (!error) throw protoError(`failed ${resultKind} missing error envelope`)
+  if (Object.prototype.hasOwnProperty.call(m, "value")) throw protoError(`failed ${resultKind} must not include value`)
   return {
     v: PROTOCOL_VERSION,
-    type: "context_result",
+    type: resultKind,
     id: m.id,
     ok: false,
     error,
-  }
+  } as HostToSandboxMessage
 }
 
 /** Parse a sandbox->host message with strict validation. */
@@ -161,6 +165,32 @@ export function parseSandboxMessage(line: string): SandboxToHostMessage {
     if (m.query !== undefined) {
       if (typeof m.query !== "string") throw protoError("context query must be a string")
       msg.query = m.query
+    }
+    return msg
+  }
+  if (type === "memory") {
+    if (typeof m.id !== "string") throw protoError("memory message missing id")
+    const operation = m.operation
+    if (typeof operation !== "string" || !MEMORY_OPS.has(operation as MemoryOperation)) {
+      throw protoError(`unknown memory operation: ${String(operation)}`)
+    }
+    const msg: MemoryRequestMessage = {
+      v: PROTOCOL_VERSION,
+      type: "memory",
+      id: m.id,
+      operation: operation as MemoryOperation,
+    }
+    if (operation === "get" || operation === "set" || operation === "delete") {
+      if (typeof m.key !== "string") throw protoError(`memory ${operation} requires string key`)
+      msg.key = m.key
+    } else if (m.key !== undefined) {
+      throw protoError("memory keys must not include key")
+    }
+    if (operation === "set") {
+      if (!Object.prototype.hasOwnProperty.call(m, "value")) throw protoError("memory set requires value")
+      msg.value = m.value
+    } else if (Object.prototype.hasOwnProperty.call(m, "value")) {
+      throw protoError(`memory ${operation} must not include value`)
     }
     return msg
   }

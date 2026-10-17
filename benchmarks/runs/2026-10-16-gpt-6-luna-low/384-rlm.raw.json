@@ -1,0 +1,172 @@
+{
+  "benchmark_id": "semantic-state-audit-v3-384",
+  "size": 384,
+  "mode": "rlm",
+  "session_id": "ses_eb9805307ffeMnZ2eqHqU3iFyO",
+  "workspace": "/tmp/rlm-benchmark-384-rlm-1792184134826",
+  "started_at": "2026-10-16T20:55:34.896Z",
+  "finished_at": "2026-10-16T20:56:05.872Z",
+  "wall_ms": 30976,
+  "final_text": "{\"violations\":[\"src/aperture233074.ts\",\"src/aperture403002.ts\",\"src/aperture403002.ts\",\"src/baffle758231.ts\",\"src/bracket762030.ts\",\"src/bracket910090.ts\",\"src/cam964027.ts\",\"src/dome741737.ts\",\"src/dome778353.ts\",\"src/dowel490866.ts\",\"src/flange545248.ts\",\"src/flange666801.ts\",\"src/gasket416784.ts\",\"src/girder297244.ts\",\"src/girder322136.ts\",\"src/helix714593.ts\",\"src/hinge408216.ts\",\"src/hinge538998.ts\",\"src/jib152219.ts\",\"src/jib670177.ts\",\"src/keel494216.ts\",\"src/keel631497.ts\",\"src/keel792075.ts\",\"src/latch990243.ts\",\"src/mast265443.ts\",\"src/mast720692.ts\",\"src/nozzle527561.ts\",\"src/oar201334.ts\",\"src/oar848542.ts\",\"src/piston470397.ts\",\"src/quay426182.ts\",\"src/quay543899.ts\",\"src/rudder606373.ts\",\"src/rudder891730.ts\",\"src/sail551129.ts\",\"src/sail695504.ts\",\"src/throttle211393.ts\",\"src/upright343765.ts\",\"src/upright511408.ts\",\"src/winch735295.ts\",\"src/yoke141970.ts\",\"src/zinc128028.ts\",\"src/zinc200626.ts\"]}",
+  "parse_error": "normalized_format:duplicate_paths",
+  "predicted_violations": [
+    "src/aperture233074.ts",
+    "src/aperture403002.ts",
+    "src/baffle758231.ts",
+    "src/bracket762030.ts",
+    "src/bracket910090.ts",
+    "src/cam964027.ts",
+    "src/dome741737.ts",
+    "src/dome778353.ts",
+    "src/dowel490866.ts",
+    "src/flange545248.ts",
+    "src/flange666801.ts",
+    "src/gasket416784.ts",
+    "src/girder297244.ts",
+    "src/girder322136.ts",
+    "src/helix714593.ts",
+    "src/hinge408216.ts",
+    "src/hinge538998.ts",
+    "src/jib152219.ts",
+    "src/jib670177.ts",
+    "src/keel494216.ts",
+    "src/keel631497.ts",
+    "src/keel792075.ts",
+    "src/latch990243.ts",
+    "src/mast265443.ts",
+    "src/mast720692.ts",
+    "src/nozzle527561.ts",
+    "src/oar201334.ts",
+    "src/oar848542.ts",
+    "src/piston470397.ts",
+    "src/quay426182.ts",
+    "src/quay543899.ts",
+    "src/rudder606373.ts",
+    "src/rudder891730.ts",
+    "src/sail551129.ts",
+    "src/sail695504.ts",
+    "src/throttle211393.ts",
+    "src/upright343765.ts",
+    "src/upright511408.ts",
+    "src/winch735295.ts",
+    "src/yoke141970.ts",
+    "src/zinc128028.ts",
+    "src/zinc200626.ts"
+  ],
+  "root": {
+    "cost_usd": 0,
+    "tokens": {
+      "input": 12665,
+      "output": 1054,
+      "reasoning": 0,
+      "cache": {
+        "read": 14976,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded"
+  },
+  "children": [
+    {
+      "id": "ses_eb9802ae6ffe1Z1hzJTrpZjKB4",
+      "parentID": "ses_eb9805307ffeMnZ2eqHqU3iFyO",
+      "model": {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      },
+      "cost_usd": 0,
+      "tokens": {
+        "input": 7428,
+        "output": 108,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "outcome": "succeeded"
+    },
+    {
+      "id": "ses_eb9802ae5ffeCz0qRhutszOOtU",
+      "parentID": "ses_eb9805307ffeMnZ2eqHqU3iFyO",
+      "model": {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      },
+      "cost_usd": 0,
+      "tokens": {
+        "input": 7965,
+        "output": 121,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "outcome": "succeeded"
+    },
+    {
+      "id": "ses_eb9802aeaffeyevsclN0rOXhnK",
+      "parentID": "ses_eb9805307ffeMnZ2eqHqU3iFyO",
+      "model": {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      },
+      "cost_usd": 0,
+      "tokens": {
+        "input": 7555,
+        "output": 70,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "outcome": "succeeded"
+    },
+    {
+      "id": "ses_eb9802ae7ffeYho4xGg2Qwjc6G",
+      "parentID": "ses_eb9805307ffeMnZ2eqHqU3iFyO",
+      "model": {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      },
+      "cost_usd": 0,
+      "tokens": {
+        "input": 7697,
+        "output": 57,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "outcome": "succeeded"
+    }
+  ],
+  "telemetry": {
+    "rlm_exec_count": 1,
+    "rlm_exec_completed": 1,
+    "rlm_exec_errors": 0,
+    "rlm_child_calls": 4,
+    "rlm_context_calls": null,
+    "rlm_context_chars": null,
+    "root_shell_calls": 1,
+    "rlm_inputs": [
+      {
+        "code": "const paths = await context.files(\"src/\");\nconst files = [];\nfor (let i = 0; i < paths.length; i += 64) files.push(...await context.readMany(paths.slice(i, i + 64)));\nconst groups = [[], [], [], []];\nfor (let i = 0; i < files.length; i++) groups[i % 4].push(files[i]);\nconst rule = \"Audit every assigned file. Report a file only when observable business, domain, or UI result state is mutated before a successful awaited asynchronous backend or worker operation completes. Loading, busy, pending, syncing, or similar lifecycle state before the await is not a violation. Result-state updates after the await, local-only mutations without backend coupling, and backend or mock adapter implementations are not violations. Return exactly one JSON array of project-relative violation paths and no prose.\";\nconst nl = String.fromCharCode(10);\nconst prompts = groups.map((group) => rule + nl + group.map((file) => JSON.stringify({ path: file.path, source: file.content || \"\" })).join(nl));\nconst answers = await llm.batch(prompts);\nconst found = [];\nfor (const answer of answers) {\n  const text = String(answer).trim();\n  const start = text.indexOf(\"[\");\n  const end = text.lastIndexOf(\"]\");\n  if (start >= 0 && end >= start) {\n    const values = JSON.parse(text.slice(start, end + 1));\n    for (const value of values) if (typeof value === \"string\") found.push(value);\n  }\n}\nreturn { violations: [...new Set(found)].sort() };"
+      }
+    ]
+  },
+  "totals": {
+    "root_input_tokens": 12665,
+    "root_output_tokens": 1054,
+    "child_input_tokens": 30645,
+    "child_output_tokens": 356,
+    "cost_usd": 0
+  }
+}

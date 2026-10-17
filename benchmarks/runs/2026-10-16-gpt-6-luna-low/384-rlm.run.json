@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "benchmark_id": "semantic-state-audit-v3-384",
+  "run_id": "luna-low-publish-384-rlm-ses_eb9805307ffeMnZ2eqHqU3iFyO",
+  "mode": "rlm",
+  "source_commit": "658b72260d75958f46ea263d87b80ccd2dd787a4",
+  "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+  "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+  "model": {
+    "provider_id": "openai",
+    "model_id": "gpt-6-luna",
+    "variant": "low"
+  },
+  "started_at": "2026-10-16T20:55:34.896Z",
+  "finished_at": "2026-10-16T20:56:05.872Z",
+  "predicted_violations": [
+    "src/aperture233074.ts",
+    "src/aperture403002.ts",
+    "src/baffle758231.ts",
+    "src/bracket762030.ts",
+    "src/bracket910090.ts",
+    "src/cam964027.ts",
+    "src/dome741737.ts",
+    "src/dome778353.ts",
+    "src/dowel490866.ts",
+    "src/flange545248.ts",
+    "src/flange666801.ts",
+    "src/gasket416784.ts",
+    "src/girder297244.ts",
+    "src/girder322136.ts",
+    "src/helix714593.ts",
+    "src/hinge408216.ts",
+    "src/hinge538998.ts",
+    "src/jib152219.ts",
+    "src/jib670177.ts",
+    "src/keel494216.ts",
+    "src/keel631497.ts",
+    "src/keel792075.ts",
+    "src/latch990243.ts",
+    "src/mast265443.ts",
+    "src/mast720692.ts",
+    "src/nozzle527561.ts",
+    "src/oar201334.ts",
+    "src/oar848542.ts",
+    "src/piston470397.ts",
+    "src/quay426182.ts",
+    "src/quay543899.ts",
+    "src/rudder606373.ts",
+    "src/rudder891730.ts",
+    "src/sail551129.ts",
+    "src/sail695504.ts",
+    "src/throttle211393.ts",
+    "src/upright343765.ts",
+    "src/upright511408.ts",
+    "src/winch735295.ts",
+    "src/yoke141970.ts",
+    "src/zinc128028.ts",
+    "src/zinc200626.ts"
+  ],
+  "usage": {
+    "wall_ms": 30976,
+    "root_input_tokens": 12665,
+    "root_output_tokens": 1054,
+    "child_input_tokens": 30645,
+    "child_output_tokens": 356,
+    "cost_usd": 0,
+    "rlm_exec_count": 1,
+    "rlm_child_calls": 4,
+    "rlm_context_calls": 0,
+    "rlm_context_chars": 0
+  },
+  "evidence": {
+    "session_id": "ses_eb9805307ffeMnZ2eqHqU3iFyO",
+    "raw_final_text": "{\"violations\":[\"src/aperture233074.ts\",\"src/aperture403002.ts\",\"src/aperture403002.ts\",\"src/baffle758231.ts\",\"src/bracket762030.ts\",\"src/bracket910090.ts\",\"src/cam964027.ts\",\"src/dome741737.ts\",\"src/dome778353.ts\",\"src/dowel490866.ts\",\"src/flange545248.ts\",\"src/flange666801.ts\",\"src/gasket416784.ts\",\"src/girder297244.ts\",\"src/girder322136.ts\",\"src/helix714593.ts\",\"src/hinge408216.ts\",\"src/hinge538998.ts\",\"src/jib152219.ts\",\"src/jib670177.ts\",\"src/keel494216.ts\",\"src/keel631497.ts\",\"src/keel792075.ts\",\"src/latch990243.ts\",\"src/mast265443.ts\",\"src/mast720692.ts\",\"src/nozzle527561.ts\",\"src/oar201334.ts\",\"src/oar848542.ts\",\"src/piston470397.ts\",\"src/quay426182.ts\",\"src/quay543899.ts\",\"src/rudder606373.ts\",\"src/rudder891730.ts\",\"src/sail551129.ts\",\"src/sail695504.ts\",\"src/throttle211393.ts\",\"src/upright343765.ts\",\"src/upright511408.ts\",\"src/winch735295.ts\",\"src/yoke141970.ts\",\"src/zinc128028.ts\",\"src/zinc200626.ts\"]}",
+    "response_format_issue": "normalized_format:duplicate_paths",
+    "response_scoring_normalization": "string paths deduplicated and lexicographically sorted before classification scoring",
+    "rlm_exec_completed": 1,
+    "rlm_exec_errors": 0,
+    "root_shell_calls": 1,
+    "child_models": [
+      {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      },
+      {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      },
+      {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      },
+      {
+        "id": "gpt-6-luna",
+        "providerID": "openai",
+        "variant": "low"
+      }
+    ],
+    "context_telemetry": "unavailable through OpenCode Code Mode nested-tool metadata; usage zeros are placeholders and excluded from conclusions"
+  }
+}

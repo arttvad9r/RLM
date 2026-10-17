@@ -1,0 +1,177 @@
+{
+  "schema_version": 2,
+  "kind": "rlm_ab_suite",
+  "suite_id": "semantic-state-audit-192-384",
+  "source_commit": "658b72260d75958f46ea263d87b80ccd2dd787a4",
+  "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+  "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+  "model": {
+    "provider_id": "openai",
+    "model_id": "gpt-6-luna",
+    "variant": "low"
+  },
+  "runs": {
+    "normal_192": {
+      "run_id": "luna-low-publish-192-normal-ses_eb981eb88ffee8MtvVSXD2hC08",
+      "run_sha256": "c004430c6288e3b1526d0204560c603c32d4f49a0d32587f069b0b8dec6ff868"
+    },
+    "rlm_192": {
+      "run_id": "luna-low-publish-192-rlm-ses_eb9815500ffeD5cn9rl7v4vPXl",
+      "run_sha256": "db0209ccfc6a5509746fb05c176e8e501de540f23a701431b36254b44440a6d3"
+    },
+    "normal_384": {
+      "run_id": "luna-low-publish-384-normal-ses_eb980bb98ffe6stJBKdyxg5TFP",
+      "run_sha256": "4b5007c9a2a63fbe2ec25aacb7f16919f8b6cbf1d6d325cc3c98b9510cc9f31b"
+    },
+    "rlm_384": {
+      "run_id": "luna-low-publish-384-rlm-ses_eb9805307ffeMnZ2eqHqU3iFyO",
+      "run_sha256": "6d6b95dae1d0e5b329f544ae0237e19374d92ea2ff383fed724335c55b2af223"
+    }
+  },
+  "integrity": {
+    "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+    "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+    "benchmark_192": {
+      "ground_truth_sha256": "11e232b179af287b8b20e8c039697dd02e61e91753166a4335a98e683deaadcf",
+      "corpus_aggregate_sha256": "452407259a4c12b73f0f5e6dc38405462afc441822730f7011f2d93e705cd8de"
+    },
+    "benchmark_384": {
+      "ground_truth_sha256": "5cf7792b3fc39920a54d9e73df7da3368aedab8d328688b175653158003c827d",
+      "corpus_aggregate_sha256": "9c4a9b142be6a28c221d6f4c19db19cd941d8130e869138fb46d353bb27483c6"
+    }
+  },
+  "comparisons": {
+    "benchmark_192": {
+      "schema_version": 2,
+      "kind": "rlm_ab_comparison",
+      "benchmark_id": "semantic-state-audit-v2-192",
+      "source_commit": "658b72260d75958f46ea263d87b80ccd2dd787a4",
+      "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+      "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+      "model": {
+        "provider_id": "openai",
+        "model_id": "gpt-6-luna",
+        "variant": "low"
+      },
+      "integrity": {
+        "ground_truth_sha256": "11e232b179af287b8b20e8c039697dd02e61e91753166a4335a98e683deaadcf",
+        "corpus_aggregate_sha256": "452407259a4c12b73f0f5e6dc38405462afc441822730f7011f2d93e705cd8de",
+        "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+        "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e"
+      },
+      "runs": {
+        "normal": "luna-low-publish-192-normal-ses_eb981eb88ffee8MtvVSXD2hC08",
+        "rlm": "luna-low-publish-192-rlm-ses_eb9815500ffeD5cn9rl7v4vPXl"
+      },
+      "quality": {
+        "normal": {
+          "violation_precision": 0.958333,
+          "violation_recall": 0.958333,
+          "violation_f1": 0.958333,
+          "specificity": 0.994048,
+          "accuracy": 0.989583,
+          "balanced_accuracy": 0.97619
+        },
+        "rlm": {
+          "violation_precision": 1,
+          "violation_recall": 0.875,
+          "violation_f1": 0.933333,
+          "specificity": 1,
+          "accuracy": 0.984375,
+          "balanced_accuracy": 0.9375
+        },
+        "rlm_minus_normal": {
+          "violation_precision": 0.041667,
+          "violation_recall": -0.083333,
+          "violation_f1": -0.025,
+          "specificity": 0.005952,
+          "accuracy": -0.005208,
+          "balanced_accuracy": -0.03869
+        }
+      },
+      "efficiency": {
+        "normal": {
+          "wall_ms": 34379,
+          "total_tokens": 29455,
+          "cost_usd": 0
+        },
+        "rlm": {
+          "wall_ms": 36133,
+          "total_tokens": 27627,
+          "cost_usd": 0
+        },
+        "rlm_minus_normal": {
+          "wall_ms": 1754,
+          "total_tokens": -1828,
+          "cost_usd": 0
+        }
+      }
+    },
+    "benchmark_384": {
+      "schema_version": 2,
+      "kind": "rlm_ab_comparison",
+      "benchmark_id": "semantic-state-audit-v3-384",
+      "source_commit": "658b72260d75958f46ea263d87b80ccd2dd787a4",
+      "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+      "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e",
+      "model": {
+        "provider_id": "openai",
+        "model_id": "gpt-6-luna",
+        "variant": "low"
+      },
+      "integrity": {
+        "ground_truth_sha256": "5cf7792b3fc39920a54d9e73df7da3368aedab8d328688b175653158003c827d",
+        "corpus_aggregate_sha256": "9c4a9b142be6a28c221d6f4c19db19cd941d8130e869138fb46d353bb27483c6",
+        "task_prompt_sha256": "ce1912716e61cff75c850901aa036ec9d1e530d1497d738a31659e0b6b19791c",
+        "experiment_config_sha256": "b06b640243a1d5c39ea7396e1535c47df9024203e2bc756b90874e21f2867b8e"
+      },
+      "runs": {
+        "normal": "luna-low-publish-384-normal-ses_eb980bb98ffe6stJBKdyxg5TFP",
+        "rlm": "luna-low-publish-384-rlm-ses_eb9805307ffeMnZ2eqHqU3iFyO"
+      },
+      "quality": {
+        "normal": {
+          "violation_precision": 0,
+          "violation_recall": 0,
+          "violation_f1": 0,
+          "specificity": 1,
+          "accuracy": 0.875,
+          "balanced_accuracy": 0.5
+        },
+        "rlm": {
+          "violation_precision": 1,
+          "violation_recall": 0.875,
+          "violation_f1": 0.933333,
+          "specificity": 1,
+          "accuracy": 0.984375,
+          "balanced_accuracy": 0.9375
+        },
+        "rlm_minus_normal": {
+          "violation_precision": 1,
+          "violation_recall": 0.875,
+          "violation_f1": 0.933333,
+          "specificity": 0,
+          "accuracy": 0.109375,
+          "balanced_accuracy": 0.4375
+        }
+      },
+      "efficiency": {
+        "normal": {
+          "wall_ms": 22614,
+          "total_tokens": 37893,
+          "cost_usd": 0
+        },
+        "rlm": {
+          "wall_ms": 30976,
+          "total_tokens": 44720,
+          "cost_usd": 0
+        },
+        "rlm_minus_normal": {
+          "wall_ms": 8362,
+          "total_tokens": 6827,
+          "cost_usd": 0
+        }
+      }
+    }
+  }
+}

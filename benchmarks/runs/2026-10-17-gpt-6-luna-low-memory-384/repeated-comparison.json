@@ -1,0 +1,819 @@
+{
+  "benchmark_id": "semantic-state-audit-v3-384",
+  "model": "openai/gpt-6-luna#low",
+  "snapshot_commit": "66b9231c0d65c542761cc71d8abf14c57c3c5b0b",
+  "design": {
+    "single": "1 rlm_exec / 4 child calls",
+    "memory": "2 partition rlm_exec / 8 child calls + 1 memory merge rlm_exec",
+    "pair_orders": [
+      [
+        "single",
+        "memory"
+      ],
+      [
+        "memory",
+        "single"
+      ],
+      [
+        "single",
+        "memory"
+      ]
+    ],
+    "runs_per_arm": 3
+  },
+  "runs": [
+    {
+      "kind": "single",
+      "session_id": "ses_eb936e8b9ffedbmgfhPSG6XvL9",
+      "wall_ms": 16812,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/helix177855.ts",
+        "src/hinge408216.ts",
+        "src/jib152219.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/keel987584.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle756109.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/vane886237.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7891,
+        "output": 451,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 30645,
+        "output": 339,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "rlm_exec_count": 1,
+      "child_session_count": 4,
+      "nested_statuses": [
+        "completed"
+      ],
+      "execute_output_chars": 1168,
+      "quality": {
+        "tp": 37,
+        "fp": 7,
+        "fn": 11,
+        "precision": 0.8409090909090909,
+        "recall": 0.7708333333333334,
+        "f1": 0.8043478260869567
+      },
+      "pair_index": 1,
+      "position_in_pair": 1,
+      "token_accounting": {
+        "root_uncached_tokens": 8342,
+        "root_cache_read_tokens": 7040,
+        "root_logical_tokens_including_cache_read": 15382,
+        "child_uncached_tokens": 30984,
+        "child_cache_read_tokens": 0,
+        "child_logical_tokens_including_cache_read": 30984,
+        "total_logical_tokens_including_cache_read": 46366
+      }
+    },
+    {
+      "kind": "memory",
+      "session_id": "ses_eb936a6e6ffeAO5rQUVJb3nxgc",
+      "wall_ms": 21657,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dowel490866.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/yoke141970.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 5806,
+        "output": 414,
+        "reasoning": 0,
+        "cache_read": 9088,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 31381,
+        "output": 330,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "rlm_exec_count": 3,
+      "child_session_count": 8,
+      "nested_statuses": [
+        "completed",
+        "completed",
+        "completed"
+      ],
+      "execute_output_chars": 1064,
+      "quality": {
+        "tp": 37,
+        "fp": 3,
+        "fn": 11,
+        "precision": 0.925,
+        "recall": 0.7708333333333334,
+        "f1": 0.840909090909091
+      },
+      "pair_index": 1,
+      "position_in_pair": 2,
+      "token_accounting": {
+        "root_uncached_tokens": 6220,
+        "root_cache_read_tokens": 9088,
+        "root_logical_tokens_including_cache_read": 15308,
+        "child_uncached_tokens": 31711,
+        "child_cache_read_tokens": 0,
+        "child_logical_tokens_including_cache_read": 31711,
+        "total_logical_tokens_including_cache_read": 47019
+      }
+    },
+    {
+      "kind": "memory",
+      "session_id": "ses_eb936521fffetpMDtkJM16SaHZ",
+      "wall_ms": 23582,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle527561.ts",
+        "src/nozzle895013.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder260002.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle828881.ts",
+        "src/upright189800.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7947,
+        "output": 507,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 31381,
+        "output": 405,
+        "reasoning": 195,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "rlm_exec_count": 3,
+      "child_session_count": 8,
+      "nested_statuses": [
+        "completed",
+        "completed",
+        "completed"
+      ],
+      "execute_output_chars": 1329,
+      "quality": {
+        "tp": 43,
+        "fp": 7,
+        "fn": 5,
+        "precision": 0.86,
+        "recall": 0.8958333333333334,
+        "f1": 0.8775510204081632
+      },
+      "pair_index": 2,
+      "position_in_pair": 1,
+      "token_accounting": {
+        "root_uncached_tokens": 8454,
+        "root_cache_read_tokens": 7040,
+        "root_logical_tokens_including_cache_read": 15494,
+        "child_uncached_tokens": 31786,
+        "child_cache_read_tokens": 0,
+        "child_logical_tokens_including_cache_read": 31786,
+        "total_logical_tokens_including_cache_read": 47280
+      }
+    },
+    {
+      "kind": "single",
+      "session_id": "ses_eb935f5deffeg9Zvh5yXSzPi0a",
+      "wall_ms": 17248,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam849479.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/girder763463.ts",
+        "src/helix177855.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/nozzle527561.ts",
+        "src/nozzle895013.ts",
+        "src/oar201334.ts",
+        "src/oar848542.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 5856,
+        "output": 464,
+        "reasoning": 0,
+        "cache_read": 9088,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 565,
+        "output": 350,
+        "reasoning": 0,
+        "cache_read": 30080,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "rlm_exec_count": 1,
+      "child_session_count": 4,
+      "nested_statuses": [
+        "completed"
+      ],
+      "execute_output_chars": 1196,
+      "quality": {
+        "tp": 41,
+        "fp": 4,
+        "fn": 7,
+        "precision": 0.9111111111111111,
+        "recall": 0.8541666666666666,
+        "f1": 0.8817204301075269
+      },
+      "pair_index": 2,
+      "position_in_pair": 2,
+      "token_accounting": {
+        "root_uncached_tokens": 6320,
+        "root_cache_read_tokens": 9088,
+        "root_logical_tokens_including_cache_read": 15408,
+        "child_uncached_tokens": 915,
+        "child_cache_read_tokens": 30080,
+        "child_logical_tokens_including_cache_read": 30995,
+        "total_logical_tokens_including_cache_read": 46403
+      }
+    },
+    {
+      "kind": "single",
+      "session_id": "ses_eb935b263ffeimJFwERc4oYGRt",
+      "wall_ms": 18037,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/bracket910090.ts",
+        "src/cam849479.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/ejector985760.ts",
+        "src/ember400903.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder322136.ts",
+        "src/girder763463.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast265443.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle527561.ts",
+        "src/nozzle895013.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay426182.ts",
+        "src/quay543899.ts",
+        "src/quay643839.ts",
+        "src/rudder606373.ts",
+        "src/rudder891730.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/throttle756109.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/upright798255.ts",
+        "src/vane886237.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7985,
+        "output": 545,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 30645,
+        "output": 413,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "rlm_exec_count": 1,
+      "child_session_count": 4,
+      "nested_statuses": [
+        "completed"
+      ],
+      "execute_output_chars": 1431,
+      "quality": {
+        "tp": 44,
+        "fp": 10,
+        "fn": 4,
+        "precision": 0.8148148148148148,
+        "recall": 0.9166666666666666,
+        "f1": 0.8627450980392156
+      },
+      "pair_index": 3,
+      "position_in_pair": 1,
+      "token_accounting": {
+        "root_uncached_tokens": 8530,
+        "root_cache_read_tokens": 7040,
+        "root_logical_tokens_including_cache_read": 15570,
+        "child_uncached_tokens": 31058,
+        "child_cache_read_tokens": 0,
+        "child_logical_tokens_including_cache_read": 31058,
+        "total_logical_tokens_including_cache_read": 46628
+      }
+    },
+    {
+      "kind": "memory",
+      "session_id": "ses_eb9356bd2ffeKicTXnzIoJ7vhs",
+      "wall_ms": 19394,
+      "predicted_violations": [
+        "src/aperture233074.ts",
+        "src/aperture403002.ts",
+        "src/baffle758231.ts",
+        "src/cam849479.ts",
+        "src/cam964027.ts",
+        "src/dome741737.ts",
+        "src/dome778353.ts",
+        "src/dowel490866.ts",
+        "src/flange545248.ts",
+        "src/flange666801.ts",
+        "src/flange707911.ts",
+        "src/gasket416784.ts",
+        "src/girder297244.ts",
+        "src/girder763463.ts",
+        "src/helix714593.ts",
+        "src/hinge408216.ts",
+        "src/hinge538998.ts",
+        "src/jib152219.ts",
+        "src/jib670177.ts",
+        "src/keel494216.ts",
+        "src/keel631497.ts",
+        "src/keel792075.ts",
+        "src/latch990243.ts",
+        "src/mast720692.ts",
+        "src/mast785142.ts",
+        "src/nozzle527561.ts",
+        "src/oar201334.ts",
+        "src/oar700153.ts",
+        "src/oar848542.ts",
+        "src/piston470397.ts",
+        "src/quay286115.ts",
+        "src/quay543899.ts",
+        "src/rudder606373.ts",
+        "src/sail551129.ts",
+        "src/sail695504.ts",
+        "src/throttle211393.ts",
+        "src/upright224321.ts",
+        "src/upright343765.ts",
+        "src/upright511408.ts",
+        "src/winch735295.ts",
+        "src/yoke141970.ts",
+        "src/zinc128028.ts",
+        "src/zinc200626.ts"
+      ],
+      "root_usage": {
+        "input": 7884,
+        "output": 444,
+        "reasoning": 0,
+        "cache_read": 7040,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "child_usage": {
+        "input": 31381,
+        "output": 354,
+        "reasoning": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "cost_usd": 0
+      },
+      "rlm_exec_count": 3,
+      "child_session_count": 8,
+      "nested_statuses": [
+        "completed",
+        "completed",
+        "completed"
+      ],
+      "execute_output_chars": 1139,
+      "quality": {
+        "tp": 38,
+        "fp": 5,
+        "fn": 10,
+        "precision": 0.8837209302325582,
+        "recall": 0.7916666666666666,
+        "f1": 0.8351648351648352
+      },
+      "pair_index": 3,
+      "position_in_pair": 2,
+      "token_accounting": {
+        "root_uncached_tokens": 8328,
+        "root_cache_read_tokens": 7040,
+        "root_logical_tokens_including_cache_read": 15368,
+        "child_uncached_tokens": 31735,
+        "child_cache_read_tokens": 0,
+        "child_logical_tokens_including_cache_read": 31735,
+        "total_logical_tokens_including_cache_read": 47103
+      }
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "single": {
+      "count": 3,
+      "f1": {
+        "median": 0.8627450980392156,
+        "min": 0.8043478260869567,
+        "max": 0.8817204301075269,
+        "values": [
+          0.8043478260869567,
+          0.8817204301075269,
+          0.8627450980392156
+        ]
+      },
+      "precision": {
+        "median": 0.8409090909090909,
+        "min": 0.8148148148148148,
+        "max": 0.9111111111111111,
+        "values": [
+          0.8409090909090909,
+          0.9111111111111111,
+          0.8148148148148148
+        ]
+      },
+      "recall": {
+        "median": 0.8541666666666666,
+        "min": 0.7708333333333334,
+        "max": 0.9166666666666666,
+        "values": [
+          0.7708333333333334,
+          0.8541666666666666,
+          0.9166666666666666
+        ]
+      },
+      "tp": {
+        "median": 41,
+        "min": 37,
+        "max": 44,
+        "values": [
+          37,
+          41,
+          44
+        ]
+      },
+      "fp": {
+        "median": 7,
+        "min": 4,
+        "max": 10,
+        "values": [
+          7,
+          4,
+          10
+        ]
+      },
+      "fn": {
+        "median": 7,
+        "min": 4,
+        "max": 11,
+        "values": [
+          11,
+          7,
+          4
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 15408,
+        "min": 15382,
+        "max": 15570,
+        "values": [
+          15382,
+          15408,
+          15570
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 30995,
+        "min": 30984,
+        "max": 31058,
+        "values": [
+          30984,
+          30995,
+          31058
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 46403,
+        "min": 46366,
+        "max": 46628,
+        "values": [
+          46366,
+          46403,
+          46628
+        ]
+      },
+      "wall_ms": {
+        "median": 17248,
+        "min": 16812,
+        "max": 18037,
+        "values": [
+          16812,
+          17248,
+          18037
+        ]
+      }
+    },
+    "memory": {
+      "count": 3,
+      "f1": {
+        "median": 0.840909090909091,
+        "min": 0.8351648351648352,
+        "max": 0.8775510204081632,
+        "values": [
+          0.840909090909091,
+          0.8775510204081632,
+          0.8351648351648352
+        ]
+      },
+      "precision": {
+        "median": 0.8837209302325582,
+        "min": 0.86,
+        "max": 0.925,
+        "values": [
+          0.925,
+          0.86,
+          0.8837209302325582
+        ]
+      },
+      "recall": {
+        "median": 0.7916666666666666,
+        "min": 0.7708333333333334,
+        "max": 0.8958333333333334,
+        "values": [
+          0.7708333333333334,
+          0.8958333333333334,
+          0.7916666666666666
+        ]
+      },
+      "tp": {
+        "median": 38,
+        "min": 37,
+        "max": 43,
+        "values": [
+          37,
+          43,
+          38
+        ]
+      },
+      "fp": {
+        "median": 5,
+        "min": 3,
+        "max": 7,
+        "values": [
+          3,
+          7,
+          5
+        ]
+      },
+      "fn": {
+        "median": 10,
+        "min": 5,
+        "max": 11,
+        "values": [
+          11,
+          5,
+          10
+        ]
+      },
+      "root_logical_tokens": {
+        "median": 15368,
+        "min": 15308,
+        "max": 15494,
+        "values": [
+          15308,
+          15494,
+          15368
+        ]
+      },
+      "child_logical_tokens": {
+        "median": 31735,
+        "min": 31711,
+        "max": 31786,
+        "values": [
+          31711,
+          31786,
+          31735
+        ]
+      },
+      "total_logical_tokens": {
+        "median": 47103,
+        "min": 47019,
+        "max": 47280,
+        "values": [
+          47019,
+          47280,
+          47103
+        ]
+      },
+      "wall_ms": {
+        "median": 21657,
+        "min": 19394,
+        "max": 23582,
+        "values": [
+          21657,
+          23582,
+          19394
+        ]
+      }
+    }
+  },
+  "median_deltas_memory_minus_single": {
+    "f1": -0.02183600713012457,
+    "precision": 0.042811839323467216,
+    "recall": -0.0625,
+    "root_logical_tokens": -40,
+    "child_logical_tokens": 740,
+    "total_logical_tokens": 700,
+    "wall_ms": 4409
+  },
+  "caveats": [
+    "Prompt-cache accounting can depend on arm order; all architecture-level token comparisons include cache-read tokens for both root and child sessions.",
+    "The benchmark-only orchestration helper exists only in the temporary package snapshot; production RLM runtime code is unchanged.",
+    "Three runs per arm reduce but do not eliminate stochastic model variance."
+  ]
+}

@@ -45,9 +45,26 @@ function resultValue(stdout: string): unknown {
   return frame.value
 }
 
+function isKnownDenoNodeCompatFailClosed(stderr: string, label: string): boolean {
+  const moduleMarker = label === "node:fs" ? "node:fs" : label
+  return stderr.includes("Cannot read properties of undefined (reading 'build')")
+    && stderr.includes("ext:deno_node/internal/options.ts")
+    && stderr.includes(moduleMarker)
+}
+
 async function assertEscapeDenied(code: string, label: string): Promise<void> {
   const result = await runRunner(code)
-  assert(result.status.success, `${label}: runner failed instead of returning the probe result: ${result.stderr}`)
+  if (!result.status.success) {
+    // Deno 2.9.x intermittently fails closed while initializing node:*
+    // compatibility modules inside a permissions:none Worker. Accept only the
+    // narrow, observed internal/options.ts crash for the module under test;
+    // unrelated runner failures remain security-test failures.
+    assert(
+      isKnownDenoNodeCompatFailClosed(result.stderr, label),
+      `${label}: unexpected runner failure: ${result.stderr}`,
+    )
+    return
+  }
   assert(resultValue(result.stdout) === false, `${label}: generated Worker unexpectedly obtained authority`)
 }
 
@@ -82,7 +99,7 @@ Deno.test("generated Worker cannot spawn subprocesses through node:child_process
 })
 
 Deno.test("generated Worker receives no ambient environment through node:process", async () => {
-  const result = await runRunner(`
+  await assertEscapeDenied(`
     let escaped = false
     try {
       const proc = await import("node:process")
@@ -91,20 +108,7 @@ Deno.test("generated Worker receives no ambient environment through node:process
       // A permission error is also an acceptable denial.
     }
     return escaped
-  `)
-
-  if (!result.status.success) {
-    // Deno 2.9.x can fail closed while initializing node:process inside a
-    // permissions:none Worker. Accept only that known node-compat failure;
-    // unrelated runner failures still fail this security test.
-    assert(
-      result.stderr.includes("node:process") && result.stderr.includes("internal/options.ts"),
-      `node:process.env: unexpected runner failure: ${result.stderr}`,
-    )
-    return
-  }
-
-  assert(resultValue(result.stdout) === false, "node:process.env: generated Worker unexpectedly obtained authority")
+  `, "node:process")
 })
 
 Deno.test("generated Worker cannot bind network sockets through node:net", async () => {

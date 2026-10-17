@@ -17,6 +17,8 @@ import {
   MAX_CONTEXT_CALLS,
   MAX_DENO_OLD_SPACE_MB,
   MAX_EXEC_TIMEOUT_MS,
+  MAX_MEMORY_CALLS_PER_EXEC,
+  MAX_MEMORY_CALLS_PER_TURN,
   MAX_PROMPT_CHARS,
   MAX_PROTOCOL_LINE_CHARS,
   MAX_PROTOCOL_QUEUE_LINES,
@@ -28,24 +30,51 @@ import {
   MAX_TOTAL_CONTEXT_CHARS,
   PROTOCOL_VERSION,
 } from "./constants.ts"
-import { callChildLlm } from "./child.ts"
+import { ChildCallScheduler } from "./child-call-scheduler.ts"
+import { resolveRlmChildModelPolicy } from "./host-config.ts"
 import { executeContextOperation } from "./context.ts"
 import { RlmError, toErrorInfo } from "./errors.ts"
 import { encodeMessage, parseSandboxFrame } from "./protocol.ts"
 import { ProtocolRequestGate } from "./protocol-request-gate.ts"
+import { createRlmTelemetryV1 } from "./telemetry.ts"
 import { turnGovernor } from "./turn.ts"
+import type { RlmHost } from "./host.ts"
 import type {
   ContextRequestMessage,
   HostToSandboxMessage,
   Logger,
+  MemoryRequestMessage,
   RlmErrorInfo,
 } from "./types.ts"
 import { RlmRunState } from "./types.ts"
 import { resolveWorkspaceRoot } from "./workspace.ts"
 
 const TEST_EXEC_TIMEOUT_MS = Number(process.env.RLM_TEST_EXEC_TIMEOUT_MS) || 0
-const RUNNER_PATH = fileURLToPath(new URL("../rlm-runner/runner.ts", import.meta.url))
-const GENERATED_WORKER_PATH = fileURLToPath(new URL("../rlm-runner/generated-worker.ts", import.meta.url))
+
+function resolveRuntimeSource(sourceRelativeUrl: string, packagedRelativeUrl: string): string {
+  const candidates = [
+    fileURLToPath(new URL(sourceRelativeUrl, import.meta.url)),
+    fileURLToPath(new URL(packagedRelativeUrl, import.meta.url)),
+  ]
+  for (const candidate of candidates) {
+    try {
+      accessSync(candidate, fsConstants.R_OK)
+      return candidate
+    } catch {
+      // Try the packaged-source layout used by the compiled Codex adapter.
+    }
+  }
+  return candidates[0]
+}
+
+const RUNNER_PATH = resolveRuntimeSource(
+  "../rlm-runner/runner.ts",
+  "../../../plugin/rlm-runner/runner.ts",
+)
+const GENERATED_WORKER_PATH = resolveRuntimeSource(
+  "../rlm-runner/generated-worker.ts",
+  "../../../plugin/rlm-runner/generated-worker.ts",
+)
 
 function resolveDenoExecutable(): string {
   const executable = process.platform === "win32" ? "deno.exe" : "deno"
@@ -197,9 +226,6 @@ export interface RlmExecOutcome {
   metadata: Record<string, unknown>
 }
 
-type ChildClient = Parameters<typeof callChildLlm>[0]
-type ContextClient = Parameters<typeof executeContextOperation>[0]
-type Client = Pick<ChildClient, "session" | "tool"> & Pick<ContextClient, "file">
 
 function serializeFinalOutput(value: unknown): { compactChars: number; output: string } {
   let compact: string | undefined
@@ -223,11 +249,12 @@ function serializeFinalOutput(value: unknown): { compactChars: number; output: s
 }
 
 export async function executeRlmExec(
-  client: Client,
+  host: RlmHost,
   opts: ExecuteRlmExecOptions,
 ): Promise<RlmExecOutcome> {
   const { code, parentSessionID, directory: dir, log } = opts
-  const ws = await resolveWorkspaceRoot(dir, opts.worktree ?? "")
+  const ws = await resolveWorkspaceRoot(dir, opts.worktree ?? "", host.hostConfigFallbackFile)
+  const childModelPolicy = await resolveRlmChildModelPolicy(process.env, host.hostConfigFallbackFile)
 
   await log("debug", "rlm_exec workspace root", {
     workspaceRoot: ws.root,
@@ -244,7 +271,7 @@ export async function executeRlmExec(
   }
 
   const baseTimeoutMs = TEST_EXEC_TIMEOUT_MS > 0 ? TEST_EXEC_TIMEOUT_MS : MAX_EXEC_TIMEOUT_MS
-  const turn = await turnGovernor.beginExec(client, parentSessionID, dir, opts.messageID, baseTimeoutMs)
+  const turn = await turnGovernor.beginHostExec(host, parentSessionID, dir, opts.messageID, baseTimeoutMs)
   if (!turn.allowed) {
     const s = turn.snapshot
     throw new RlmError(
@@ -253,9 +280,10 @@ export async function executeRlmExec(
     )
   }
   const execTurnId = turn.snapshot.turnId
+  const observedRootModel = turn.rootModel ?? host.rootModel
   const turnStartedAt = Date.now()
   const execTimeoutMs = turn.reservedWallMs
-  const state = new RlmRunState({ workspaceRoot: ws.root, broadWorkspaceRoot: ws.broad, timeoutMs: execTimeoutMs })
+  const state = new RlmRunState({ workspaceRoot: ws.root, broadWorkspaceRoot: ws.broad, timeoutMs: execTimeoutMs, hostConfigFallbackFile: host.hostConfigFallbackFile })
 
   let child: ChildProcessWithoutNullStreams | undefined
   let childSettled: Promise<void> | undefined
@@ -268,6 +296,8 @@ export async function executeRlmExec(
   const inflight = new Map<string, Promise<void>>()
   const requestGate = new ProtocolRequestGate()
   const abortController = state.abort
+  const childScheduler = new ChildCallScheduler(MAX_SUBCALLS_CONCURRENT)
+  abortController.signal.addEventListener("abort", () => childScheduler.cancelPending(), { once: true })
   const protocolChannel = randomBytes(24).toString("hex")
   let watchdog: ReturnType<typeof setTimeout> | undefined
   let timedOut = false
@@ -382,15 +412,6 @@ export async function executeRlmExec(
     const stdout = makeLineReader(child.stdout)
 
     const handleLlm = async (id: string, promptValue: unknown): Promise<void> => {
-      state.childCallCount++
-      if (state.childCallCount > MAX_SUBCALLS_TOTAL) {
-        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `rlm budget exceeded: maximum ${MAX_SUBCALLS_TOTAL} llm prompts per rlm_exec` } })
-        return
-      }
-      if (state.activeChildSessions.size >= MAX_SUBCALLS_CONCURRENT) {
-        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `rlm budget exceeded: maximum ${MAX_SUBCALLS_CONCURRENT} concurrent llm calls` } })
-        return
-      }
       if (!turnGovernor.isCurrentTurn(parentSessionID, execTurnId)) {
         writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: staleTurnError() })
         return
@@ -403,7 +424,24 @@ export async function executeRlmExec(
         writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `llm: prompt exceeds ${MAX_PROMPT_CHARS} characters` } })
         return
       }
+      if (state.childCallCount >= MAX_SUBCALLS_TOTAL) {
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `rlm budget exceeded: maximum ${MAX_SUBCALLS_TOTAL} llm prompts per rlm_exec` } })
+        return
+      }
+      state.childCallCount++
+      const childIndex = state.childCallCount - 1
+
+      const childSlotGranted = await childScheduler.acquire()
+      if (!childSlotGranted) return
+      if (!turnGovernor.isCurrentTurn(parentSessionID, execTurnId)) {
+        childScheduler.release()
+        state.childFailureCount++
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: staleTurnError() })
+        return
+      }
       if (!turnGovernor.registerChildStartForTurn(parentSessionID, execTurnId)) {
+        childScheduler.release()
+        state.childFailureCount++
         const error = turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
           ? { code: "BUDGET_EXCEEDED" as const, message: `rlm turn budget exceeded: maximum ${MAX_CHILD_CALLS_PER_TURN} child calls per user turn` }
           : staleTurnError()
@@ -412,9 +450,9 @@ export async function executeRlmExec(
       }
 
       state.activeChildSessions.set(id, { sessionID: "", abort: () => {} })
+      const childStartedAt = Date.now()
       try {
-        const res = await callChildLlm(
-          client,
+        const res = await host.callChild(
           {
             prompt: promptValue,
             parentSessionID,
@@ -423,23 +461,45 @@ export async function executeRlmExec(
             directory: dir,
             title: "rlm_exec child",
             signal: abortController.signal,
+            ...(childModelPolicy.strategy === "fixed" ? { modelOverride: { provider: childModelPolicy.provider, model: childModelPolicy.model, variant: childModelPolicy.variant } } : {}),
           },
           log,
         )
         state.childSessionIDs.push(res.childSessionID)
+        state.childModels.push(res.model)
         state.childCostSum += res.cost ?? 0
         state.childTokensInputSum += res.tokensInput ?? 0
         state.childTokensOutputSum += res.tokensOutput ?? 0
+        state.childTokensCacheReadSum += res.tokensCacheRead ?? 0
+        state.childTokensCacheWriteSum += res.tokensCacheWrite ?? 0
+        const usage = {
+          index: childIndex, model: res.model, durationMs: Math.max(0, Date.now() - childStartedAt),
+          responseChars: res.text.length,
+          cost: res.cost ?? 0, tokensInput: res.tokensInput ?? 0, tokensOutput: res.tokensOutput ?? 0,
+          tokensCacheRead: res.tokensCacheRead ?? 0, tokensCacheWrite: res.tokensCacheWrite ?? 0,
+        }
         if (res.text.length > MAX_CHILD_RESULT_CHARS) {
+          state.childFailureCount++
+          state.childInvocations.push({ ...usage, status: "error", errorCode: "BUDGET_EXCEEDED" })
           writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: "BUDGET_EXCEEDED", message: `llm result exceeds ${MAX_CHILD_RESULT_CHARS} characters` } })
           return
         }
+        state.childSuccessCount++
+        state.childInvocations.push({ ...usage, status: "ok" })
         writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: true, text: res.text })
       } catch (error) {
+        state.childFailureCount++
         const info = toErrorInfo(error)
-        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: info.code === "RUNTIME_ERROR" ? "CHILD_FAILED" : info.code, message: info.message } })
+        const errorCode = info.code === "RUNTIME_ERROR" ? "CHILD_FAILED" : info.code
+        state.childInvocations.push({
+          index: childIndex, status: "error", durationMs: Math.max(0, Date.now() - childStartedAt),
+          responseChars: 0,
+          cost: 0, tokensInput: 0, tokensOutput: 0, tokensCacheRead: 0, tokensCacheWrite: 0, errorCode,
+        })
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "llm_result", id, ok: false, error: { code: errorCode, message: info.message } })
       } finally {
         state.activeChildSessions.delete(id)
+        childScheduler.release()
       }
     }
 
@@ -462,7 +522,7 @@ export async function executeRlmExec(
       }
       let value: unknown
       try {
-        value = (await executeContextOperation(client, state, dir, msg)).value
+        value = (await executeContextOperation(state, msg)).value
       } catch (error) {
         const info = toErrorInfo(error)
         writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: false, error: info })
@@ -490,6 +550,54 @@ export async function executeRlmExec(
       }
       state.contextCharsSent += serialized.length
       writeToSandbox({ v: PROTOCOL_VERSION, type: "context_result", id, ok: true, value })
+    }
+
+    const handleMemory = async (id: string, msg: MemoryRequestMessage): Promise<void> => {
+      if (!turnGovernor.isCurrentTurn(parentSessionID, execTurnId)) {
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "memory_result", id, ok: false, error: staleTurnError() })
+        return
+      }
+      state.memoryCallCount++
+      if (state.memoryCallCount > MAX_MEMORY_CALLS_PER_EXEC) {
+        writeToSandbox({
+          v: PROTOCOL_VERSION,
+          type: "memory_result",
+          id,
+          ok: false,
+          error: { code: "BUDGET_EXCEEDED", message: `working memory exceeds ${MAX_MEMORY_CALLS_PER_EXEC} calls per rlm_exec` },
+        })
+        return
+      }
+      if (!turnGovernor.beginMemoryCallForTurn(parentSessionID, execTurnId)) {
+        const error = turnGovernor.isCurrentTurn(parentSessionID, execTurnId)
+          ? { code: "BUDGET_EXCEEDED" as const, message: `working memory exceeds ${MAX_MEMORY_CALLS_PER_TURN} calls per user turn` }
+          : staleTurnError()
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "memory_result", id, ok: false, error })
+        return
+      }
+
+      try {
+        let value: unknown
+        switch (msg.operation) {
+          case "get":
+            value = turnGovernor.memoryGetForTurn(parentSessionID, execTurnId, msg.key)
+            break
+          case "set":
+            turnGovernor.memorySetForTurn(parentSessionID, execTurnId, msg.key, msg.value)
+            value = true
+            break
+          case "delete":
+            value = turnGovernor.memoryDeleteForTurn(parentSessionID, execTurnId, msg.key)
+            break
+          case "keys":
+            value = turnGovernor.memoryKeysForTurn(parentSessionID, execTurnId)
+            break
+        }
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "memory_result", id, ok: true, value })
+      } catch (error) {
+        const info = toErrorInfo(error)
+        writeToSandbox({ v: PROTOCOL_VERSION, type: "memory_result", id, ok: false, error: info })
+      }
     }
 
     const startRequest = (
@@ -535,6 +643,14 @@ export async function executeRlmExec(
         )
         continue
       }
+      if (msg.type === "memory") {
+        startRequest(
+          msg.id,
+          () => handleMemory(msg.id, msg),
+          (info) => writeToSandbox({ v: PROTOCOL_VERSION, type: "memory_result", id: msg.id, ok: false, error: info }),
+        )
+        continue
+      }
       if (msg.type === "result") {
         if (inflight.size > 0) {
           throw finishWithError(`sandbox returned final result with ${inflight.size} RPC request(s) still in flight`)
@@ -573,21 +689,31 @@ export async function executeRlmExec(
       throw new RlmError("PROTOCOL_ERROR", `rlm_exec: sandbox exited without a final result${stderr ? `:\n${stderr}` : ""}`)
     }
 
+    const durationMs = Date.now() - state.startedAt
+    const childModels = [...new Set(state.childModels)].sort()
     const metadata: Record<string, unknown> = {
       protocolVersion: state.protocolVersion,
       runId: state.runId,
-      durationMs: Date.now() - state.startedAt,
+      durationMs,
       workspaceRoot: ws.root,
       broadWorkspaceRoot: ws.broad,
       denoOldSpaceLimitMb: MAX_DENO_OLD_SPACE_MB,
       childCallCount: state.childCallCount,
+      childSuccessCount: state.childSuccessCount,
+      childFailureCount: state.childFailureCount,
+      maxChildConcurrencyObserved: childScheduler.maxObserved,
       contextCallCount: state.contextCallCount,
       contextCharsSent: state.contextCharsSent,
+      memoryCallCount: state.memoryCallCount,
       finalResultChars,
       childSessionIDs: [...state.childSessionIDs],
+      childModels,
+      childModelStrategy: childModelPolicy.strategy,
       childCostSum: round6(state.childCostSum),
       childTokensInputSum: state.childTokensInputSum,
       childTokensOutputSum: state.childTokensOutputSum,
+      childTokensCacheReadSum: state.childTokensCacheReadSum,
+      childTokensCacheWriteSum: state.childTokensCacheWriteSum,
       timedOut: state.timedOut,
       exitCode: state.exitCode,
       stderrTruncated,
@@ -604,13 +730,53 @@ export async function executeRlmExec(
       metadata.turnChildCallCount = turnSnap.childCallCount
       metadata.turnContextCallCount = turnSnap.contextCallCount
       metadata.turnContextCharsSent = turnSnap.contextCharsSent
+      metadata.turnMemoryCallCount = turnSnap.memoryCallCount
+      metadata.turnMemoryEntries = turnSnap.memoryEntries
+      metadata.turnMemoryCharsStored = turnSnap.memoryCharsStored
       metadata.turnWallMsUsed = turnSnap.wallMsUsed
       metadata.turnExecsRemaining = turnSnap.execsRemaining
       metadata.turnChildCallsRemaining = turnSnap.childCallsRemaining
       metadata.turnContextCallsRemaining = turnSnap.contextCallsRemaining
       metadata.turnContextCharsRemaining = turnSnap.contextCharsRemaining
+      metadata.turnMemoryCallsRemaining = turnSnap.memoryCallsRemaining
+      metadata.turnMemoryEntriesRemaining = turnSnap.memoryEntriesRemaining
+      metadata.turnMemoryCharsRemaining = turnSnap.memoryCharsRemaining
       metadata.turnWallMsRemaining = turnSnap.wallMsRemaining
     }
+    metadata.telemetry = createRlmTelemetryV1({
+      runId: state.runId,
+      adapter: host.adapter ?? "unknown",
+      turnId: execTurnId,
+      ...(observedRootModel ? { rootModel: observedRootModel } : {}),
+      durationMs,
+      operation: { kind: "exec" },
+      child: {
+        calls: state.childCallCount,
+        successes: state.childSuccessCount,
+        failures: state.childFailureCount,
+        maxConcurrencyObserved: childScheduler.maxObserved,
+        models: childModels,
+        modelStrategy: childModelPolicy.strategy,
+        cost: round6(state.childCostSum),
+        tokensInput: state.childTokensInputSum,
+        tokensOutput: state.childTokensOutputSum,
+        tokensCacheRead: state.childTokensCacheReadSum,
+        tokensCacheWrite: state.childTokensCacheWriteSum,
+        invocations: [...state.childInvocations].sort((a, b) => a.index - b.index),
+      },
+      context: { calls: state.contextCallCount, charsSent: state.contextCharsSent },
+      memory: { calls: state.memoryCallCount },
+      result: { chars: finalResultChars },
+      termination: {
+        status: "ok",
+        timedOut: state.timedOut,
+        exitCode: state.exitCode,
+        stderrTruncated,
+        ignoredStdoutLines,
+        turnSuperseded,
+      },
+      ...(!turnSuperseded && turnSnap?.turnId === execTurnId ? { turn: turnSnap } : {}),
+    })
     await log("info", "rlm_exec completed", metadata)
     return { output: finalOutput, metadata }
   } catch (error) {
@@ -624,6 +790,8 @@ export async function executeRlmExec(
       exitCode: state.exitCode,
       workspaceRoot: ws.root,
       childSessionIDs: [...state.childSessionIDs],
+      childModels: [...new Set(state.childModels)].sort(),
+      childModelStrategy: childModelPolicy.strategy,
       stderr: stderrDiagnostic().slice(0, 2000),
       error: `${info.code}: ${info.message}`,
     })

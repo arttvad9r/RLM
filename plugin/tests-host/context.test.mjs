@@ -39,16 +39,16 @@ function forbiddenFileClient() {
 async function withContextPolicy(policy, run) {
   const config = await mkdtemp(path.join(tmpdir(), "rlm-host-context-config-"))
   const previousConfig = process.env.XDG_CONFIG_HOME
-  const previousPolicy = process.env.OPENCODE_RLM_CONTEXT_POLICY
+  const previousPolicy = process.env.RLM_CONTEXT_POLICY
   try {
     process.env.XDG_CONFIG_HOME = config
-    process.env.OPENCODE_RLM_CONTEXT_POLICY = JSON.stringify(policy)
+    process.env.RLM_CONTEXT_POLICY = JSON.stringify(policy)
     return await run()
   } finally {
     if (previousConfig === undefined) delete process.env.XDG_CONFIG_HOME
     else process.env.XDG_CONFIG_HOME = previousConfig
-    if (previousPolicy === undefined) delete process.env.OPENCODE_RLM_CONTEXT_POLICY
-    else process.env.OPENCODE_RLM_CONTEXT_POLICY = previousPolicy
+    if (previousPolicy === undefined) delete process.env.RLM_CONTEXT_POLICY
+    else process.env.RLM_CONTEXT_POLICY = previousPolicy
     await rm(config, { recursive: true, force: true })
   }
 }
@@ -60,7 +60,7 @@ test("context read uses bounded host filesystem I/O and preserves whole-file whi
     await writeFile(path.join(root, "nested.txt"), expected)
     await withContextPolicy({}, async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
-      const result = await executeContextOperation(forbiddenFileClient(), state, "/private/session", {
+      const result = await executeContextOperation(state, {
         v: 1,
         type: "context",
         id: "raw-read",
@@ -81,7 +81,7 @@ test("context read rejects known binary files without consulting OpenCode file A
     await withContextPolicy({}, async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
       await assert.rejects(
-        () => executeContextOperation(forbiddenFileClient(), state, "/private/session", {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "binary",
@@ -108,7 +108,7 @@ test("context grep scans only approved files without any repository-wide search 
     await withContextPolicy({ allowed_paths: ["allowed"] }, async () => {
       const client = filesystemClient(root)
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
-      const result = await executeContextOperation(client, state, "/private/session", {
+      const result = await executeContextOperation(state, {
         v: 1,
         type: "context",
         id: "grep-scope",
@@ -130,7 +130,7 @@ test("context read limit is measured in UTF-8 bytes rather than JavaScript chara
     await withContextPolicy({ max_read_bytes: 4 }, async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
       await assert.rejects(
-        () => executeContextOperation(filesystemClient(root), state, "/private/session", {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "utf8-bytes",
@@ -153,7 +153,7 @@ test("readMany preserves per-file failures without widening filesystem authority
     await writeFile(path.join(root, "ok.txt"), "ok")
     await withContextPolicy({}, async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
-      const result = await executeContextOperation(filesystemClient(root), state, "/private/session", {
+      const result = await executeContextOperation(state, {
         v: 1,
         type: "context",
         id: "read-many",
@@ -180,7 +180,7 @@ test("symlink reads that resolve outside the workspace fail closed", async () =>
     await withContextPolicy({}, async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
       await assert.rejects(
-        () => executeContextOperation(filesystemClient(root), state, "/private/session", {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "symlink",
@@ -208,7 +208,7 @@ test("context files fails closed instead of returning a depth-truncated listing"
     await withContextPolicy({}, async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1_000 })
       await assert.rejects(
-        () => executeContextOperation(forbiddenFileClient(), state, "/private/session", {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "depth",

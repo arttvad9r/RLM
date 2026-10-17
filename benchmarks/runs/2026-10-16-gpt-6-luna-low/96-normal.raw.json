@@ -1,0 +1,53 @@
+{
+  "benchmark_id": "semantic-state-audit-v1",
+  "size": 96,
+  "mode": "normal",
+  "session_id": "ses_eb9833094ffezJ1wAZgVMeoUUr",
+  "workspace": "/tmp/rlm-benchmark-96-normal-1792183947043",
+  "started_at": "2026-10-16T20:52:27.107Z",
+  "finished_at": "2026-10-16T20:52:48.080Z",
+  "wall_ms": 20973,
+  "final_text": "{\"violations\":[\"src/feed4707.ts\",\"src/grid8588.ts\",\"src/rollup3577.ts\",\"src/stage2031.ts\",\"src/ticker3007.ts\",\"src/tray9259.ts\",\"src/view7089.ts\",\"src/zone3284.ts\"]}",
+  "parse_error": null,
+  "predicted_violations": [
+    "src/feed4707.ts",
+    "src/grid8588.ts",
+    "src/rollup3577.ts",
+    "src/stage2031.ts",
+    "src/ticker3007.ts",
+    "src/tray9259.ts",
+    "src/view7089.ts",
+    "src/zone3284.ts"
+  ],
+  "root": {
+    "cost_usd": 0,
+    "tokens": {
+      "input": 15019,
+      "output": 519,
+      "reasoning": 0,
+      "cache": {
+        "read": 23936,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded"
+  },
+  "children": [],
+  "telemetry": {
+    "rlm_exec_count": 0,
+    "rlm_exec_completed": 0,
+    "rlm_exec_errors": 0,
+    "rlm_child_calls": 0,
+    "rlm_context_calls": null,
+    "rlm_context_chars": null,
+    "root_shell_calls": 1,
+    "rlm_inputs": []
+  },
+  "totals": {
+    "root_input_tokens": 15019,
+    "root_output_tokens": 519,
+    "child_input_tokens": 0,
+    "child_output_tokens": 0,
+    "cost_usd": 0
+  }
+}

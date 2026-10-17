@@ -9,7 +9,7 @@ import { RlmError } from "../rlm-lib/errors.ts"
 import { RlmRunState } from "../rlm-lib/types.ts"
 
 async function withoutContextAuthorityEnv(run) {
-  const keys = ["XDG_CONFIG_HOME", "OPENCODE_RLM_CONTEXT_ROOT", "OPENCODE_RLM_CONTEXT_POLICY"]
+  const keys = ["XDG_CONFIG_HOME", "RLM_CONTEXT_ROOT", "RLM_CONTEXT_POLICY"]
   const previous = new Map(keys.map((key) => [key, process.env[key]]))
   try {
     for (const key of keys) delete process.env[key]
@@ -32,7 +32,7 @@ test("context grep skips approved non-text files and still returns text matches"
 
     await withoutContextAuthorityEnv(async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1000 })
-      const result = await executeContextOperation({ file: {} }, state, root, {
+      const result = await executeContextOperation(state, {
         v: 1,
         type: "context",
         id: "grep-nontext",
@@ -42,7 +42,7 @@ test("context grep skips approved non-text files and still returns text matches"
       assert.deepEqual(result.value, [{ path: "a.ts", line: 1, text: "const needle = true" }])
 
       await assert.rejects(
-        () => executeContextOperation({ file: {} }, state, root, {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "read-binary",
@@ -68,7 +68,7 @@ test("context grep still fails closed when an unclassified text file exceeds the
     await withoutContextAuthorityEnv(async () => {
       const state = new RlmRunState({ workspaceRoot: root, broadWorkspaceRoot: false, timeoutMs: 1000 })
       await assert.rejects(
-        () => executeContextOperation({ file: {} }, state, root, {
+        () => executeContextOperation(state, {
           v: 1,
           type: "context",
           id: "grep-oversized",

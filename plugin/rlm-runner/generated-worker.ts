@@ -3,6 +3,7 @@ import type {
   GrepMatch,
   HostToSandboxMessage,
   LlmRequestMessage,
+  MemoryRequestMessage,
   ReadManyItem,
   RlmErrorInfo,
   SandboxToHostMessage,
@@ -21,6 +22,9 @@ type RuntimeLimits = {
   maxReadManyFiles: number
   maxResultChars: number
   maxProtocolRequestsTotal: number
+  maxSubcallsTotal: number
+  maxMemoryKeyChars: number
+  maxMemoryValueChars: number
 }
 type BootstrapEnvelope = { kind: "bootstrap"; code: string; port: MessagePort; limits: RuntimeLimits }
 
@@ -46,6 +50,9 @@ function validRuntimeLimits(value: unknown): value is RuntimeLimits {
     && Number.isSafeInteger(value.maxReadManyFiles) && Number(value.maxReadManyFiles) > 0
     && Number.isSafeInteger(value.maxResultChars) && Number(value.maxResultChars) > 0
     && Number.isSafeInteger(value.maxProtocolRequestsTotal) && Number(value.maxProtocolRequestsTotal) > 0
+    && Number.isSafeInteger(value.maxSubcallsTotal) && Number(value.maxSubcallsTotal) > 0
+    && Number.isSafeInteger(value.maxMemoryKeyChars) && Number(value.maxMemoryKeyChars) > 0
+    && Number.isSafeInteger(value.maxMemoryValueChars) && Number(value.maxMemoryValueChars) > 0
 }
 
 function hideAmbientRuntimeGlobals(): void {
@@ -78,6 +85,9 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
   const MAX_READ_MANY_FILES = limits.maxReadManyFiles
   const MAX_RESULT_CHARS = limits.maxResultChars
   const MAX_PROTOCOL_REQUESTS_TOTAL = limits.maxProtocolRequestsTotal
+  const MAX_SUBCALLS_TOTAL = limits.maxSubcallsTotal
+  const MAX_MEMORY_KEY_CHARS = limits.maxMemoryKeyChars
+  const MAX_MEMORY_VALUE_CHARS = limits.maxMemoryValueChars
   const pending = new Map<string, Pending>()
   let requestCount = 0
   const portSend = port.postMessage.bind(port)
@@ -88,7 +98,7 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
   }
 
   const request = (
-    message: Omit<LlmRequestMessage, "id"> | Omit<ContextRequestMessage, "id">,
+    message: Omit<LlmRequestMessage, "id"> | Omit<ContextRequestMessage, "id"> | Omit<MemoryRequestMessage, "id">,
   ): Promise<unknown> => {
     if (requestCount >= MAX_PROTOCOL_REQUESTS_TOTAL) {
       return Promise.reject(new ApiError(
@@ -100,11 +110,17 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
     return new Promise<unknown>((resolve, reject) => {
       const id = randomUUID()
       pending.set(id, { resolve, reject })
-      sendProtocol({ ...message, id } as LlmRequestMessage | ContextRequestMessage)
+      sendProtocol({ ...message, id } as LlmRequestMessage | ContextRequestMessage | MemoryRequestMessage)
     })
   }
 
-  type LlmFn = ((prompt: string) => Promise<string>) & { batch: (prompts: string[]) => Promise<string[]> }
+  type LlmSettledResult =
+    | { ok: true; value: string }
+    | { ok: false; error: RlmErrorInfo }
+  type LlmFn = ((prompt: string) => Promise<string>) & {
+    batch: (prompts: string[]) => Promise<string[]>
+    batchSettled: (prompts: string[]) => Promise<LlmSettledResult[]>
+  }
   const llm = ((prompt: string): Promise<string> => {
     if (typeof prompt !== "string" || prompt.trim().length === 0) {
       return Promise.reject(new ApiError("INVALID_ARGUMENT", "llm: prompt must be a non-empty string"))
@@ -112,16 +128,35 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
     return request({ v: PROTOCOL_VERSION, type: "llm", prompt }) as Promise<string>
   }) as LlmFn
 
-  llm.batch = (prompts: string[]): Promise<string[]> => {
-    if (!Array.isArray(prompts) || prompts.length < 1 || prompts.length > 4) {
-      return Promise.reject(new ApiError("INVALID_ARGUMENT", "llm.batch: prompts must be an array of 1-4 strings"))
+  const validateBatchPrompts = (prompts: string[], api: "llm.batch" | "llm.batchSettled"): ApiError | undefined => {
+    if (!Array.isArray(prompts) || prompts.length < 1 || prompts.length > MAX_SUBCALLS_TOTAL) {
+      return new ApiError("INVALID_ARGUMENT", `${api}: prompts must be an array of 1-${MAX_SUBCALLS_TOTAL} strings`)
     }
     for (const prompt of prompts) {
       if (typeof prompt !== "string" || prompt.trim().length === 0) {
-        return Promise.reject(new ApiError("INVALID_ARGUMENT", "llm.batch: every prompt must be a non-empty string"))
+        return new ApiError("INVALID_ARGUMENT", `${api}: every prompt must be a non-empty string`)
       }
     }
+    return undefined
+  }
+
+  llm.batch = (prompts: string[]): Promise<string[]> => {
+    const validationError = validateBatchPrompts(prompts, "llm.batch")
+    if (validationError) return Promise.reject(validationError)
     return Promise.all(prompts.map((prompt) => request({ v: PROTOCOL_VERSION, type: "llm", prompt }))) as Promise<string[]>
+  }
+
+  llm.batchSettled = async (prompts: string[]): Promise<LlmSettledResult[]> => {
+    const validationError = validateBatchPrompts(prompts, "llm.batchSettled")
+    if (validationError) throw validationError
+    return await Promise.all(prompts.map(async (prompt): Promise<LlmSettledResult> => {
+      try {
+        const value = await request({ v: PROTOCOL_VERSION, type: "llm", prompt }) as string
+        return { ok: true, value }
+      } catch (error) {
+        return { ok: false, error: errorInfo(error) }
+      }
+    }))
   }
 
   const context = {
@@ -158,6 +193,44 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
     },
   }
 
+  const checkedMemoryKey = (key: string): string => {
+    if (typeof key !== "string" || key.trim().length === 0) {
+      throw new ApiError("INVALID_ARGUMENT", "memory key must be a non-empty string")
+    }
+    if (key.length > MAX_MEMORY_KEY_CHARS) {
+      throw new ApiError("BUDGET_EXCEEDED", `memory key exceeds ${MAX_MEMORY_KEY_CHARS} characters`)
+    }
+    return key
+  }
+
+  const memory = {
+    async get(key: string): Promise<unknown | undefined> {
+      const response = await request({ v: PROTOCOL_VERSION, type: "memory", operation: "get", key: checkedMemoryKey(key) }) as { found?: boolean; value?: unknown }
+      return response?.found === true ? response.value : undefined
+    },
+    async set(key: string, value: unknown): Promise<void> {
+      const checkedKey = checkedMemoryKey(key)
+      let serialized: string | undefined
+      try {
+        serialized = safeStringify(value)
+      } catch (error) {
+        throw new ApiError("INVALID_ARGUMENT", `memory.set: value must be JSON-serializable: ${error instanceof Error ? error.message : String(error)}`)
+      }
+      if (serialized === undefined) throw new ApiError("INVALID_ARGUMENT", "memory.set: value must be JSON-serializable")
+      if (serialized.length > MAX_MEMORY_VALUE_CHARS) {
+        throw new ApiError("BUDGET_EXCEEDED", `memory.set: value exceeds ${MAX_MEMORY_VALUE_CHARS} characters`)
+      }
+      const canonical = JSON.parse(serialized)
+      await request({ v: PROTOCOL_VERSION, type: "memory", operation: "set", key: checkedKey, value: canonical })
+    },
+    delete(key: string): Promise<boolean> {
+      return request({ v: PROTOCOL_VERSION, type: "memory", operation: "delete", key: checkedMemoryKey(key) }) as Promise<boolean>
+    },
+    keys(): Promise<string[]> {
+      return request({ v: PROTOCOL_VERSION, type: "memory", operation: "keys" }) as Promise<string[]>
+    },
+  }
+
   portSubscribe("message", (event: MessageEvent<unknown>) => {
     const envelope = event.data
     if (!isRecord(envelope) || envelope.kind !== "host" || !isRecord(envelope.message)) {
@@ -165,7 +238,7 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
       return
     }
     const message = envelope.message as unknown as HostToSandboxMessage
-    if (message.type !== "llm_result" && message.type !== "context_result") {
+    if (message.type !== "llm_result" && message.type !== "context_result" && message.type !== "memory_result") {
       sendProtocol({ v: PROTOCOL_VERSION, type: "error", error: { code: "PROTOCOL_ERROR", message: "generated-code worker received unexpected host message type" } })
       return
     }
@@ -189,6 +262,7 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
       const fn = new Function(
         "llm",
         "context",
+        "memory",
         "console",
         "Deno",
         "process",
@@ -207,6 +281,7 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
       const value = await fn(
         llm,
         context,
+        memory,
         quietConsole,
         undefined,
         undefined,
@@ -222,7 +297,7 @@ function startRuntime(port: MessagePort, code: string, limits: RuntimeLimits): v
         undefined,
       )
       if (pending.size > 0) {
-        throw new ApiError("PROTOCOL_ERROR", `generated code returned with ${pending.size} RPC request(s) still pending; await all llm/context calls`)
+        throw new ApiError("PROTOCOL_ERROR", `generated code returned with ${pending.size} RPC request(s) still pending; await all llm/context/memory calls`)
       }
       let serialized: string | undefined
       try {

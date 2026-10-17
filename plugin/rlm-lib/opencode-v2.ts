@@ -1,8 +1,12 @@
 import type { Plugin } from "@opencode/plugin"
+import { isAbsolute, join } from "node:path"
+import { callChildLlm } from "./child.ts"
+import { RlmError } from "./errors.ts"
 
 interface LegacyModelRef {
   providerID: string
   modelID: string
+  variant?: string
 }
 
 interface LegacySessionMessage {
@@ -37,7 +41,11 @@ function legacyMessages(messages: Awaited<ReturnType<Plugin.Context["session"]["
         info: {
           id: message.id,
           role: "assistant",
-          model: { providerID: message.model.providerID, modelID: message.model.id },
+          model: {
+            providerID: message.model.providerID,
+            modelID: message.model.id,
+            ...(message.model.variant ? { variant: message.model.variant } : {}),
+          },
         },
       }
     }
@@ -90,7 +98,9 @@ export function createOpenCodeV2RlmClient(ctx: Plugin.Context) {
           const session = await ctx.session.create({
             parentID: body.parentID,
             title: body.title,
-            model: body.model ? { providerID: body.model.providerID, id: body.model.modelID } : undefined,
+            model: body.model
+              ? { providerID: body.model.providerID, id: body.model.modelID, ...(body.model.variant ? { variant: body.model.variant } : {}) }
+              : undefined,
             location: { directory: ctx.location.directory },
             permissions: [{ action: "*", resource: "*", effect: "deny" }],
           })
@@ -143,5 +153,44 @@ export function createOpenCodeV2RlmClient(ctx: Plugin.Context) {
       },
     },
     file: {},
+  }
+}
+
+/** Host-neutral adapter consumed by the shared RLM runtime. */
+export function createOpenCodeV2RlmHost(ctx: Plugin.Context): import("./host.ts").RlmHost {
+  const client = createOpenCodeV2RlmClient(ctx)
+  const configHome = process.env.XDG_CONFIG_HOME?.trim()
+  const hostConfigFallbackFile = configHome && isAbsolute(configHome)
+    ? join(configHome, "opencode", "agents", ".rlm-host.json")
+    : undefined
+  return {
+    adapter: "opencode-v2",
+    hostConfigFallbackFile,
+    resolveTurn: async ({ sessionID, directory, boundaryID }) => {
+      const result = await client.session.messages({ path: { id: sessionID }, query: { directory } })
+      if ("error" in result) {
+        throw new RlmError("RUNTIME_ERROR", "failed to resolve OpenCode RLM turn from parent session messages")
+      }
+      const messages = result.data ?? []
+      const boundaryIndex = messages.findIndex((message) => message.info.id === boundaryID)
+      if (boundaryIndex < 0) {
+        throw new RlmError("RUNTIME_ERROR", `OpenCode RLM boundary message not found: ${boundaryID}`)
+      }
+      if (messages[boundaryIndex]?.info.role !== "assistant") {
+        throw new RlmError("RUNTIME_ERROR", `OpenCode RLM boundary is not an assistant message: ${boundaryID}`)
+      }
+      const boundaryModel = messages[boundaryIndex]?.info.model
+      const rootModel = boundaryModel
+        ? `${boundaryModel.providerID}/${boundaryModel.modelID}${boundaryModel.variant ? `#${boundaryModel.variant}` : ""}`
+        : undefined
+      for (let index = boundaryIndex - 1; index >= 0; index--) {
+        const info = messages[index]?.info
+        if (info?.role === "user" && typeof info.id === "string" && info.id.length > 0) {
+          return { turnId: info.id, boundaryId: boundaryID, order: boundaryIndex, ...(rootModel ? { rootModel } : {}) }
+        }
+      }
+      throw new RlmError("RUNTIME_ERROR", `OpenCode RLM boundary ${boundaryID} has no preceding user message`)
+    },
+    callChild: (input, log) => callChildLlm(client, input, log),
   }
 }
