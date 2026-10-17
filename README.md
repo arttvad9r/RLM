@@ -112,6 +112,8 @@ For a two-stage precision pass, call `rlm_map` with `output=path_list`, then pas
 
 `rlm_verify` accepts first-pass `fanout` 1–8 (default 4) with the same four-child concurrency ceiling. Confirmation creates at most one additional child per first-pass partition, so a verify execution is still bounded to 16 child calls; a maximum 16-child `rlm_map` plus a maximally budgeted `rlm_verify` therefore fits the existing 32-child per-turn budget. Path-array child responses are hard-bounded to 16,384 characters before parsing. The confirmation pass is deliberate precision-filter semantics, not formatting repair: malformed or oversized responses are never automatically repaired/retried. Identical same-boundary verification requests are deduplicated after successful completion.
 
+Current production evidence uses a paired 96-file benchmark where baseline and treatment share the exact same `rlm_map` candidates. In the latest three-run DeepSeek V4.1 Flash rerun, verification removed no true positives and recall remained `1.0000` in every round; it improved precision in one round and was neutral in two, so median F1 stayed `0.8276 -> 0.8276`. The verifier itself added median `15.625 s` wall time and `$0.005257` provider-reported child cost per run (three-run verifier cost `$0.014666`). This supports conservative safety on that workload, but not a claim that verification always improves quality. Evidence and retained negative/intermediate runs are under `benchmarks/runs/2026-10-17-deepseek-v4.1-flash-structured-verify-96/`.
+
 Generated JavaScript in raw `rlm_exec` runs inside the zero-permission Worker and may use:
 
 ```js

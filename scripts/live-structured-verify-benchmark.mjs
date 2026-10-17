@@ -100,8 +100,15 @@ function summarize(rows) {
     correct_fp_removals: stat(rows.map((row) => row.removal_quality.correct_fp_removals)),
     incorrect_tp_removals: stat(rows.map((row) => row.removal_quality.incorrect_tp_removals)),
     candidate_count: stat(rows.map((row) => row.scan_paths.length)),
-    wall_ms: stat(rows.map((row) => row.wall_ms)),
-    provider_cost_usd: stat(rows.map((row) => row.session_evidence.total_usage.cost_usd)),
+    pipeline_wall_ms: stat(rows.map((row) => row.pipeline_wall_ms)),
+    map_wall_ms: stat(rows.map((row) => row.stage_metrics.map.wall_ms)),
+    verify_wall_ms: stat(rows.map((row) => row.stage_metrics.verify.wall_ms)),
+    map_runtime_ms: stat(rows.map((row) => row.stage_metrics.map.runtime_ms)),
+    verify_runtime_ms: stat(rows.map((row) => row.stage_metrics.verify.runtime_ms)),
+    map_child_provider_cost_usd: stat(rows.map((row) => row.stage_metrics.map.child_provider_cost_usd)),
+    verify_child_provider_cost_usd: stat(rows.map((row) => row.stage_metrics.verify.child_provider_cost_usd)),
+    semantic_child_provider_cost_usd: stat(rows.map((row) => row.stage_metrics.map.child_provider_cost_usd + row.stage_metrics.verify.child_provider_cost_usd)),
+    total_session_provider_cost_usd: stat(rows.map((row) => row.session_evidence.total_usage.cost_usd)),
   }
 }
 
@@ -122,17 +129,45 @@ async function installBenchmarkTool(snapshotRoot) {
         description: "Benchmark-only fixed paired map/verify wrapper.",
         input: { type: "object", properties: {}, additionalProperties: false },
         async execute(_input, context) {
+          const mapStartedAt = Date.now()
           const mapOutcome = await executeRlmMap(host, {
             input: ${JSON.stringify(mapInput)},
             parentSessionID: context.sessionID, directory, worktree, messageID: context.messageID, abort: context.signal, log,
           })
+          const mapWallMs = Date.now() - mapStartedAt
           const scan = JSON.parse(mapOutcome.output)
+          const verifyStartedAt = Date.now()
           const verifyOutcome = await executeRlmVerify(host, {
             input: { candidates: scan.paths, instruction: ${JSON.stringify(verifyInstruction)}, fanout: ${fanout}, partition: "balanced_chars", failureMode: "strict" },
             parentSessionID: context.sessionID, directory, worktree, messageID: context.messageID, abort: context.signal, log,
           })
+          const verifyWallMs = Date.now() - verifyStartedAt
           const verify = JSON.parse(verifyOutcome.output)
-          return { content: JSON.stringify({ scan, verify }), metadata: { benchmarkOnly: true } }
+          const mapTelemetry = mapOutcome.metadata.telemetry as any
+          const verifyTelemetry = verifyOutcome.metadata.telemetry as any
+          const stageMetrics = {
+            map: {
+              wall_ms: mapWallMs,
+              runtime_ms: Number(mapTelemetry?.durationMs ?? mapWallMs),
+              child_calls: Number(mapTelemetry?.child?.calls ?? 0),
+              child_provider_cost_usd: Number(mapTelemetry?.child?.cost ?? 0),
+              tokens_input: Number(mapTelemetry?.child?.tokensInput ?? 0),
+              tokens_output: Number(mapTelemetry?.child?.tokensOutput ?? 0),
+              tokens_cache_read: Number(mapTelemetry?.child?.tokensCacheRead ?? 0),
+              tokens_cache_write: Number(mapTelemetry?.child?.tokensCacheWrite ?? 0),
+            },
+            verify: {
+              wall_ms: verifyWallMs,
+              runtime_ms: Number(verifyTelemetry?.durationMs ?? verifyWallMs),
+              child_calls: Number(verifyTelemetry?.child?.calls ?? 0),
+              child_provider_cost_usd: Number(verifyTelemetry?.child?.cost ?? 0),
+              tokens_input: Number(verifyTelemetry?.child?.tokensInput ?? 0),
+              tokens_output: Number(verifyTelemetry?.child?.tokensOutput ?? 0),
+              tokens_cache_read: Number(verifyTelemetry?.child?.tokensCacheRead ?? 0),
+              tokens_cache_write: Number(verifyTelemetry?.child?.tokensCacheWrite ?? 0),
+            },
+          }
+          return { content: JSON.stringify({ scan, verify, stage_metrics: stageMetrics }), metadata: { benchmarkOnly: true } }
         },
       })
     })
@@ -182,11 +217,27 @@ async function runPaired(endpoint, workspace, model, truth, round) {
   const parsed = parseJsonish(rendered)
   const scan = parsed.scan
   const verify = parsed.verify
+  const stageMetrics = parsed.stage_metrics
   if (scan?.schemaVersion !== 1 || scan?.kind !== "path_list" || scan?.partitionCount !== fanout || (scan?.partitionErrors ?? []).length !== 0) {
     throw new Error("paired: invalid map contract")
   }
   if (verify?.schemaVersion !== 1 || verify?.kind !== "conservative_filter" || verify?.verification?.uncertainty !== "keep" || (verify?.partitionErrors ?? []).length !== 0) {
     throw new Error("paired: invalid conservative verification contract")
+  }
+  for (const stage of ["map", "verify"]) {
+    const metrics = stageMetrics?.[stage]
+    if (!metrics || !Number.isFinite(metrics.wall_ms) || metrics.wall_ms < 0 || !Number.isFinite(metrics.runtime_ms) || metrics.runtime_ms < 0
+      || !Number.isSafeInteger(metrics.child_calls) || metrics.child_calls < 0
+      || !Number.isFinite(metrics.child_provider_cost_usd) || metrics.child_provider_cost_usd < 0) {
+      throw new Error(`paired: invalid ${stage} stage metrics`)
+    }
+  }
+  if (stageMetrics.map.child_calls !== Number(scan.partitionCount ?? 0)) {
+    throw new Error(`paired: map telemetry child-call mismatch ${stageMetrics.map.child_calls} != ${scan.partitionCount}`)
+  }
+  const expectedVerifyCalls = Number(verify.partitionCount ?? 0) + Number(verify.confirmation?.partitionCount ?? 0)
+  if (stageMetrics.verify.child_calls !== expectedVerifyCalls) {
+    throw new Error(`paired: verify telemetry child-call mismatch ${stageMetrics.verify.child_calls} != ${expectedVerifyCalls}`)
   }
 
   const scanPaths = [...new Set((scan.paths ?? []).filter((value) => typeof value === "string"))].sort()
@@ -204,6 +255,10 @@ async function runPaired(endpoint, workspace, model, truth, round) {
   const expectedDescendants = Number(scan.partitionCount ?? 0) + Number(verify.partitionCount ?? 0) + Number(verify.confirmation?.partitionCount ?? 0)
   if (sessionEvidence.descendant_count !== expectedDescendants) throw new Error(`paired: expected ${expectedDescendants} descendants, got ${sessionEvidence.descendant_count}`)
   const childModels = [...new Set(sessionEvidence.descendants.flatMap((row) => row.models))]
+  const semanticChildCost = stageMetrics.map.child_provider_cost_usd + stageMetrics.verify.child_provider_cost_usd
+  if (Math.abs(semanticChildCost - sessionEvidence.descendant_usage.cost_usd) > 0.00001) {
+    throw new Error(`paired: stage child cost mismatch ${semanticChildCost} != ${sessionEvidence.descendant_usage.cost_usd}`)
+  }
   const expectedChild = parseModel(childModelSpec)
   const expectedModel = `${expectedChild.providerID}/${expectedChild.id}${expectedChild.variant ? `#${expectedChild.variant}` : "#default"}`
   if (childModels.length !== 1 || childModels[0] !== expectedModel) throw new Error(`paired: unexpected child models ${JSON.stringify(childModels)}`)
@@ -212,7 +267,8 @@ async function runPaired(endpoint, workspace, model, truth, round) {
   return {
     round,
     root_session_id: rootSessionID,
-    wall_ms: wallMs,
+    pipeline_wall_ms: wallMs,
+    stage_metrics: stageMetrics,
     scan_paths: scanPaths,
     kept_paths: keptPaths,
     removed_paths: removedPaths,
@@ -294,11 +350,12 @@ try {
       }
     }
     rows.push(result)
-    console.log(`ROUND${round} baseline_f1=${result.baseline_quality.f1.toFixed(4)} verified_f1=${result.verified_quality.f1.toFixed(4)} delta=${(result.verified_quality.f1 - result.baseline_quality.f1).toFixed(4)} baseline_p=${result.baseline_quality.precision.toFixed(4)} verified_p=${result.verified_quality.precision.toFixed(4)} baseline_r=${result.baseline_quality.recall.toFixed(4)} verified_r=${result.verified_quality.recall.toFixed(4)} baseline_fp=${result.baseline_quality.fp} verified_fp=${result.verified_quality.fp} baseline_fn=${result.baseline_quality.fn} verified_fn=${result.verified_quality.fn} candidates=${result.scan_paths.length} removed=${result.removed_paths.length} fp_removed=${result.removal_quality.correct_fp_removals} tp_removed=${result.removal_quality.incorrect_tp_removals} children=${result.session_evidence.descendant_count} wall=${result.wall_ms} provider=$${result.session_evidence.total_usage.cost_usd.toFixed(6)}`)
+    console.log(`ROUND${round} baseline_f1=${result.baseline_quality.f1.toFixed(4)} verified_f1=${result.verified_quality.f1.toFixed(4)} delta=${(result.verified_quality.f1 - result.baseline_quality.f1).toFixed(4)} baseline_p=${result.baseline_quality.precision.toFixed(4)} verified_p=${result.verified_quality.precision.toFixed(4)} baseline_r=${result.baseline_quality.recall.toFixed(4)} verified_r=${result.verified_quality.recall.toFixed(4)} baseline_fp=${result.baseline_quality.fp} verified_fp=${result.verified_quality.fp} baseline_fn=${result.baseline_quality.fn} verified_fn=${result.verified_quality.fn} candidates=${result.scan_paths.length} removed=${result.removed_paths.length} fp_removed=${result.removal_quality.correct_fp_removals} tp_removed=${result.removal_quality.incorrect_tp_removals} children=${result.session_evidence.descendant_count} map_wall=${result.stage_metrics.map.wall_ms} verify_wall=${result.stage_metrics.verify.wall_ms} verify_provider=$${result.stage_metrics.verify.child_provider_cost_usd.toFixed(6)} pipeline_wall=${result.pipeline_wall_ms} total_provider=$${result.session_evidence.total_usage.cost_usd.toFixed(6)}`)
   }
 
   const summary = summarize(rows)
-  const totalProviderCost = rows.reduce((sum, row) => sum + row.session_evidence.total_usage.cost_usd, 0)
+  const totalSessionProviderCost = rows.reduce((sum, row) => sum + row.session_evidence.total_usage.cost_usd, 0)
+  const totalVerifyChildProviderCost = rows.reduce((sum, row) => sum + row.stage_metrics.verify.child_provider_cost_usd, 0)
   const report = {
     benchmark_id: "semantic-state-audit-v1-96-production-structured-verification-paired",
     root_model: rootModelSpec,
@@ -312,6 +369,7 @@ try {
       failure_mode: "strict",
       repeats,
       paired_candidate_set: true,
+      isolated_stage_metrics: true,
       baseline: "exact rlm_map path_list candidates",
       treatment: "rlm_verify applied to the exact same candidate array",
       production_rlm_map: true,
@@ -325,14 +383,16 @@ try {
     runs: rows,
     failures,
     summary,
-    total_provider_cost_usd: totalProviderCost,
+    total_session_provider_cost_usd: totalSessionProviderCost,
+    total_verify_child_provider_cost_usd: totalVerifyChildProviderCost,
     caveats: [
       "Verification can remove false positives but cannot recover candidates missed by the shared first-stage scan.",
       "Each round is paired: baseline and verified quality are scored from the exact same scan candidate set.",
       "A temporary benchmark-only plugin wrapper removes model-written map/verify glue while calling the production executeRlmMap and executeRlmVerify implementations with the real OpenCode host, sandbox, turn governor, and child isolation.",
       "The verifier is asymmetric: candidates are presumptively valid and uncertainty means KEEP.",
       "Semantic children are routed through the production trusted fixed-child policy; the root model only triggers the benchmark-only wrapper and does not perform classification.",
-      "Provider-reported cost includes the shared scan, verifier, and root orchestration for accepted rounds; discarded retry attempts are listed in failures but excluded from successful-round cost summaries.",
+      "Per-stage verifier cost is taken from production telemetry.child.cost and excludes the shared scan/root trigger; verify wall time is measured directly around executeRlmVerify. Total session provider cost is retained separately for end-to-end accounting.",
+      "Discarded retry attempts are listed in failures but excluded from successful-round cost summaries.",
       "This 96-file synthetic corpus is quality evidence for this workload only; it does not justify universal defaults.",
     ],
   }
@@ -340,7 +400,7 @@ try {
     await fs.mkdir(outDir, { recursive: true })
     await fs.writeFile(path.join(outDir, "paired-production-verification.json"), JSON.stringify(report, null, 2) + "\n")
   }
-  console.log(`MEDIANS ${JSON.stringify({ baseline_f1: summary.baseline_f1.median, verified_f1: summary.verified_f1.median, f1_delta: summary.f1_delta.median, baseline_precision: summary.baseline_precision.median, verified_precision: summary.verified_precision.median, baseline_recall: summary.baseline_recall.median, verified_recall: summary.verified_recall.median, baseline_fp: summary.baseline_fp.median, verified_fp: summary.verified_fp.median, baseline_fn: summary.baseline_fn.median, verified_fn: summary.verified_fn.median, correct_fp_removals: summary.correct_fp_removals.median, incorrect_tp_removals: summary.incorrect_tp_removals.median, candidate_count: summary.candidate_count.median, wall_ms: summary.wall_ms.median, provider_cost_usd: summary.provider_cost_usd.median, total_provider_cost_usd: totalProviderCost, written: shouldWrite })}`)
+  console.log(`MEDIANS ${JSON.stringify({ baseline_f1: summary.baseline_f1.median, verified_f1: summary.verified_f1.median, f1_delta: summary.f1_delta.median, baseline_precision: summary.baseline_precision.median, verified_precision: summary.verified_precision.median, baseline_recall: summary.baseline_recall.median, verified_recall: summary.verified_recall.median, baseline_fp: summary.baseline_fp.median, verified_fp: summary.verified_fp.median, baseline_fn: summary.baseline_fn.median, verified_fn: summary.verified_fn.median, correct_fp_removals: summary.correct_fp_removals.median, incorrect_tp_removals: summary.incorrect_tp_removals.median, candidate_count: summary.candidate_count.median, map_wall_ms: summary.map_wall_ms.median, verify_wall_ms: summary.verify_wall_ms.median, verify_child_provider_cost_usd: summary.verify_child_provider_cost_usd.median, pipeline_wall_ms: summary.pipeline_wall_ms.median, total_session_provider_cost_usd: totalSessionProviderCost, total_verify_child_provider_cost_usd: totalVerifyChildProviderCost, written: shouldWrite })}`)
 } finally {
   if (!endpoint) endpoint = await discover().catch(() => undefined)
   if (endpoint) for (const rootID of createdRoots) await deleteTree(endpoint, rootID)
