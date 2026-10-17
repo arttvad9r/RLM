@@ -2,11 +2,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { MAX_SUBCALLS_TOTAL } from "../../plugin/rlm-lib/constants.js";
+import { MAX_STRUCTURED_VERIFY_CANDIDATES, MAX_STRUCTURED_VERIFY_PATH_CHARS, MAX_SUBCALLS_TOTAL } from "../../plugin/rlm-lib/constants.js";
 import { RlmError, toErrorInfo } from "../../plugin/rlm-lib/errors.js";
 import { executeRlmExec } from "../../plugin/rlm-lib/sandbox.js";
 import { executeRlmMap } from "../../plugin/rlm-lib/structured-map.js";
-import { RLM_EXEC_DESCRIPTION, RLM_MAP_DESCRIPTION } from "../../plugin/rlm-lib/tool-description.js";
+import { executeRlmVerify } from "../../plugin/rlm-lib/structured-verify.js";
+import { RLM_EXEC_DESCRIPTION, RLM_MAP_DESCRIPTION, RLM_VERIFY_DESCRIPTION } from "../../plugin/rlm-lib/tool-description.js";
 import { CodexRlmHost, parseCodexInvocationContext } from "./codex-host.js";
 const server = new McpServer({ name: "rlm", version: "0.1.0" }, { maxToolInputElements: 64 });
 const log = async (level, message, extra = {}) => {
@@ -75,6 +76,43 @@ server.registerTool("rlm_map", {
         const host = new CodexRlmHost(context);
         const outcome = await executeRlmMap(host, {
             input: { query, instruction, fanout, output, partition, failureMode },
+            parentSessionID: context.threadId,
+            directory: context.workspaceRoot,
+            worktree: context.workspaceRoot,
+            messageID: context.turnId,
+            abort: extra.signal,
+            log,
+        });
+        return {
+            content: [{ type: "text", text: outcome.output }],
+            _meta: { rlm: outcome.metadata },
+        };
+    }
+    catch (error) {
+        return errorResponse(error);
+    }
+});
+server.registerTool("rlm_verify", {
+    title: "RLM Conservative Verify",
+    description: RLM_VERIFY_DESCRIPTION,
+    inputSchema: {
+        candidates: z.array(z.string().min(1).max(MAX_STRUCTURED_VERIFY_PATH_CHARS)).max(MAX_STRUCTURED_VERIFY_CANDIDATES).describe("Presumptively valid repository paths to conservatively filter."),
+        instruction: z.string().min(1).describe("Positive selection rule. Remove only candidates whose source clearly proves an explicit allowed exception."),
+        fanout: z.number().int().min(1).max(MAX_SUBCALLS_TOTAL).optional().describe("Verification partitions; defaults to 4. Runtime concurrency remains capped at 4."),
+        partition: z.enum(["round_robin", "balanced_chars"]).optional().describe("Deterministic candidate partition strategy; defaults to round_robin."),
+        failureMode: z.enum(["strict", "settled"]).optional().describe("In settled mode, failed or malformed partitions keep all candidates."),
+    },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+}, async ({ candidates, instruction, fanout, partition, failureMode }, extra) => {
+    try {
+        const context = parseCodexInvocationContext(extra._meta);
+        const host = new CodexRlmHost(context);
+        const outcome = await executeRlmVerify(host, {
+            input: { candidates, instruction, fanout, partition, failureMode },
             parentSessionID: context.threadId,
             directory: context.workspaceRoot,
             worktree: context.workspaceRoot,

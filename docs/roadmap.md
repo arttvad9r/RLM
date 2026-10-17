@@ -105,7 +105,7 @@ Desired primitives:
 - filter — path/candidate selection is implemented, broader typed filters remain future work;
 - deduplicate/sort — implemented for path outputs;
 - reduce/merge — deterministic path merge is implemented, generic semantic reduce remains future work;
-- optional candidate verification — contract implemented; root-side conservative verification remains host-owned rather than a second generic classifier.
+- optional candidate verification — implemented as asymmetric `rlm_verify`: candidates are presumptively valid and children can only remove clearly proven false positives; root-side `candidate_bundle` verification remains available for targeted inspection.
 
 Design constraints:
 
@@ -125,7 +125,11 @@ Structured reliability hardening completed 2026-10-17 also includes deterministi
 
 A 2026-10-17 Sol-low experiment tested a two-stage pattern on the frozen 384-file semantic audit. A 16-child scan returned only candidate paths/source to the root. Naive full reclassification was harmful (median F1 `0.9091`) because the verifier over-applied the lifecycle-state exception. A conservative precision filter — reject only clearly safe candidates, preserve uncertainty, and define lifecycle state by the mutated field rather than a string literal — scored F1/precision/recall `1.0000` in all three successful runs. Median total logical tokens were `54,278`, versus `48,694` for scan-only (+11.5%) and `116,673` for the earlier direct-Sol baseline (-53.5%).
 
-This supports a future structured verification primitive, but its semantics must be **asymmetric**: first-stage candidates are presumptively valid and the verifier removes only explicit false positives. A generic second classifier is not acceptable. The primitive should also bypass free-form Code Mode glue; the experiment observed model-added punctuation breaking an otherwise trivial one-line JavaScript call before RLM execution. Evidence is under `benchmarks/runs/2026-10-17-gpt-6-sol-low-root-verify-384/` and `benchmarks/runs/2026-10-17-gpt-6-sol-low-root-verify-conservative-384/`.
+This evidence led to the production `rlm_verify` primitive on 2026-10-17. Its semantics are deliberately **asymmetric**: first-stage candidates are presumptively valid, children return only paths that are clearly proven explicit false positives, uncertainty means KEEP, and unknown/cross-partition selections cannot remove candidates. It also bypasses the free-form Code Mode glue that caused model-added punctuation to break an otherwise trivial one-line JavaScript call in the experiment. The original evidence is under `benchmarks/runs/2026-10-17-gpt-6-sol-low-root-verify-384/` and `benchmarks/runs/2026-10-17-gpt-6-sol-low-root-verify-conservative-384/`.
+
+The production primitive uses isolated semantic children for the verification stage rather than asking the root to reclassify candidate source directly. Its deterministic safety/contract tests therefore do not transfer the root-verifier F1 result automatically; live quality comparison of production `rlm_map(path_list) -> rlm_verify` remains required before making equivalent quality/cost claims.
+
+A tiny production smoke on 2026-10-17 used `ollama-cloud/deepseek-v4.1-flash` with two map children plus two verify children. The map returned all three controlled review candidates; `rlm_verify` retained the two explicit positives and removed only the explicit safe exception. Provider-reported total root-plus-child cost was about `$0.00210`. This closes adapter/mechanics validation but not the larger-corpus quality comparison.
 
 ### Stable telemetry/evidence contract
 

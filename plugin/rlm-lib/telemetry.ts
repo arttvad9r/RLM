@@ -36,6 +36,18 @@ export interface RlmTelemetryV1 {
     formatViolations?: number
     outputLimitViolations?: number
     candidateSourceChars?: number
+  } | {
+    kind: "verify"
+    fanout: number
+    partition: string
+    failureMode: string
+    candidateCount: number
+    keptCount: number
+    removedCount: number
+    partitionCount: number
+    failedPartitions: number
+    formatViolations: number
+    outputLimitViolations: number
   }
   child: {
     calls: number

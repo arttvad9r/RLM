@@ -10,9 +10,10 @@ import { RLM_CHILD_SYSTEM_PROMPT, forgetDeletedRlmChild, isRlmChild } from "./rl
 import { createOpenCodeV2RlmHost } from "./rlm-lib/opencode-v2.ts"
 import { executeRlmExec } from "./rlm-lib/sandbox.ts"
 import { executeRlmMap, forgetStructuredMapSession, type RlmMapInput } from "./rlm-lib/structured-map.ts"
+import { executeRlmVerify, forgetStructuredVerifySession, type RlmVerifyInput } from "./rlm-lib/structured-verify.ts"
 import { turnGovernor } from "./rlm-lib/turn.ts"
 import type { Logger, LogLevel } from "./rlm-lib/types.ts"
-import { RLM_EXEC_DESCRIPTION, RLM_MAP_DESCRIPTION } from "./rlm-lib/tool-description.ts"
+import { RLM_EXEC_DESCRIPTION, RLM_MAP_DESCRIPTION, RLM_VERIFY_DESCRIPTION } from "./rlm-lib/tool-description.ts"
 
 function consoleMethod(level: LogLevel): "debug" | "info" | "warn" | "error" {
   return level === "debug" || level === "info" || level === "warn" || level === "error" ? level : "info"
@@ -101,6 +102,35 @@ export default Plugin.define({
           return { content: outcome.output, metadata: outcome.metadata }
         },
       })
+
+      editor.add({
+        name: "rlm_verify",
+        description: RLM_VERIFY_DESCRIPTION,
+        input: {
+          type: "object",
+          properties: {
+            candidates: { type: "array", items: { type: "string", maxLength: 1024 }, maxItems: 64, description: "Presumptively valid repository paths to conservatively filter." },
+            instruction: { type: "string", description: "Positive selection rule. Verifier children may remove a candidate only when its source clearly proves an explicit exception." },
+            fanout: { type: "integer", minimum: 1, maximum: 16, default: 4, description: "Verification partitions. Defaults to 4; host concurrency remains capped at 4." },
+            partition: { type: "string", enum: ["round_robin", "balanced_chars"], default: "round_robin", description: "Deterministic candidate partition strategy." },
+            failureMode: { type: "string", enum: ["strict", "settled"], default: "strict", description: "In settled mode, failed/malformed partitions keep all of their candidates." },
+          },
+          required: ["candidates", "instruction"],
+          additionalProperties: false,
+        },
+        async execute(input, context) {
+          const outcome = await executeRlmVerify(host, {
+            input: input as RlmVerifyInput,
+            parentSessionID: context.sessionID,
+            directory,
+            worktree,
+            messageID: context.messageID,
+            abort: context.signal,
+            log,
+          })
+          return { content: outcome.output, metadata: outcome.metadata }
+        },
+      })
     })
 
     void (async () => {
@@ -109,6 +139,7 @@ export default Plugin.define({
           if (event.type !== "session.deleted") continue
           forgetDeletedRlmChild(event.data.sessionID)
           forgetStructuredMapSession(event.data.sessionID)
+          forgetStructuredVerifySession(event.data.sessionID)
           turnGovernor.evictSession(event.data.sessionID)
         }
       } catch (error) {

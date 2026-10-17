@@ -102,7 +102,7 @@ export async function callChildLlm(
     : rootModel
 
   // 2. Full deny tool map: every available tool ID => false. Fail closed when
-  //    the server cannot enumerate any tools; adding the explicit rlm_exec deny
+  //    the server cannot enumerate any tools; adding explicit RLM tool denies
   //    must not make an empty enumeration appear valid. Object.fromEntries uses
   //    data-property creation, so special IDs such as "__proto__" remain own
   //    deny entries instead of invoking Object.prototype setters.
@@ -117,6 +117,7 @@ export async function callChildLlm(
   const denyTools = Object.fromEntries(toolIDs.map((id) => [id, false])) as Record<string, boolean>
   denyTools.rlm_exec = false
   denyTools.rlm_map = false
+  denyTools.rlm_verify = false
 
   // 3. Create child session linked to parent, same directory.
   const childRes = await client.session.create({

@@ -188,7 +188,7 @@ test("OpenCode V2 plugin registers raw and structured tools and disposes registr
 
   const cleanup = await plugin.setup(ctx)
   assert.equal(typeof contextHook, "function")
-  assert.deepEqual([...tools.keys()].sort(), ["rlm_exec", "rlm_map"])
+  assert.deepEqual([...tools.keys()].sort(), ["rlm_exec", "rlm_map", "rlm_verify"])
 
   const exec = tools.get("rlm_exec")
   assert.equal(exec?.input?.type, "object")

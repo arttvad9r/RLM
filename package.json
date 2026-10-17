@@ -17,7 +17,8 @@
     "build:codex": "node scripts/build-codex.mjs",
     "check:codex-dist": "node scripts/check-codex-dist.mjs",
     "test:opencode-live": "node scripts/live-opencode-smoke.mjs",
-    "test:opencode-structured-live": "node scripts/live-structured-smoke.mjs"
+    "test:opencode-structured-live": "node scripts/live-structured-smoke.mjs",
+    "test:opencode-verify-live": "node scripts/live-structured-verify-smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "24.7.2",

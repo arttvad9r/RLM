@@ -7,7 +7,7 @@ export const RLM_EXEC_DESCRIPTION = [
   "Budgets per execution: max 16 child prompts, max 4 concurrent child calls, max 32 context operations, max 64 memory operations, max 64 paths per readMany, prompts up to 32768 chars, total context data 1 MiB, per-file reads 128 KiB, grep 200 matches, files 4096 paths, runtime timeout 120s.",
   "Budgets per user turn: max 12 rlm_exec, max 32 child calls, max 96 context operations, max 2 MiB context data, max 128 memory operations, max 128 memory entries, max 131072 serialized JSON characters per memory value, max 524288 key-plus-serialized-value characters total stored memory, max 180s rlm_exec wall time.",
   "Children are stateless semantic workers. By default they inherit the parent model/variant; trusted host configuration may instead route them to a fixed child model. Generated JavaScript cannot select the child model. Children do not receive repository context, prior conversation, working memory, or RLM context APIs. Include all task-specific data a child needs directly in its prompt.",
-  "Prefer rlm_map for standard repository partition/map/merge work; use rlm_exec only when the task needs custom control flow that the structured tool cannot express.",
+  "Prefer rlm_map for standard repository partition/map/merge work and rlm_verify for conservative false-positive filtering; use rlm_exec only when custom control flow is required.",
   "Example: const paths = await context.files(\"src/\"); const files = await context.readMany(paths.slice(0, 4)); const summaries = await llm.batch(files.map(function (f) { return \"Summarize: \" + f.content; })); await memory.set(\"summaries\", summaries); return { count: paths.length, stored: summaries.length };",
 ].join(" ")
 
@@ -21,4 +21,15 @@ export const RLM_MAP_DESCRIPTION = [
   "Repository source is framed as untrusted data in every structured child prompt. Oversized partitions fail before the first child call with guidance to increase fanout or narrow the query. Child responses are bounded before parsing (32768 chars for text; 16384 for path_list/candidate_bundle), and malformed or oversized structured responses are never automatically repaired with another model call.",
   "The structured path compiles to a fixed trusted JavaScript template and executes through the same zero-permission Worker, context policy, child routing, turn governor, cancellation, budgets, and telemetry as rlm_exec.",
   "An exact repeated rlm_map request from the same authoritative assistant boundary reuses the first successfully completed result instead of launching another child fan-out. Replay metadata does not duplicate provider-usage telemetry; raw rlm_exec is never deduplicated.",
+].join(" ")
+
+
+export const RLM_VERIFY_DESCRIPTION = [
+  "Conservative structured candidate verifier. Use after a path-producing scan when false positives should be removed without allowing a second classifier to invent or expand candidates.",
+  "Input candidates are presumptively valid repository paths. The trusted runtime re-reads their source through bounded context authority, partitions them deterministically, and asks isolated children only which candidates are clearly proven false positives under the supplied instruction.",
+  "Children return only paths to REMOVE. Uncertainty always means KEEP. A child cannot add candidates, remove a path from another partition, or broaden filesystem authority.",
+  "At most 64 candidate paths are accepted per call. fanout defaults to 4 and remains bounded to 1-16 with at most 4 children concurrently. A preceding 16-child rlm_map plus a 16-child rlm_verify exactly fits the existing 32-child per-turn budget.",
+  "failureMode=strict rejects on child/provider or structured-validation failure. failureMode=settled preserves every candidate from a failed or malformed partition, because failed verification is uncertainty rather than evidence for removal.",
+  "Child responses are bounded to 16384 characters before JSON parsing. Malformed or oversized outputs are never automatically repaired or retried with another model call.",
+  "The same zero-permission Worker, context policy, child routing, cancellation, budgets, telemetry, and same-boundary duplicate suppression used by rlm_map apply here.",
 ].join(" ")

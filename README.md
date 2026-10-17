@@ -9,7 +9,7 @@
 [![OpenCode](https://img.shields.io/badge/adapter-OpenCode-444)](#opencode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-RLM gives a root model two complementary tools: structured `rlm_map` for common repository partition/map/merge work and raw `rlm_exec` as an escape hatch for custom orchestration. Both paths use the same bounded context, child scheduler, turn-scoped working memory, model-routing policy, budgets and zero-permission generated-code sandbox.
+RLM gives a root model three complementary tools: structured `rlm_map` for repository partition/map/merge work, asymmetric `rlm_verify` for conservative false-positive filtering, and raw `rlm_exec` as an escape hatch for custom orchestration. All three use the same bounded context, child scheduler, model-routing policy, budgets and zero-permission generated-code sandbox; raw executions additionally expose bounded turn-scoped working memory.
 
 Working memory stays in the trusted host process rather than the root conversation. It can carry compact intermediate state across multiple `rlm_exec` calls in one user turn, but it is not durable long-term memory: it is cleared when the authoritative user turn changes and evicted when the host reports session deletion.
 
@@ -80,7 +80,7 @@ Requirements: Node.js 24+, Deno 2.x, OpenCode 2.0.29 or a compatible V2 host, an
 opencode plugin add github:arttvad9r/RLM
 ```
 
-Then ask the model to use `rlm_map` for standard repository fan-out or `rlm_exec` for custom orchestration. The optional RLM-aware OpenCode agent prompt is in `agent/rlm.md`. OpenCode 2.x Code Mode exposes plugin tools inside its `execute` catalog, so the effective call path is `execute -> tools.rlm_map(...)` or `execute -> tools.rlm_exec(...)`; this is expected and does not give generated RLM code access to OpenCode tools.
+Then ask the model to use `rlm_map` for standard repository fan-out, `rlm_verify` for conservative filtering of candidate paths, or `rlm_exec` for custom orchestration. The optional RLM-aware OpenCode agent prompt is in `agent/rlm.md`. OpenCode 2.x Code Mode exposes plugin tools inside its `execute` catalog, so the effective call path is `execute -> tools.rlm_map(...)`, `execute -> tools.rlm_verify(...)`, or `execute -> tools.rlm_exec(...)`; this is expected and does not give generated RLM code access to OpenCode tools.
 
 OpenCode is an adapter, not a dependency of the RLM core. Its child sessions inherit the exact parent provider/model, receive a deny-all permission rule and have their ordinary tool inventory stripped.
 
@@ -107,6 +107,10 @@ Output modes:
 Every structured result carries `schemaVersion`, partition statistics and failure accounting. Structured child prompts explicitly frame repository files as untrusted data, and an oversized partition fails before any child inference with guidance to increase fanout or narrow the query. Child responses are also hard-bounded before structured parsing: 32,768 characters for `text` and 16,384 characters for `path_list` / `candidate_bundle`. Oversized or malformed structured responses fail deterministically in `strict` mode and become bounded partition errors in `settled` mode; RLM does not launch an automatic repair/retry model call. Candidate source handoff is capped below the generic final-result ceiling so `candidate_bundle` cannot silently turn into a repository-wide context dump.
 
 `rlm_map` compiles the request to a fixed trusted template and then uses the exact same sandbox, context policy, child routing, budgets and telemetry as `rlm_exec`; the host validates the structured result contract again before exposing it to the root. Exact repeated `rlm_map` requests from the same authoritative assistant boundary are suppressed after the first successful completion, so an accidental repeated Code Mode call reuses the completed result instead of launching another semantic fan-out. The replay cache keeps only the latest structured request for at most 64 sessions, is evicted on OpenCode session deletion, and never applies to raw `rlm_exec` because raw code may intentionally mutate working memory. Replayed calls intentionally do not emit provider-usage telemetry a second time.
+
+For a two-stage precision pass, call `rlm_map` with `output=path_list`, then pass at most 64 returned paths to `rlm_verify` with the same positive selection rule. `rlm_verify` re-reads those paths through trusted bounded context authority; the root does not pass source text back into the verifier. Every candidate is presumptively valid. Verification children can only return paths to **remove**, and a removal is accepted only for a path in that child's exact partition. Unknown paths and cross-partition selections are rejected. In `settled` mode, provider failures, malformed JSON and oversized responses preserve every candidate in the affected partition because failed verification is uncertainty, not evidence for removal.
+
+`rlm_verify` uses the same 1–16 fan-out and four-child concurrency ceiling as `rlm_map`; with the existing 32-child per-turn budget, a maximum 16-child scan followed by a maximum 16-child verification pass fits without widening authority. Its path-array child responses are hard-bounded to 16,384 characters before parsing, it performs no automatic repair/retry call, and identical same-boundary verification requests are deduplicated after successful completion.
 
 Generated JavaScript in raw `rlm_exec` runs inside the zero-permission Worker and may use:
 
@@ -143,7 +147,7 @@ Available calls inside raw `rlm_exec` JavaScript:
 
 Current hard limits include 16 child prompts, at most 4 concurrent child calls, 32 context operations and 64 memory operations per `rlm_exec`; 32 child calls, 96 context operations and 128 memory operations per user turn; 1 MiB context output per execution, 2 MiB context output per turn, 128 memory entries, 131,072 serialized JSON characters per stored value, 524,288 key-plus-serialized-value characters total working memory per turn and a 120-second execution timeout. See `plugin/rlm-lib/constants.ts` for the complete limits.
 
-Every successful execution now emits a canonical `telemetry` v1 envelope alongside the existing compatibility metadata. It records adapter/run/turn identity, the exact root model at the authoritative host boundary when available, child success/failure counts and model identities, input/output plus provider-reported cache-read/cache-write token totals, context/memory usage, result size, runtime termination state and explicit exec/turn limits. A bounded `child.invocations` array records each actual child provider call by index with model, status, latency, returned-text character count, token/cache/cost counters and stable provider-call error code; it deliberately excludes prompts, results and child session IDs. Structured map telemetry separately counts format and output-limit violations so a provider call that completed successfully is not mislabeled as a provider failure merely because its structured response was invalid. The canonical envelope intentionally excludes raw prompts, file contents, memory values, credentials and workspace paths.
+Every successful execution now emits a canonical `telemetry` v1 envelope alongside the existing compatibility metadata. It records adapter/run/turn identity, the exact root model at the authoritative host boundary when available, child success/failure counts and model identities, input/output plus provider-reported cache-read/cache-write token totals, context/memory usage, result size, runtime termination state and explicit exec/turn limits. A bounded `child.invocations` array records each actual child provider call by index with model, status, latency, returned-text character count, token/cache/cost counters and stable provider-call error code; it deliberately excludes prompts, results and child session IDs. Structured map/verify telemetry separately counts format and output-limit violations so a provider call that completed successfully is not mislabeled as a provider failure merely because its structured response was invalid. The canonical envelope intentionally excludes raw prompts, file contents, memory values, credentials and workspace paths.
 
 ## Security model
 
@@ -245,9 +249,12 @@ npm run test:opencode-live -- --recursive
 
 # Structured map smoke: requires an explicitly selected provider/model.
 RLM_LIVE_OPENCODE_MODEL=provider/model[#variant] npm run test:opencode-structured-live
+
+# Structured map -> conservative verify smoke: explicitly selected provider/model.
+RLM_LIVE_OPENCODE_MODEL=provider/model[#variant] npm run test:opencode-verify-live
 ```
 
-The basic live smoke defaults to `opencode/glm-5.3-flash-free`; override it with `RLM_LIVE_OPENCODE_MODEL=provider/model[#variant]`. The structured smoke deliberately has no provider default because it creates semantic child sessions and therefore may consume paid quota. It exercises `rlm_map` with two children, captures root/child usage before cleanup, and removes its temporary plugin snapshot and sessions afterward.
+The basic live smoke defaults to `opencode/glm-5.3-flash-free`; override it with `RLM_LIVE_OPENCODE_MODEL=provider/model[#variant]`. The structured smokes deliberately have no provider default because they create semantic child sessions and therefore may consume paid quota. The map smoke exercises `rlm_map` with two children. The verify smoke exercises the production `rlm_map(path_list) -> rlm_verify` path on a tiny controlled workspace where one explicit safe exception must be removed and two explicit positives must be retained. Both capture root/child usage before cleanup and remove their temporary plugin snapshot and sessions afterward. The verify smoke is compatibility/mechanics evidence, not a quality benchmark.
 
 `npm test` runs the complete deterministic repository gate. Live provider tests are intentionally separate because they require external authentication and consume model quota. Benchmark runners should capture the OpenCode root/child session tree before deleting sessions; `scripts/lib/opencode-evidence.mjs` provides provider usage/cache/cost capture plus an optional CodeBurn API-equivalent cost cross-check when CodeBurn is installed.
 
