@@ -9,6 +9,8 @@ import { captureOpenCodeSessionTree } from "./lib/opencode-evidence.mjs"
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const modelSpec = process.env.RLM_LIVE_OPENCODE_MODEL?.trim()
 if (!modelSpec) throw new Error("RLM_LIVE_OPENCODE_MODEL is required, for example ollama-cloud/deepseek-v4.1-flash")
+const rootModelSpec = process.env.RLM_LIVE_ROOT_MODEL?.trim() || modelSpec
+const fixedChildRouting = rootModelSpec !== modelSpec
 
 function parseModel(spec) {
   const slash = spec.indexOf("/")
@@ -89,8 +91,27 @@ let pluginSpec
 let endpoint
 let rootSessionID
 let serviceStartedHere = false
+const configHome = process.env.XDG_CONFIG_HOME?.trim() || path.join(os.homedir(), ".config")
+const hostConfigFile = path.join(configHome, "rlm", "host.json")
+let originalHostConfig
 
 try {
+  if (fixedChildRouting) {
+    try { originalHostConfig = await fs.readFile(hostConfigFile) } catch (error) { if (error.code !== "ENOENT") throw error }
+    const childModel = parseModel(modelSpec)
+    const baseConfig = originalHostConfig ? JSON.parse(originalHostConfig.toString("utf8")) : { version: 1 }
+    await fs.mkdir(path.dirname(hostConfigFile), { recursive: true })
+    await fs.writeFile(hostConfigFile, JSON.stringify({
+      ...baseConfig,
+      version: 1,
+      child_model: {
+        strategy: "fixed",
+        provider: childModel.providerID,
+        model: childModel.id,
+        ...(childModel.variant ? { variant: childModel.variant } : {}),
+      },
+    }, null, 2) + "\n")
+  }
   await fs.cp(repoRoot, snapshot, {
     recursive: true,
     filter(source) {
@@ -123,12 +144,38 @@ try {
   if (!endpoint) throw new Error("OpenCode service unavailable")
 
   await fs.mkdir(path.join(workspace, "src"), { recursive: true })
-  await fs.writeFile(path.join(workspace, "src/a.ts"), "// REVIEW_CANDIDATE\nexport const result = 'VIOLATION'\n")
-  await fs.writeFile(path.join(workspace, "src/b.ts"), "// REVIEW_CANDIDATE\nexport const result = 'SAFE_EXCEPTION'\n")
+  await fs.writeFile(path.join(workspace, "src/a.ts"), `// REVIEW_CANDIDATE
+import { backend } from "./api"
+export async function save() {
+  let entries = "pending-value"
+  const result = await backend.command()
+  if (result.ok) entries = result.id ?? ""
+  return entries
+}
+`)
+  await fs.writeFile(path.join(workspace, "src/b.ts"), `// REVIEW_CANDIDATE
+import { backend } from "./api"
+export async function save() {
+  let loading = true
+  const result = await backend.command()
+  loading = false
+  return { loading, result }
+}
+`)
   await fs.writeFile(path.join(workspace, "src/c.ts"), "export const ordinary = 'ignore me'\n")
-  await fs.writeFile(path.join(workspace, "src/d.ts"), "// REVIEW_CANDIDATE\nexport const other = 'VIOLATION'\n")
+  await fs.writeFile(path.join(workspace, "src/d.ts"), `// REVIEW_CANDIDATE
+import { backend } from "./api"
+export async function save() {
+  const records = { done: false, text: "" }
+  records.done = true
+  records.text = "unconfirmed"
+  const result = await backend.command()
+  if (result.ok) records.text = result.id ?? ""
+  return records
+}
+`)
 
-  const model = parseModel(modelSpec)
+  const model = parseModel(rootModelSpec)
   const created = unwrap(await api(endpoint, "/api/session", {
     method: "POST",
     body: JSON.stringify({ title: "rlm-structured-verify-live-smoke", model, location: { directory: workspace } }),
@@ -143,7 +190,7 @@ try {
     partition: "balanced_chars",
     failureMode: "strict",
   }
-  const verifyInstruction = "A candidate remains valid when its source contains the literal VIOLATION. The literal SAFE_EXCEPTION clearly proves an allowed exception and the candidate should be removed. If the source does not clearly prove an exception, keep the candidate."
+  const verifyInstruction = "Report a file only when observable business, domain, or UI result state is mutated before a successful awaited asynchronous backend or worker operation completes. Loading, busy, pending, syncing, or similar lifecycle state before the await is not a violation. Result-state updates after the await, local-only mutations without backend coupling, and backend or mock adapter implementations are not violations. A string value such as pending-value written into an ordinary business/result field is still result state; the lifecycle exception applies only when the mutated field itself is clearly lifecycle state. Candidates are presumptively valid. Remove a candidate only when its source clearly proves one of the allowed exceptions. If uncertain, keep it."
   const executeJs = [
     `const mappedRaw = await tools.rlm_map(${JSON.stringify(mapInput)})`,
     `const mapped = typeof mappedRaw === "string" ? JSON.parse(mappedRaw) : mappedRaw`,
@@ -185,12 +232,15 @@ try {
   if (JSON.stringify(mappedPaths) !== JSON.stringify(expectedMapped)) throw new Error(`unexpected mapped paths: ${JSON.stringify(mappedPaths)}`)
   if (JSON.stringify(keptPaths) !== JSON.stringify(expectedKept)) throw new Error(`unexpected kept paths: ${JSON.stringify(keptPaths)}`)
   if (JSON.stringify(removedPaths) !== JSON.stringify(expectedRemoved)) throw new Error(`unexpected removed paths: ${JSON.stringify(removedPaths)}`)
-  if (verified.verification?.policy !== "conservative_precision_filter" || verified.verification?.uncertainty !== "keep") {
-    throw new Error(`unexpected verification contract: ${JSON.stringify(verified.verification)}`)
+  if (verified.verification?.policy !== "conservative_precision_filter" || verified.verification?.uncertainty !== "keep"
+    || verified.verification?.confirmation !== "independent_second_pass"
+    || verified.confirmation?.policy !== "independent_second_pass") {
+    throw new Error(`unexpected verification contract: ${JSON.stringify({ verification: verified.verification, confirmation: verified.confirmation })}`)
   }
 
   const evidence = await captureOpenCodeSessionTree((route, init) => api(endpoint, route, init), rootSessionID)
-  if (evidence.descendant_count !== 4) throw new Error(`expected 4 semantic child sessions, got ${evidence.descendant_count}`)
+  const expectedChildSessions = Number(mapped.partitionCount ?? 0) + Number(verified.partitionCount ?? 0) + Number(verified.confirmation?.partitionCount ?? 0)
+  if (evidence.descendant_count !== expectedChildSessions) throw new Error(`expected ${expectedChildSessions} semantic child sessions, got ${evidence.descendant_count}`)
   const childModels = [...new Set(evidence.descendants.flatMap((record) => record.models))]
   if (childModels.length === 0 || childModels.some((value) => !value.startsWith("ollama-cloud/deepseek-v4.1-flash"))) {
     throw new Error(`unexpected child models: ${JSON.stringify(childModels)}`)
@@ -198,11 +248,14 @@ try {
 
   console.log(JSON.stringify({
     status: "PASS",
-    model: modelSpec,
+    rootModel: rootModelSpec,
+    childModel: modelSpec,
+    fixedChildRouting,
     mappedPaths,
     keptPaths,
     removedPaths,
     verification: verified.verification,
+    confirmation: verified.confirmation,
     nestedMapCalls: mapCalls.length,
     nestedVerifyCalls: verifyCalls.length,
     childSessions: evidence.descendant_count,
@@ -221,5 +274,9 @@ try {
   }
   if (pluginSpec) await run("opencode", ["plugin", "remove", pluginSpec], { timeoutMs: 30_000 }).catch(() => {})
   if (serviceStartedHere) await run("opencode", ["service", "stop"], { timeoutMs: 15_000 }).catch(() => {})
+  if (fixedChildRouting) {
+    if (originalHostConfig) await fs.writeFile(hostConfigFile, originalHostConfig)
+    else await fs.rm(hostConfigFile, { force: true }).catch(() => {})
+  }
   await fs.rm(tempRoot, { recursive: true, force: true })
 }

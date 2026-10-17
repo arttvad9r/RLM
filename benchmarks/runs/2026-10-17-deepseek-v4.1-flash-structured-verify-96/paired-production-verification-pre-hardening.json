@@ -1,0 +1,894 @@
+{
+  "benchmark_id": "semantic-state-audit-v1-96-production-structured-verification-paired",
+  "root_model": "opencode/glm-5.3-flash-free",
+  "child_model": "ollama-cloud/deepseek-v4.1-flash",
+  "snapshot_commit": "a9fb83a18dc3001fab2e36244efac065743980d9",
+  "design": {
+    "corpus_files": 96,
+    "truth_violations": 12,
+    "fanout": 4,
+    "partition": "balanced_chars",
+    "failure_mode": "strict",
+    "repeats": 3,
+    "paired_candidate_set": true,
+    "baseline": "exact rlm_map path_list candidates",
+    "treatment": "rlm_verify applied to the exact same candidate array",
+    "production_rlm_map": true,
+    "production_rlm_verify": true,
+    "fixed_child_routing": true,
+    "benchmark_wrapper": "temporary plugin wrapper calls production executeRlmMap then executeRlmVerify with fixed inputs"
+  },
+  "runs": [
+    {
+      "round": 1,
+      "root_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+      "wall_ms": 87283,
+      "scan_paths": [
+        "src/banner7622.ts",
+        "src/board4893.ts",
+        "src/cache9784.ts",
+        "src/cache9864.ts",
+        "src/deck8344.ts",
+        "src/flow2025.ts",
+        "src/flow2759.ts",
+        "src/registry5656.ts",
+        "src/registry5787.ts",
+        "src/rollup3577.ts",
+        "src/rollup6122.ts",
+        "src/slot2012.ts",
+        "src/view2076.ts",
+        "src/view3536.ts",
+        "src/view7089.ts",
+        "src/zone3284.ts"
+      ],
+      "kept_paths": [
+        "src/board4893.ts",
+        "src/cache9784.ts",
+        "src/cache9864.ts",
+        "src/deck8344.ts",
+        "src/flow2759.ts",
+        "src/rollup3577.ts",
+        "src/rollup6122.ts",
+        "src/slot2012.ts",
+        "src/view2076.ts",
+        "src/view3536.ts",
+        "src/view7089.ts",
+        "src/zone3284.ts"
+      ],
+      "removed_paths": [
+        "src/banner7622.ts",
+        "src/flow2025.ts",
+        "src/registry5656.ts",
+        "src/registry5787.ts"
+      ],
+      "baseline_quality": {
+        "tp": 12,
+        "fp": 4,
+        "fn": 0,
+        "precision": 0.75,
+        "recall": 1,
+        "f1": 0.8571428571428571
+      },
+      "verified_quality": {
+        "tp": 12,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      "removal_quality": {
+        "correct_fp_removals": 4,
+        "incorrect_tp_removals": 0
+      },
+      "session_evidence": {
+        "schema_version": 1,
+        "root_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+        "session_count": 9,
+        "descendant_count": 8,
+        "root": {
+          "session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+          "parent_session_id": null,
+          "depth": 0,
+          "models": [
+            "opencode/glm-5.3-flash-free#default"
+          ],
+          "usage": {
+            "input": 12708,
+            "output": 252,
+            "reasoning": 0,
+            "cache_read": 4480,
+            "cache_write": 0,
+            "cost_usd": 0
+          }
+        },
+        "descendants": [
+          {
+            "session_id": "ses_eb4524c23ffe3kwgnsWTIWWcli",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 490,
+              "output": 2804,
+              "reasoning": 0,
+              "cache_read": 384,
+              "cache_write": 0,
+              "cost_usd": 0.0017570519999999998
+            }
+          },
+          {
+            "session_id": "ses_eb4524c23ffcK4x6tlSpeQ7peZ",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 486,
+              "output": 799,
+              "reasoning": 0,
+              "cache_read": 384,
+              "cache_write": 0,
+              "cost_usd": 0.000553452
+            }
+          },
+          {
+            "session_id": "ses_eb4524c26ffev3iwcdaI0otUtc",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 488,
+              "output": 1506,
+              "reasoning": 0,
+              "cache_read": 384,
+              "cache_write": 0,
+              "cost_usd": 0.000977952
+            }
+          },
+          {
+            "session_id": "ses_eb4524c23ffdcRgq1qpxcpm75i",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 351,
+              "output": 1402,
+              "reasoning": 0,
+              "cache_read": 512,
+              "cache_write": 0,
+              "cost_usd": 0.0008953859999999999
+            }
+          },
+          {
+            "session_id": "ses_eb4534877ffer1yBN5KnfUfV2p",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 115,
+              "output": 13825,
+              "reasoning": 0,
+              "cache_read": 2176,
+              "cache_write": 0,
+              "cost_usd": 0.008318778
+            }
+          },
+          {
+            "session_id": "ses_eb4534876ffdMgE7Oab0OQOZnc",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 1993,
+              "output": 6639,
+              "reasoning": 0,
+              "cache_read": 222,
+              "cache_write": 0,
+              "cost_usd": 0.004283016
+            }
+          },
+          {
+            "session_id": "ses_eb4534876ffegDWObwho3Hjoaq",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 2014,
+              "output": 8342,
+              "reasoning": 0,
+              "cache_read": 220,
+              "cache_write": 0,
+              "cost_usd": 0.0053079600000000005
+            }
+          },
+          {
+            "session_id": "ses_eb4534879ffeCd5QfQnjqXuc3F",
+            "parent_session_id": "ses_eb4535df1ffeTY2TchwNCKl1rN",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 2209,
+              "output": 1829,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write": 0,
+              "cost_usd": 0.0014287499999999997
+            }
+          }
+        ],
+        "descendant_usage": {
+          "input": 8146,
+          "output": 37146,
+          "reasoning": 0,
+          "cache_read": 4282,
+          "cache_write": 0,
+          "cost_usd": 0.023522346
+        },
+        "total_usage": {
+          "input": 20854,
+          "output": 37398,
+          "reasoning": 0,
+          "cache_read": 8762,
+          "cache_write": 0,
+          "cost_usd": 0.023522346
+        }
+      }
+    },
+    {
+      "round": 2,
+      "root_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+      "wall_ms": 100751,
+      "scan_paths": [
+        "src/badge3395.ts",
+        "src/banner7622.ts",
+        "src/board4893.ts",
+        "src/cache9784.ts",
+        "src/cache9864.ts",
+        "src/deck8344.ts",
+        "src/flow2025.ts",
+        "src/flow2759.ts",
+        "src/registry5656.ts",
+        "src/registry5787.ts",
+        "src/rollup3577.ts",
+        "src/rollup6122.ts",
+        "src/slot2012.ts",
+        "src/store4389.ts",
+        "src/view2076.ts",
+        "src/view3536.ts",
+        "src/view7089.ts",
+        "src/zone3284.ts"
+      ],
+      "kept_paths": [
+        "src/board4893.ts",
+        "src/cache9784.ts",
+        "src/cache9864.ts",
+        "src/deck8344.ts",
+        "src/flow2025.ts",
+        "src/flow2759.ts",
+        "src/rollup3577.ts",
+        "src/rollup6122.ts",
+        "src/slot2012.ts",
+        "src/view2076.ts",
+        "src/view3536.ts",
+        "src/view7089.ts",
+        "src/zone3284.ts"
+      ],
+      "removed_paths": [
+        "src/badge3395.ts",
+        "src/banner7622.ts",
+        "src/registry5656.ts",
+        "src/registry5787.ts",
+        "src/store4389.ts"
+      ],
+      "baseline_quality": {
+        "tp": 12,
+        "fp": 6,
+        "fn": 0,
+        "precision": 0.6666666666666666,
+        "recall": 1,
+        "f1": 0.8
+      },
+      "verified_quality": {
+        "tp": 12,
+        "fp": 1,
+        "fn": 0,
+        "precision": 0.9230769230769231,
+        "recall": 1,
+        "f1": 0.9600000000000001
+      },
+      "removal_quality": {
+        "correct_fp_removals": 5,
+        "incorrect_tp_removals": 0
+      },
+      "session_evidence": {
+        "schema_version": 1,
+        "root_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+        "session_count": 9,
+        "descendant_count": 8,
+        "root": {
+          "session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+          "parent_session_id": null,
+          "depth": 0,
+          "models": [
+            "opencode/glm-5.3-flash-free#default"
+          ],
+          "usage": {
+            "input": 12739,
+            "output": 687,
+            "reasoning": 0,
+            "cache_read": 4480,
+            "cache_write": 0,
+            "cost_usd": 0
+          }
+        },
+        "descendants": [
+          {
+            "session_id": "ses_eb4510bd8ffezXeXaKaLpmrNMh",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 498,
+              "output": 3601,
+              "reasoning": 0,
+              "cache_read": 384,
+              "cache_write": 0,
+              "cost_usd": 0.002236452
+            }
+          },
+          {
+            "session_id": "ses_eb4510bd4ffeP03rsezWsGkcls",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 583,
+              "output": 3881,
+              "reasoning": 0,
+              "cache_read": 384,
+              "cache_write": 0,
+              "cost_usd": 0.002417202
+            }
+          },
+          {
+            "session_id": "ses_eb4510bd5ffeSn0nRKy3xRMx7o",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 977,
+              "output": 2581,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write": 0,
+              "cost_usd": 0.0016951499999999999
+            }
+          },
+          {
+            "session_id": "ses_eb4510bd4ffdQh2rmJ8M2CAcqR",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 496,
+              "output": 854,
+              "reasoning": 0,
+              "cache_read": 384,
+              "cache_write": 0,
+              "cost_usd": 0.000587952
+            }
+          },
+          {
+            "session_id": "ses_eb4520214ffefmxMm1EcA31pqY",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 115,
+              "output": 10978,
+              "reasoning": 0,
+              "cache_read": 2176,
+              "cache_write": 0,
+              "cost_usd": 0.006610578000000001
+            }
+          },
+          {
+            "session_id": "ses_eb4520217ffe7iJoxt2xAtbuLE",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 1952,
+              "output": 2191,
+              "reasoning": 0,
+              "cache_read": 256,
+              "cache_write": 0,
+              "cost_usd": 0.0016081679999999999
+            }
+          },
+          {
+            "session_id": "ses_eb4520213ffe4050M3kfqmmxqJ",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 1958,
+              "output": 7106,
+              "reasoning": 0,
+              "cache_read": 256,
+              "cache_write": 0,
+              "cost_usd": 0.004558067999999999
+            }
+          },
+          {
+            "session_id": "ses_eb4520214ffdSnZVZ4hRP7Kcgh",
+            "parent_session_id": "ses_eb45208b9ffePnUjfh6HIce0VK",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 2233,
+              "output": 16219,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write": 0,
+              "cost_usd": 0.01006635
+            }
+          }
+        ],
+        "descendant_usage": {
+          "input": 8812,
+          "output": 47411,
+          "reasoning": 0,
+          "cache_read": 3840,
+          "cache_write": 0,
+          "cost_usd": 0.02977992
+        },
+        "total_usage": {
+          "input": 21551,
+          "output": 48098,
+          "reasoning": 0,
+          "cache_read": 8320,
+          "cache_write": 0,
+          "cost_usd": 0.02977992
+        }
+      }
+    },
+    {
+      "round": 3,
+      "root_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+      "wall_ms": 62114,
+      "scan_paths": [
+        "src/board4893.ts",
+        "src/cache9784.ts",
+        "src/cache9864.ts",
+        "src/deck8344.ts",
+        "src/deck8533.ts",
+        "src/dock4432.ts",
+        "src/flow2025.ts",
+        "src/flow2759.ts",
+        "src/registry5656.ts",
+        "src/rollup3577.ts",
+        "src/rollup6122.ts",
+        "src/slot2012.ts",
+        "src/view2076.ts",
+        "src/view3536.ts",
+        "src/view7089.ts",
+        "src/zone3284.ts"
+      ],
+      "kept_paths": [
+        "src/board4893.ts",
+        "src/cache9784.ts",
+        "src/cache9864.ts",
+        "src/deck8344.ts",
+        "src/flow2759.ts",
+        "src/rollup3577.ts",
+        "src/rollup6122.ts",
+        "src/slot2012.ts",
+        "src/view2076.ts",
+        "src/view3536.ts",
+        "src/view7089.ts",
+        "src/zone3284.ts"
+      ],
+      "removed_paths": [
+        "src/deck8533.ts",
+        "src/dock4432.ts",
+        "src/flow2025.ts",
+        "src/registry5656.ts"
+      ],
+      "baseline_quality": {
+        "tp": 12,
+        "fp": 4,
+        "fn": 0,
+        "precision": 0.75,
+        "recall": 1,
+        "f1": 0.8571428571428571
+      },
+      "verified_quality": {
+        "tp": 12,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      "removal_quality": {
+        "correct_fp_removals": 4,
+        "incorrect_tp_removals": 0
+      },
+      "session_evidence": {
+        "schema_version": 1,
+        "root_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+        "session_count": 9,
+        "descendant_count": 8,
+        "root": {
+          "session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+          "parent_session_id": null,
+          "depth": 0,
+          "models": [
+            "opencode/glm-5.3-flash-free#default"
+          ],
+          "usage": {
+            "input": 12711,
+            "output": 646,
+            "reasoning": 0,
+            "cache_read": 4480,
+            "cache_write": 0,
+            "cost_usd": 0
+          }
+        },
+        "descendants": [
+          {
+            "session_id": "ses_eb44fe52effeNc5mtnmQMTYvI2",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 579,
+              "output": 5311,
+              "reasoning": 0,
+              "cache_read": 298,
+              "cache_write": 0,
+              "cost_usd": 0.0032743439999999998
+            }
+          },
+          {
+            "session_id": "ses_eb44fe52effdS4JUB6lvp25hJf",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 869,
+              "output": 4402,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write": 0,
+              "cost_usd": 0.00277155
+            }
+          },
+          {
+            "session_id": "ses_eb44fe52dffe1xgp45LZPWJZHC",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 574,
+              "output": 2565,
+              "reasoning": 0,
+              "cache_read": 296,
+              "cache_write": 0,
+              "cost_usd": 0.0016259879999999999
+            }
+          },
+          {
+            "session_id": "ses_eb44fe530ffeyMrKpG2aWs05yL",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 862,
+              "output": 1373,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write": 0,
+              "cost_usd": 0.0009530999999999999
+            }
+          },
+          {
+            "session_id": "ses_eb45076d4ffd8OvoN4GCLD5USU",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 2012,
+              "output": 11087,
+              "reasoning": 0,
+              "cache_read": 222,
+              "cache_write": 0,
+              "cost_usd": 0.006954666
+            }
+          },
+          {
+            "session_id": "ses_eb45076d4ffcZCpwJcG07j4emV",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 1958,
+              "output": 3796,
+              "reasoning": 0,
+              "cache_read": 256,
+              "cache_write": 0,
+              "cost_usd": 0.002572068
+            }
+          },
+          {
+            "session_id": "ses_eb45076d4ffesIFRpRAxPSjnys",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 2292,
+              "output": 6594,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write": 0,
+              "cost_usd": 0.0043002
+            }
+          },
+          {
+            "session_id": "ses_eb45076d7ffefnUE77ClfZVxcl",
+            "parent_session_id": "ses_eb4507eeeffeEaA7uNZbkmgUu8",
+            "depth": 1,
+            "models": [
+              "ollama-cloud/deepseek-v4.1-flash#default"
+            ],
+            "usage": {
+              "input": 32,
+              "output": 7271,
+              "reasoning": 0,
+              "cache_read": 2176,
+              "cache_write": 0,
+              "cost_usd": 0.004373928
+            }
+          }
+        ],
+        "descendant_usage": {
+          "input": 9178,
+          "output": 42399,
+          "reasoning": 0,
+          "cache_read": 3248,
+          "cache_write": 0,
+          "cost_usd": 0.026825843999999998
+        },
+        "total_usage": {
+          "input": 21889,
+          "output": 43045,
+          "reasoning": 0,
+          "cache_read": 7728,
+          "cache_write": 0,
+          "cost_usd": 0.026825843999999998
+        }
+      }
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "count": 3,
+    "baseline_f1": {
+      "median": 0.8571428571428571,
+      "min": 0.8,
+      "max": 0.8571428571428571,
+      "values": [
+        0.8571428571428571,
+        0.8,
+        0.8571428571428571
+      ]
+    },
+    "verified_f1": {
+      "median": 1,
+      "min": 0.9600000000000001,
+      "max": 1,
+      "values": [
+        1,
+        0.9600000000000001,
+        1
+      ]
+    },
+    "f1_delta": {
+      "median": 0.1428571428571429,
+      "min": 0.1428571428571429,
+      "max": 0.16000000000000003,
+      "values": [
+        0.1428571428571429,
+        0.16000000000000003,
+        0.1428571428571429
+      ]
+    },
+    "baseline_precision": {
+      "median": 0.75,
+      "min": 0.6666666666666666,
+      "max": 0.75,
+      "values": [
+        0.75,
+        0.6666666666666666,
+        0.75
+      ]
+    },
+    "verified_precision": {
+      "median": 1,
+      "min": 0.9230769230769231,
+      "max": 1,
+      "values": [
+        1,
+        0.9230769230769231,
+        1
+      ]
+    },
+    "baseline_recall": {
+      "median": 1,
+      "min": 1,
+      "max": 1,
+      "values": [
+        1,
+        1,
+        1
+      ]
+    },
+    "verified_recall": {
+      "median": 1,
+      "min": 1,
+      "max": 1,
+      "values": [
+        1,
+        1,
+        1
+      ]
+    },
+    "baseline_fp": {
+      "median": 4,
+      "min": 4,
+      "max": 6,
+      "values": [
+        4,
+        6,
+        4
+      ]
+    },
+    "verified_fp": {
+      "median": 0,
+      "min": 0,
+      "max": 1,
+      "values": [
+        0,
+        1,
+        0
+      ]
+    },
+    "baseline_fn": {
+      "median": 0,
+      "min": 0,
+      "max": 0,
+      "values": [
+        0,
+        0,
+        0
+      ]
+    },
+    "verified_fn": {
+      "median": 0,
+      "min": 0,
+      "max": 0,
+      "values": [
+        0,
+        0,
+        0
+      ]
+    },
+    "correct_fp_removals": {
+      "median": 4,
+      "min": 4,
+      "max": 5,
+      "values": [
+        4,
+        5,
+        4
+      ]
+    },
+    "incorrect_tp_removals": {
+      "median": 0,
+      "min": 0,
+      "max": 0,
+      "values": [
+        0,
+        0,
+        0
+      ]
+    },
+    "candidate_count": {
+      "median": 16,
+      "min": 16,
+      "max": 18,
+      "values": [
+        16,
+        18,
+        16
+      ]
+    },
+    "wall_ms": {
+      "median": 87283,
+      "min": 62114,
+      "max": 100751,
+      "values": [
+        87283,
+        100751,
+        62114
+      ]
+    },
+    "provider_cost_usd": {
+      "median": 0.026825843999999998,
+      "min": 0.023522346,
+      "max": 0.02977992,
+      "values": [
+        0.023522346,
+        0.02977992,
+        0.026825843999999998
+      ]
+    }
+  },
+  "total_provider_cost_usd": 0.08012811,
+  "caveats": [
+    "Verification can remove false positives but cannot recover candidates missed by the shared first-stage scan.",
+    "Each round is paired: baseline and verified quality are scored from the exact same scan candidate set.",
+    "A temporary benchmark-only plugin wrapper removes model-written map/verify glue while calling the production executeRlmMap and executeRlmVerify implementations with the real OpenCode host, sandbox, turn governor, and child isolation.",
+    "The verifier is asymmetric: candidates are presumptively valid and uncertainty means KEEP.",
+    "Semantic children are routed through the production trusted fixed-child policy; the root model only triggers the benchmark-only wrapper and does not perform classification.",
+    "Provider-reported cost includes the shared scan, verifier, and root orchestration for accepted rounds; discarded retry attempts are listed in failures but excluded from successful-round cost summaries.",
+    "This 96-file synthetic corpus is quality evidence for this workload only; it does not justify universal defaults."
+  ]
+}

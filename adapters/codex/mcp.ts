@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
 
-import { MAX_STRUCTURED_VERIFY_CANDIDATES, MAX_STRUCTURED_VERIFY_PATH_CHARS, MAX_SUBCALLS_TOTAL } from "../../plugin/rlm-lib/constants.ts"
+import { MAX_STRUCTURED_VERIFY_CANDIDATES, MAX_STRUCTURED_VERIFY_FANOUT, MAX_STRUCTURED_VERIFY_PATH_CHARS, MAX_SUBCALLS_TOTAL } from "../../plugin/rlm-lib/constants.ts"
 import { RlmError, toErrorInfo } from "../../plugin/rlm-lib/errors.ts"
 import { executeRlmExec } from "../../plugin/rlm-lib/sandbox.ts"
 import { executeRlmMap } from "../../plugin/rlm-lib/structured-map.ts"
@@ -116,7 +116,7 @@ server.registerTool(
     inputSchema: {
       candidates: z.array(z.string().min(1).max(MAX_STRUCTURED_VERIFY_PATH_CHARS)).max(MAX_STRUCTURED_VERIFY_CANDIDATES).describe("Presumptively valid repository paths to conservatively filter."),
       instruction: z.string().min(1).describe("Positive selection rule. Remove only candidates whose source clearly proves an explicit allowed exception."),
-      fanout: z.number().int().min(1).max(MAX_SUBCALLS_TOTAL).optional().describe("Verification partitions; defaults to 4. Runtime concurrency remains capped at 4."),
+      fanout: z.number().int().min(1).max(MAX_STRUCTURED_VERIFY_FANOUT).optional().describe("First-pass verification partitions; defaults to 4. Confirmation uses at most the same number of additional child calls."),
       partition: z.enum(["round_robin", "balanced_chars"]).optional().describe("Deterministic candidate partition strategy; defaults to round_robin."),
       failureMode: z.enum(["strict", "settled"]).optional().describe("In settled mode, failed or malformed partitions keep all candidates."),
     },

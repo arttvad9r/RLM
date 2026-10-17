@@ -111,7 +111,7 @@ export default Plugin.define({
           properties: {
             candidates: { type: "array", items: { type: "string", maxLength: 1024 }, maxItems: 64, description: "Presumptively valid repository paths to conservatively filter." },
             instruction: { type: "string", description: "Positive selection rule. Verifier children may remove a candidate only when its source clearly proves an explicit exception." },
-            fanout: { type: "integer", minimum: 1, maximum: 16, default: 4, description: "Verification partitions. Defaults to 4; host concurrency remains capped at 4." },
+            fanout: { type: "integer", minimum: 1, maximum: 8, default: 4, description: "First-pass verification partitions. Defaults to 4; confirmation uses at most the same number of additional child calls and host concurrency remains capped at 4." },
             partition: { type: "string", enum: ["round_robin", "balanced_chars"], default: "round_robin", description: "Deterministic candidate partition strategy." },
             failureMode: { type: "string", enum: ["strict", "settled"], default: "strict", description: "In settled mode, failed/malformed partitions keep all of their candidates." },
           },

@@ -59,6 +59,10 @@ test("structured verify normalizes bounded candidates and safe defaults", () => 
     () => normalizeRlmVerifyInput({ candidates: ["x".repeat(1025)], instruction: "x" }),
     (error) => error instanceof RlmError && /up to 1024/.test(error.message),
   )
+  assert.throws(
+    () => normalizeRlmVerifyInput({ candidates: ["src/a.ts"], instruction: "x", fanout: 9 }),
+    (error) => error instanceof RlmError && /1 to 8/.test(error.message),
+  )
 })
 
 test("structured verify compiler frames candidates as untrusted and embeds inputs as JSON literals", () => {
@@ -67,6 +71,11 @@ test("structured verify compiler frames candidates as untrusted and embeds input
   const code = buildRlmVerifyCode({ candidates: [candidate], instruction, fanout: 1 })
   assert.match(code, /RLM_STRUCTURED_VERIFY_V1/)
   assert.match(code, /presumptively valid/)
+  assert.match(code, /semantic role of the mutated field\/control state itself/)
+  assert.match(code, /spelling of a value/)
+  assert.match(code, /ambiguity is uncertainty, so KEEP/)
+  assert.match(code, /RLM_STRUCTURED_VERIFY_CONFIRM_V1/)
+  assert.match(code, /independent_second_pass/)
   assert.match(code, /uncertainty: "keep"/)
   assert.ok(code.includes(JSON.stringify(instruction)))
   assert.ok(code.includes(JSON.stringify([candidate])))
@@ -84,10 +93,11 @@ test("conservative verify can only remove in-partition candidates and exposes bo
   try {
     const host = baseHost(async ({ prompt }) => {
       childCalls++
-      const first = prompt.includes('"path":"src/a.ts"')
-      const text = first
-        ? JSON.stringify(["src/c.ts", "src/b.ts", "src/hallucinated.ts"])
-        : "[]"
+      const text = prompt.includes("RLM_STRUCTURED_VERIFY_CONFIRM_V1")
+        ? JSON.stringify(["src/c.ts"])
+        : prompt.includes('"path":"src/a.ts"')
+          ? JSON.stringify(["src/c.ts", "src/b.ts", "src/hallucinated.ts"])
+          : "[]"
       return {
         text,
         childSessionID: `child-${childCalls}`,
@@ -117,8 +127,15 @@ test("conservative verify can only remove in-partition candidates and exposes bo
       candidateSemantics: "presumptively_valid",
       decision: "remove_only_proven_exception",
       uncertainty: "keep",
+      confirmation: "independent_second_pass",
     })
-    assert.equal(childCalls, 2)
+    assert.deepEqual(value.confirmation, {
+      schemaVersion: 1,
+      policy: "independent_second_pass",
+      provisionalRemovedCount: 1,
+      partitionCount: 1,
+    })
+    assert.equal(childCalls, 3)
     assert.deepEqual(outcome.metadata.telemetry.operation, {
       kind: "verify",
       fanout: 2,
@@ -131,10 +148,13 @@ test("conservative verify can only remove in-partition candidates and exposes bo
       failedPartitions: 0,
       formatViolations: 0,
       outputLimitViolations: 0,
+      provisionalRemovedCount: 1,
+      confirmationPartitionCount: 1,
     })
     assert.deepEqual(outcome.metadata.telemetry.child.invocations.map((item) => item.responseChars), [
       JSON.stringify(["src/c.ts", "src/b.ts", "src/hallucinated.ts"]).length,
       2,
+      JSON.stringify(["src/c.ts"]).length,
     ])
     const telemetry = JSON.stringify(outcome.metadata.telemetry)
     assert.equal(telemetry.includes(root), false)
@@ -165,13 +185,110 @@ test("settled verify treats provider and format failures as uncertainty and keep
     const value = JSON.parse(outcome.output)
     assert.deepEqual(value.removedPaths, ["src/a.ts"])
     assert.deepEqual(value.keptPaths, ["src/b.ts", "src/c.ts"])
-    assert.equal(childCalls, 3, "verification failures must not trigger repair/retry calls")
-    assert.equal(outcome.metadata.childSuccessCount, 2)
+    assert.equal(childCalls, 4, "one provisional removal requires one intentional confirmation call; failures must not trigger repair/retry calls")
+    assert.equal(outcome.metadata.childSuccessCount, 3)
     assert.equal(outcome.metadata.childFailureCount, 1)
+    assert.deepEqual(value.confirmation, { schemaVersion: 1, policy: "independent_second_pass", provisionalRemovedCount: 1, partitionCount: 1 })
     assert.equal(outcome.metadata.telemetry.operation.failedPartitions, 2)
     assert.equal(outcome.metadata.telemetry.operation.formatViolations, 1)
     assert.equal(outcome.metadata.telemetry.operation.outputLimitViolations, 0)
     assert.deepEqual(new Set(value.partitionErrors.map((item) => item.code)), new Set(["CHILD_FAILED", "STRUCTURED_CHILD_INVALID_JSON"]))
+  } finally {
+    forgetStructuredVerifySession(sessionID)
+    turnGovernor.evictSession(sessionID)
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test("successful confirmation omission keeps a provisionally removed candidate", async () => {
+  const root = await makeWorkspace("rlm-verify-confirm-keep-", { "a.ts": "a\n" })
+  const sessionID = `verify-confirm-keep-${Date.now()}`
+  let childCalls = 0
+  try {
+    const host = baseHost(async ({ prompt }) => {
+      childCalls++
+      return {
+        text: prompt.includes("RLM_STRUCTURED_VERIFY_CONFIRM_V1") ? "[]" : '["src/a.ts"]',
+        childSessionID: `child-${childCalls}`,
+        model: "test/fake",
+        deniedToolCount: 1,
+      }
+    })
+    const outcome = await executeRlmVerify(host, opts(root, sessionID, {
+      candidates: ["src/a.ts"], instruction: "Keep unless independently proven safe.", fanout: 1,
+    }))
+    const value = JSON.parse(outcome.output)
+    assert.deepEqual(value.keptPaths, ["src/a.ts"])
+    assert.deepEqual(value.removedPaths, [])
+    assert.equal(childCalls, 2)
+    assert.equal(outcome.metadata.telemetry.operation.provisionalRemovedCount, 1)
+    assert.equal(outcome.metadata.telemetry.operation.confirmationPartitionCount, 1)
+  } finally {
+    forgetStructuredVerifySession(sessionID)
+    turnGovernor.evictSession(sessionID)
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test("fanout eight plus confirmation stays within the sixteen-child execution budget", async () => {
+  const files = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`${i}.ts`, `export const v${i} = ${i}\n`]))
+  const root = await makeWorkspace("rlm-verify-max-fanout-", files)
+  const sessionID = `verify-max-fanout-${Date.now()}`
+  let childCalls = 0
+  try {
+    const host = baseHost(async ({ prompt }) => {
+      childCalls++
+      const matches = [...prompt.matchAll(/\"path\":\"([^"]+)\"/g)].map((match) => match[1])
+      assert.equal(matches.length, 1)
+      return {
+        text: JSON.stringify([matches[0]]),
+        childSessionID: `child-${childCalls}`,
+        model: "test/fake",
+        deniedToolCount: 1,
+      }
+    })
+    const candidates = Array.from({ length: 8 }, (_, i) => `src/${i}.ts`)
+    const outcome = await executeRlmVerify(host, opts(root, sessionID, {
+      candidates, instruction: "Every candidate is an explicit safe exception for this synthetic budget test.", fanout: 8,
+    }))
+    const value = JSON.parse(outcome.output)
+    assert.deepEqual(value.removedPaths, candidates)
+    assert.deepEqual(value.keptPaths, [])
+    assert.equal(value.confirmation.partitionCount, 8)
+    assert.equal(childCalls, 16)
+    assert.equal(outcome.metadata.childCallCount, 16)
+    assert.equal(outcome.metadata.telemetry.child.calls, 16)
+  } finally {
+    forgetStructuredVerifySession(sessionID)
+    turnGovernor.evictSession(sessionID)
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test("settled confirmation failure preserves a provisionally removed candidate", async () => {
+  const root = await makeWorkspace("rlm-verify-confirm-fail-", { "a.ts": "a\n" })
+  const sessionID = `verify-confirm-fail-${Date.now()}`
+  let childCalls = 0
+  try {
+    const host = baseHost(async ({ prompt }) => {
+      childCalls++
+      if (prompt.includes("RLM_STRUCTURED_VERIFY_CONFIRM_V1")) throw new RlmError("CHILD_FAILED", "synthetic confirmation failure")
+      return { text: '["src/a.ts"]', childSessionID: `child-${childCalls}`, model: "test/fake", deniedToolCount: 1 }
+    })
+    const outcome = await executeRlmVerify(host, opts(root, sessionID, {
+      candidates: ["src/a.ts"], instruction: "Keep unless clearly safe.", fanout: 1, failureMode: "settled",
+    }))
+    const value = JSON.parse(outcome.output)
+    assert.deepEqual(value.keptPaths, ["src/a.ts"])
+    assert.deepEqual(value.removedPaths, [])
+    assert.deepEqual(value.confirmation, { schemaVersion: 1, policy: "independent_second_pass", provisionalRemovedCount: 1, partitionCount: 1 })
+    assert.equal(childCalls, 2)
+    assert.equal(outcome.metadata.childSuccessCount, 1)
+    assert.equal(outcome.metadata.childFailureCount, 1)
+    assert.equal(outcome.metadata.telemetry.operation.failedPartitions, 1)
+    assert.equal(outcome.metadata.telemetry.operation.provisionalRemovedCount, 1)
+    assert.equal(outcome.metadata.telemetry.operation.confirmationPartitionCount, 1)
+    assert.equal(value.partitionErrors[0].code, "CHILD_FAILED")
   } finally {
     forgetStructuredVerifySession(sessionID)
     turnGovernor.evictSession(sessionID)

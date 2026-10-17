@@ -48,6 +48,8 @@ export interface RlmTelemetryV1 {
     failedPartitions: number
     formatViolations: number
     outputLimitViolations: number
+    provisionalRemovedCount: number
+    confirmationPartitionCount: number
   }
   child: {
     calls: number

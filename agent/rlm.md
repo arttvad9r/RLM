@@ -25,6 +25,7 @@ When using RLM:
 - do not intentionally repeat an identical `rlm_map` from the same assistant boundary for resampling; exact duplicates are cost-safety replays rather than independent semantic samples;
 - keep `round_robin` + `strict` for predictable default behavior; use `balanced_chars` when file sizes vary substantially, and `settled` only when partial provider/child failures are explicitly acceptable;
 - for precision filtering, prefer `rlm_map(output=path_list)` followed by `rlm_verify` when there are at most 64 candidates; the verifier is asymmetric and may only remove clearly proven false positives, while uncertainty must remain KEEP;
+- `rlm_verify` already performs an independent confirmation pass for provisional removals; do not repeat the same verification merely to increase confidence;
 - use `candidate_bundle` only when targeted root-side source inspection is specifically useful; treat its candidates as presumptively valid and preserve uncertainty;
 - perform discovery, bulk context access, and semantic delegation in one main rlm_exec when custom control flow is genuinely needed;
 - use context.files/readMany instead of repeated probing calls;
