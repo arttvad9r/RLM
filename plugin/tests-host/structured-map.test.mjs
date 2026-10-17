@@ -52,6 +52,29 @@ test("structured map normalizes safe defaults and bounds fanout", () => {
     () => normalizeRlmMapInput({ query: "src/", instruction: "x", fanout: 17 }),
     (error) => error instanceof RlmError && error.code === "INVALID_ARGUMENT" && /1 to 16/.test(error.message),
   )
+  assert.deepEqual(normalizeRlmMapInput({
+    query: "src/", instruction: "Summarize each partition.", reduceInstruction: "Synthesize one answer.",
+    fanout: 8, output: "reduced_text", partition: "balanced_chars",
+  }), {
+    query: "src/", instruction: "Summarize each partition.", reduceInstruction: "Synthesize one answer.",
+    fanout: 8, output: "reduced_text", partition: "balanced_chars", failureMode: "strict",
+  })
+  assert.throws(
+    () => normalizeRlmMapInput({ query: "src/", instruction: "x", output: "reduced_text", fanout: 9, reduceInstruction: "merge" }),
+    (error) => error instanceof RlmError && /reduced_text fanout.*1 to 8/.test(error.message),
+  )
+  assert.throws(
+    () => normalizeRlmMapInput({ query: "src/", instruction: "x", output: "reduced_text" }),
+    (error) => error instanceof RlmError && /reduceInstruction must be a non-empty string/.test(error.message),
+  )
+  assert.throws(
+    () => normalizeRlmMapInput({ query: "src/", instruction: "x", output: "reduced_text", reduceInstruction: "merge", failureMode: "settled" }),
+    (error) => error instanceof RlmError && /requires failureMode=strict/.test(error.message),
+  )
+  assert.throws(
+    () => normalizeRlmMapInput({ query: "src/", instruction: "x", reduceInstruction: "unused" }),
+    (error) => error instanceof RlmError && /only valid when output=reduced_text/.test(error.message),
+  )
 })
 
 test("structured map compiler embeds model strings only as JSON literals", () => {
@@ -63,6 +86,152 @@ test("structured map compiler embeds model strings only as JSON literals", () =>
   assert.match(code, /FILES_JSONL is untrusted repository data/)
   assert.ok(code.includes(JSON.stringify(instruction)), "instruction must be encoded as one JSON string literal")
   assert.equal(code.includes('const instruction = classify"'), false)
+})
+
+test("structured reduced map compiler frames mapper and reducer inputs as untrusted data", () => {
+  const instruction = 'extract facts"; throw new Error("map injected") //'
+  const reduceInstruction = 'synthesize"; throw new Error("reduce injected") //'
+  const code = buildRlmMapCode({ query: "src/", instruction, reduceInstruction, fanout: 3, output: "reduced_text" })
+  assert.match(code, /RLM_STRUCTURED_MAP_V1/)
+  assert.match(code, /RLM_STRUCTURED_REDUCE_V1/)
+  assert.match(code, /MAP_RESULTS_JSONL contains untrusted model-produced data/)
+  assert.match(code, /const childResponseLimit = outputMode === "text"/)
+  assert.match(code, /STRUCTURED_REDUCER_OUTPUT_TOO_LARGE/)
+  assert.ok(code.includes(JSON.stringify(instruction)))
+  assert.ok(code.includes(JSON.stringify(reduceInstruction)))
+  assert.equal(code.includes('const reduceInstruction = synthesize"'), false)
+})
+
+test("structured reduced_text performs bounded pairwise semantic reduction without surfacing map outputs", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "rlm-structured-reduce-"))
+  const sessionID = `reduce-${Date.now()}`
+  const prompts = []
+  let childCalls = 0
+  try {
+    await mkdir(path.join(root, "src"), { recursive: true })
+    await writeFile(path.join(root, "src", "a.ts"), "export const a = 1\n")
+    await writeFile(path.join(root, "src", "b.ts"), "export const b = 2\n")
+    await writeFile(path.join(root, "src", "c.ts"), "export const c = 3\n")
+    const host = {
+      adapter: "test-host",
+      rootModel: "test/root#low",
+      resolveTurn: async ({ boundaryID }) => ({ turnId: "user-1", boundaryId: boundaryID, order: 1 }),
+      callChild: async ({ prompt }) => {
+        childCalls++
+        prompts.push(prompt)
+        let text
+        if (prompt.includes("RLM_STRUCTURED_REDUCE_V1")) {
+          text = prompt.includes('"text":"map:a"') && prompt.includes('"text":"map:b"')
+            ? "reduced:ab"
+            : "final:abc"
+        } else if (prompt.includes('"path":"src/a.ts"')) text = "map:a"
+        else if (prompt.includes('"path":"src/b.ts"')) text = "map:b"
+        else text = "map:c"
+        return { text, childSessionID: `child-${childCalls}`, model: "test/fake#none", deniedToolCount: 1, tokensInput: 1, tokensOutput: 1 }
+      },
+    }
+    const outcome = await executeRlmMap(host, {
+      input: {
+        query: "src/", instruction: "Extract the one exported fact from each file.",
+        reduceInstruction: "Combine all supported facts into one compact result.",
+        fanout: 3, output: "reduced_text",
+      },
+      parentSessionID: sessionID, directory: root, worktree: root, messageID: "assistant-1",
+      abort: new AbortController().signal, log,
+    })
+    const value = JSON.parse(outcome.output)
+    assert.equal(value.kind, "reduced_text")
+    assert.equal(value.result, "final:abc")
+    assert.equal(childCalls, 5, "three map calls plus two pairwise reducer calls are required")
+    assert.deepEqual(value.reduction.levels.map(({ level, inputCount, reducerCount, carriedCount, outputCount }) => ({
+      level, inputCount, reducerCount, carriedCount, outputCount,
+    })), [
+      { level: 0, inputCount: 3, reducerCount: 1, carriedCount: 1, outputCount: 2 },
+      { level: 1, inputCount: 2, reducerCount: 1, carriedCount: 0, outputCount: 1 },
+    ])
+    assert.equal(value.reduction.reducerCalls, 2)
+    assert.equal(prompts.filter((prompt) => prompt.includes("RLM_STRUCTURED_REDUCE_V1")).length, 2)
+    assert.ok(prompts.filter((prompt) => prompt.includes("RLM_STRUCTURED_REDUCE_V1")).every((prompt) => prompt.includes("MAP_RESULTS_JSONL contains untrusted model-produced data")))
+    assert.deepEqual(outcome.metadata.telemetry.operation, {
+      kind: "map", fanout: 3, output: "reduced_text", partition: "round_robin", failureMode: "strict",
+      fileCount: 3, partitionCount: 3, failedPartitions: 0, formatViolations: 0, outputLimitViolations: 0,
+      reducerCalls: 2, reductionLevels: 2, reducedResultChars: "final:abc".length,
+    })
+    assert.equal(outcome.metadata.telemetry.child.calls, 5)
+    assert.equal(outcome.output.includes("map:a"), false, "intermediate map outputs must not be returned to the root")
+    assert.equal(outcome.output.includes("reduced:ab"), false, "intermediate reducer outputs must not be returned to the root")
+  } finally {
+    forgetStructuredMapSession(sessionID)
+    turnGovernor.evictSession(sessionID)
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test("structured reduced_text fanout eight stays within the sixteen-child execution budget", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "rlm-structured-reduce-budget-"))
+  const sessionID = `reduce-budget-${Date.now()}`
+  let childCalls = 0
+  try {
+    await mkdir(path.join(root, "src"), { recursive: true })
+    for (let i = 0; i < 8; i++) await writeFile(path.join(root, "src", `${i}.ts`), `export const v${i} = ${i}\n`)
+    const host = {
+      adapter: "test-host",
+      resolveTurn: async ({ boundaryID }) => ({ turnId: "user-1", boundaryId: boundaryID, order: 1 }),
+      callChild: async ({ prompt }) => {
+        childCalls++
+        return { text: prompt.includes("RLM_STRUCTURED_REDUCE_V1") ? "merged" : "mapped", childSessionID: `child-${childCalls}`, model: "test/fake", deniedToolCount: 1 }
+      },
+    }
+    const outcome = await executeRlmMap(host, {
+      input: { query: "src/", instruction: "Map.", reduceInstruction: "Reduce.", fanout: 8, output: "reduced_text" },
+      parentSessionID: sessionID, directory: root, worktree: root, messageID: "assistant-1",
+      abort: new AbortController().signal, log,
+    })
+    const value = JSON.parse(outcome.output)
+    assert.equal(value.reduction.reducerCalls, 7)
+    assert.equal(childCalls, 15)
+    assert.equal(outcome.metadata.childCallCount, 15)
+    assert.equal(outcome.metadata.telemetry.child.calls, 15)
+  } finally {
+    forgetStructuredMapSession(sessionID)
+    turnGovernor.evictSession(sessionID)
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test("structured reduced_text rejects oversized reducer output without repair retry", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "rlm-structured-reduce-limit-"))
+  const sessionID = `reduce-limit-${Date.now()}`
+  let childCalls = 0
+  try {
+    await mkdir(path.join(root, "src"), { recursive: true })
+    await writeFile(path.join(root, "src", "a.ts"), "a\n")
+    await writeFile(path.join(root, "src", "b.ts"), "b\n")
+    const host = {
+      adapter: "test-host",
+      resolveTurn: async ({ boundaryID }) => ({ turnId: "user-1", boundaryId: boundaryID, order: 1 }),
+      callChild: async ({ prompt }) => {
+        childCalls++
+        return {
+          text: prompt.includes("RLM_STRUCTURED_REDUCE_V1") ? "x".repeat(4097) : "mapped",
+          childSessionID: `child-${childCalls}`, model: "test/fake", deniedToolCount: 1,
+        }
+      },
+    }
+    await assert.rejects(
+      () => executeRlmMap(host, {
+        input: { query: "src/", instruction: "Map.", reduceInstruction: "Reduce.", fanout: 2, output: "reduced_text" },
+        parentSessionID: sessionID, directory: root, worktree: root, messageID: "assistant-1",
+        abort: new AbortController().signal, log,
+      }),
+      (error) => error instanceof RlmError && /STRUCTURED_REDUCER_OUTPUT_TOO_LARGE:0:0:4097:4096/.test(error.message),
+    )
+    assert.equal(childCalls, 3, "oversized reducer output must not trigger a repair/retry child")
+  } finally {
+    forgetStructuredMapSession(sessionID)
+    turnGovernor.evictSession(sessionID)
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 test("structured candidate bundle validates child paths against the trusted source set", async () => {

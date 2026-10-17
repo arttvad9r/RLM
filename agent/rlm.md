@@ -22,8 +22,9 @@ Use `rlm_map` first for standard repository-wide semantic partition/map/merge wo
 
 When using RLM:
 - prefer one structured `rlm_map` call for ordinary file fan-out instead of generating orchestration JavaScript;
+- when the root needs one bounded synthesis rather than every partition result, prefer `rlm_map(output=reduced_text)` with a separate `reduceInstruction`; this keeps intermediate map outputs outside root context and uses a bounded pairwise reducer tree;
 - do not intentionally repeat an identical `rlm_map` from the same assistant boundary for resampling; exact duplicates are cost-safety replays rather than independent semantic samples;
-- keep `round_robin` + `strict` for predictable default behavior; use `balanced_chars` when file sizes vary substantially, and `settled` only when partial provider/child failures are explicitly acceptable;
+- keep `round_robin` + `strict` for predictable default behavior; use `balanced_chars` when file sizes vary substantially, and `settled` only when partial provider/child failures are explicitly acceptable; `reduced_text` is strict-only and limited to fanout 8;
 - for precision filtering, prefer `rlm_map(output=path_list)` followed by `rlm_verify` when there are at most 64 candidates; the verifier is asymmetric and may only remove clearly proven false positives, while uncertainty must remain KEEP;
 - `rlm_verify` already performs an independent confirmation pass for provisional removals; do not repeat the same verification merely to increase confidence;
 - use `candidate_bundle` only when targeted root-side source inspection is specifically useful; treat its candidates as presumptively valid and preserve uncertainty;

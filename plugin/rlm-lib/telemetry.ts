@@ -36,6 +36,9 @@ export interface RlmTelemetryV1 {
     formatViolations?: number
     outputLimitViolations?: number
     candidateSourceChars?: number
+    reducerCalls?: number
+    reductionLevels?: number
+    reducedResultChars?: number
   } | {
     kind: "verify"
     fanout: number

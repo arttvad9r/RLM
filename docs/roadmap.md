@@ -1,6 +1,6 @@
 # RLM roadmap
 
-Updated: 2026-10-17
+Updated: 2026-10-18
 
 This roadmap follows the ecosystem review in [`ecosystem-gap-analysis.md`](ecosystem-gap-analysis.md). It deliberately avoids feature-parity work with the official RLM runtime, DSPy.RLM and Prime Agent.
 
@@ -104,7 +104,7 @@ Desired primitives:
 - semantic map/classify/extract — implemented as the structured child map stage;
 - filter — path/candidate selection is implemented, broader typed filters remain future work;
 - deduplicate/sort — implemented for path outputs;
-- reduce/merge — deterministic path merge is implemented, generic semantic reduce remains future work;
+- reduce/merge — deterministic path merge plus bounded semantic reduction are implemented; `rlm_map(output=reduced_text)` keeps partition text inside RLM and combines it through a fixed pairwise reducer tree;
 - optional candidate verification — implemented as asymmetric `rlm_verify`: candidates are presumptively valid and children can only remove clearly proven false positives; root-side `candidate_bundle` verification remains available for targeted inspection.
 
 Design constraints:
@@ -118,6 +118,8 @@ Design constraints:
 Do not remove free-form JavaScript unless evidence shows the structured API can replace it across real coding tasks.
 
 Structured reliability hardening completed 2026-10-17 also includes deterministic `balanced_chars` partitioning, strict/settled child-failure modes, partition-local candidate validation, prompt-size preflight before inference, operation-specific child response bounds before parsing, no automatic model repair/retry for malformed output, a versioned host-validated result contract, bounded candidate-source handoff, and same-boundary exact-request duplicate suppression. The duplicate guard was added after DeepSeek V4.1 Flash repeated an identical structured call during a live benchmark. An intentional live regression then called the same two-way `rlm_map` twice inside one Code Mode execution and observed two nested map calls but only two child sessions, confirming that the second call reused the completed result. Raw `rlm_exec` is deliberately not deduplicated because it may have working-memory side effects.
+
+A bounded semantic reduce path was added 2026-10-18 as `rlm_map(output=reduced_text)`. It requires a separate reduce instruction, strict failure semantics, and map fanout at most 8. Mapper and reducer outputs are capped at 4,096 characters; intermediate mapper/reducer text never returns to the root. Reduction is a deterministic pairwise tree, so fanout 8 requires exactly 7 reducer calls and the complete map/reduce execution uses at most 15 child calls. Reducers treat map results as untrusted data, and the host validates the reduction topology/prompt-size evidence before returning the final result. A live OpenCode/DeepSeek smoke completed with two map children plus one reducer and the expected final synthesis. This is mechanics evidence only; quality/context-pressure benchmarking remains required before claiming semantic-reduce superiority over root-side synthesis.
 
 `balanced_chars` remains opt-in. On the frozen 96-file corpus it reduces deterministic four-way source-size skew from `1,102` characters to `84`, but the first valid DeepSeek samples were both perfect in quality and did not show a latency advantage for balanced partitioning. A four-way 384-file DeepSeek run exceeded the current 120-second execution ceiling, so provider throughput is treated as part of the workload rather than a reason to weaken the global safety timeout.
 

@@ -81,8 +81,9 @@ export default Plugin.define({
           properties: {
             query: { type: "string", description: "Repository file query passed to the bounded context.files API." },
             instruction: { type: "string", description: "Semantic instruction sent to each partition child. Include the exact required output contract." },
-            fanout: { type: "integer", minimum: 1, maximum: 16, default: 4, description: "Number of semantic partitions. Defaults to 4; host concurrency remains capped at 4." },
-            output: { type: "string", enum: ["text", "path_list", "candidate_bundle"], default: "text", description: "Deterministic merge mode for child outputs." },
+            reduceInstruction: { type: "string", description: "Required only for output=reduced_text. Semantic synthesis instruction for the bounded pairwise reducer tree." },
+            fanout: { type: "integer", minimum: 1, maximum: 16, default: 4, description: "Number of semantic partitions. Defaults to 4; host concurrency remains capped at 4. reduced_text is limited to fanout <= 8." },
+            output: { type: "string", enum: ["text", "path_list", "candidate_bundle", "reduced_text"], default: "text", description: "Structured result mode. reduced_text keeps partition outputs inside RLM and returns one bounded semantic synthesis." },
             partition: { type: "string", enum: ["round_robin", "balanced_chars"], default: "round_robin", description: "Deterministic partition strategy. balanced_chars reduces prompt-size skew for uneven files." },
             failureMode: { type: "string", enum: ["strict", "settled"], default: "strict", description: "strict rejects the whole map on child failure; settled preserves successful partitions and reports partitionErrors." },
           },

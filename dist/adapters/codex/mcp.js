@@ -60,8 +60,9 @@ server.registerTool("rlm_map", {
     inputSchema: {
         query: z.string().min(1).describe("Repository file query passed to the bounded context.files API."),
         instruction: z.string().min(1).describe("Semantic instruction sent to each partition child, including its exact output contract."),
-        fanout: z.number().int().min(1).max(MAX_SUBCALLS_TOTAL).optional().describe("Semantic partitions; defaults to 4. Runtime concurrency remains capped at 4."),
-        output: z.enum(["text", "path_list", "candidate_bundle"]).optional().describe("Deterministic merge mode; defaults to text."),
+        reduceInstruction: z.string().min(1).optional().describe("Required only for output=reduced_text. Semantic synthesis instruction for the bounded pairwise reducer tree."),
+        fanout: z.number().int().min(1).max(MAX_SUBCALLS_TOTAL).optional().describe("Semantic partitions; defaults to 4. Runtime concurrency remains capped at 4; reduced_text is limited to fanout <= 8."),
+        output: z.enum(["text", "path_list", "candidate_bundle", "reduced_text"]).optional().describe("Structured result mode; defaults to text. reduced_text returns one bounded semantic synthesis."),
         partition: z.enum(["round_robin", "balanced_chars"]).optional().describe("Deterministic partition strategy; defaults to round_robin."),
         failureMode: z.enum(["strict", "settled"]).optional().describe("Child failure semantics; defaults to strict."),
     },
@@ -70,12 +71,12 @@ server.registerTool("rlm_map", {
         destructiveHint: false,
         openWorldHint: true,
     },
-}, async ({ query, instruction, fanout, output, partition, failureMode }, extra) => {
+}, async ({ query, instruction, reduceInstruction, fanout, output, partition, failureMode }, extra) => {
     try {
         const context = parseCodexInvocationContext(extra._meta);
         const host = new CodexRlmHost(context);
         const outcome = await executeRlmMap(host, {
-            input: { query, instruction, fanout, output, partition, failureMode },
+            input: { query, instruction, reduceInstruction, fanout, output, partition, failureMode },
             parentSessionID: context.threadId,
             directory: context.workspaceRoot,
             worktree: context.workspaceRoot,
